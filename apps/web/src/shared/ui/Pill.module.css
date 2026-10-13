@@ -1,17 +1,25 @@
-.typeLabel{font-size:12px;display:inline-flex;align-items:center;align-self:start;color:var(--c-primary-deep);background:var(--c-soft);border:var(--border-subtle);padding:5px 10px;font-weight:var(--fw-bold);border-radius:var(--r-sm);line-height:1.4;white-space:nowrap}
+/* Badges (TypeLabel), tags, toggle pills (filters/segments) and removable chips. */
+.typeLabel{font-size:12px;display:inline-flex;align-items:center;gap:6px;align-self:start;color:var(--c-primary-ink);background:var(--c-primary-tint);border:1px solid var(--c-primary-tint-line);padding:4px 10px;font-weight:var(--fw-bold);border-radius:var(--r-pill);line-height:1.4;white-space:nowrap;letter-spacing:0}
 .mint{color:var(--c-accent-ink);background:var(--c-accent-tint);border-color:var(--c-accent-tint-line)}
 .warm{color:var(--c-warm-ink);background:var(--c-warm-tint);border-color:var(--c-warm-tint-line)}
 .ink{color:#fff;background:var(--c-ink);border-color:var(--c-ink)}
 .gray{color:var(--c-muted);background:var(--c-soft);border-color:var(--c-line-2)}
-.coral{color:#fff;background:var(--c-accent-warm);border-color:var(--c-accent-warm);letter-spacing:.08em;text-transform:uppercase;border-radius:var(--r-pill)}
-.coralSoft{color:var(--c-accent-warm);background:color-mix(in srgb,var(--c-accent-warm) 9%,transparent);border-color:color-mix(in srgb,var(--c-accent-warm) 35%,transparent);letter-spacing:.1em;text-transform:uppercase;border-radius:var(--r-pill)}
-.small{font-size:12px;padding:5px 9px}
-.tag{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--c-text);background:var(--c-soft);border:1px solid var(--c-line-2);padding:4px 10px;border-radius:var(--r-sm);line-height:1.5}
-.pill{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:var(--border-default);background:var(--c-paper);border-radius:var(--r-sm);min-height:40px;padding:8px 15px;font-size:13px;font-weight:var(--fw-bold);color:var(--c-text);transition:background-color var(--dur-fast),color var(--dur-fast),border-color var(--dur-fast);white-space:nowrap}
-.pill:hover{background:var(--c-soft)}
-.pill[aria-pressed="true"],.pill.on{background:var(--c-ink);color:#fff;border-color:var(--c-ink)}
-.pillSoft[aria-pressed="true"],.pillSoft.on{background:var(--c-soft);border-color:var(--c-primary);color:var(--c-primary-deep)}
-.pillSm{min-height:36px;padding:6px 12px;font-size:12px}
-.chip{display:inline-flex;align-items:center;gap:12px;max-width:100%;font-size:12px;background:var(--c-soft);border:1px solid var(--c-line);padding:8px 12px;min-height:38px;border-radius:var(--r-sm);color:var(--c-primary-deep)}
+.coral{color:#fff;background:var(--c-accent-warm);border-color:var(--c-accent-warm);letter-spacing:.06em}
+.coralSoft{color:var(--c-accent-warm);background:color-mix(in srgb,var(--c-accent-warm) 9%,transparent);border-color:color-mix(in srgb,var(--c-accent-warm) 35%,transparent);letter-spacing:.06em}
+.small{font-size:11.5px;padding:3px 9px}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--c-text);background:var(--c-soft);border:1px solid var(--c-line-2);padding:4px 10px;border-radius:var(--r-pill);line-height:1.5}
+/* toggle pill: selected = tinted primary with a check that slides in (shape never changes, so nothing shifts) */
+.pill{display:inline-flex;align-items:center;justify-content:center;gap:0;border:1px solid var(--c-line);background:var(--c-paper);border-radius:var(--r-pill);min-height:38px;padding:7px 16px;font-size:14px;font-weight:var(--fw-semibold);color:var(--c-text);white-space:nowrap;transition:background-color var(--dur-fast),color var(--dur-fast),border-color var(--dur-fast),box-shadow var(--dur-fast),padding var(--dur-base) var(--ease-emph)}
+.pill:hover:not(:disabled){border-color:color-mix(in srgb,var(--c-ink) 28%,var(--c-line));color:var(--c-ink)}
+.tick{display:inline-flex;width:0;opacity:0;overflow:hidden;transition:width var(--dur-base) var(--ease-emph),opacity var(--dur-fast),margin var(--dur-base) var(--ease-emph)}
+.pill[aria-pressed="true"],.pill.on{background:var(--c-primary-tint);color:var(--c-primary-ink);border-color:color-mix(in srgb,var(--c-primary) 45%,var(--c-paper));font-weight:var(--fw-bold)}
+.pill[aria-pressed="true"] .tick{width:14px;opacity:1;margin-right:6px}
+.pillSoft[aria-pressed="true"],.pillSoft.on{background:var(--c-ink);border-color:var(--c-ink);color:#fff}
+.pillSoft .tick{display:none}
+.pillSm{min-height:34px;padding:5px 13px;font-size:13px}
+.chip{display:inline-flex;align-items:center;gap:8px;max-width:100%;font-size:13px;font-weight:var(--fw-semibold);background:var(--c-primary-tint);border:1px solid var(--c-primary-tint-line);padding:5px 8px 5px 12px;min-height:32px;border-radius:var(--r-pill);color:var(--c-primary-ink);transition:background-color var(--dur-fast),border-color var(--dur-fast)}
 .chip span{overflow-wrap:anywhere}
-.chip:hover{background:var(--c-line-2)}
+.chip .x{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:color-mix(in srgb,var(--c-primary) 14%,transparent);transition:background-color var(--dur-fast),color var(--dur-fast)}
+.chip:hover{border-color:color-mix(in srgb,var(--c-primary) 45%,var(--c-paper))}
+.chip:hover .x{background:var(--c-primary);color:#fff}
+@media (prefers-reduced-motion: reduce){.tick{transition:none}}

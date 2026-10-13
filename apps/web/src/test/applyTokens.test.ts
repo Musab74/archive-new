@@ -32,9 +32,10 @@ describe('designToCssVars / applyTokens', () => {
   it('writes the variables on :root and sets layout data attributes', () => {
     applyTokens(DEFAULT_DESIGN);
     const root = document.documentElement;
-    expect(root.style.getPropertyValue('--c-primary')).toBe('#1f3a5f');
-    expect(root.style.getPropertyValue('--c-heading-band')).toBe('#e8dfd3'); // the hero ring taupe
-    expect(root.style.getPropertyValue('--c-accent-warm')).toBe('#cf3f27'); // the single coral accent
+    expect(root.style.getPropertyValue('--c-primary')).toBe('#3468d5'); // professional blue
+    expect(root.style.getPropertyValue('--c-ink')).toBe('#142544'); // primary navy
+    expect(root.style.getPropertyValue('--c-heading-band')).toBe('#f3f6fa'); // cool surface
+    expect(root.style.getPropertyValue('--c-accent-warm')).toBe('#c9472f'); // the single coral accent
     expect(root.getAttribute('data-design')).toBe('applied');
     expect(root.getAttribute('data-header')).toBe('standard');
     expect(root.getAttribute('data-hero')).toBe('visual-right');
@@ -55,7 +56,7 @@ describe('designToCssVars / applyTokens', () => {
     writeCachedDesign({ etag: 'W/"abc"', config: DEFAULT_DESIGN });
     const cached = readCachedDesign();
     expect(cached?.etag).toBe('W/"abc"');
-    expect(cached?.config.presetId).toBe('editorial-warm');
+    expect(cached?.config.presetId).toBe('ainex-premium');
     localStorage.setItem('design.v1', '{broken');
     expect(readCachedDesign()).toBeNull();
   });

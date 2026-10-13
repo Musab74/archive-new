@@ -1,34 +1,53 @@
-.card{min-width:0;background:var(--c-paper);border:var(--border-subtle);display:flex;flex-direction:column;border-radius:var(--r-md);overflow:hidden;position:relative;box-shadow:var(--shadow-card);transition:transform var(--dur-base) var(--ease-out),box-shadow var(--dur-base) var(--ease-out),border-color var(--dur-base)}
+/* Course card. --tone (set inline from the content type) tints the badge and the fallback tile only. */
+.card{min-width:0;position:relative;display:flex;flex-direction:column;background:var(--c-paper);border:1px solid var(--c-line-2);border-radius:var(--r-md);overflow:hidden;box-shadow:var(--shadow-card);transition:transform var(--dur-slow) var(--ease-emph),box-shadow var(--dur-slow) var(--ease-out),border-color var(--dur-base)}
 .card:hover{transform:translateY(-3px);box-shadow:var(--shadow-hover);border-color:var(--c-line)}
-.card:focus-within{box-shadow:0 0 0 3px color-mix(in srgb,var(--c-accent) 72%,transparent)}
-.thumbLink{display:block;color:inherit;position:relative}
-/* Placeholder thumbnails per content type, mixed from the theme so they follow the published palette. */
-.thumb{aspect-ratio:16/9;position:relative;padding:24px 21px;overflow:hidden;background:var(--c-soft);display:flex;flex-direction:column;justify-content:center;color:var(--c-primary-deep)}
-.thumb::after{content:'';position:absolute;width:110px;height:110px;border:1px solid color-mix(in srgb,currentColor 30%,transparent);border-radius:50%;right:-32px;bottom:-27px;pointer-events:none}
-.thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.thumb.X{background:var(--g-band-dark);color:#fff}
-.thumb.Y{background:var(--c-heading-band);color:var(--c-primary-deep)}
-.thumb.Z{background:color-mix(in srgb,var(--c-accent) 45%,var(--c-ink));color:#fff}
-.thumb.W{background:var(--c-accent-tint);color:var(--c-accent-ink)}
-.thumb.A{background:var(--c-warm-tint);color:var(--c-warm-ink)}
-.word{font-size:9px;letter-spacing:.12em;font-weight:var(--fw-black);margin-bottom:12px;position:relative;z-index:1}
-.sub{font-size:19px;line-height:1.4;letter-spacing:-.55px;position:relative;z-index:1;font-weight:var(--fw-black);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.play{position:absolute;right:13px;bottom:12px;border:1px solid currentColor;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;opacity:.75;z-index:1}
-.copy{padding:19px 19px 20px;display:flex;flex-direction:column;gap:10px;flex:1}
-.cat{font-size:12px;color:var(--c-primary);font-weight:var(--fw-bold);display:flex;justify-content:space-between;gap:5px}
-.title{padding:0;border:0;background:none;text-align:left;font-size:17px;font-weight:var(--fw-bold);letter-spacing:-.025em;line-height:1.5;color:var(--c-ink);min-height:51px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.title:hover{color:var(--c-primary)}
-.title::after{content:'';position:absolute;inset:0}
-.meta{display:flex;flex-wrap:wrap;gap:6px 10px;font-size:12px;color:var(--c-muted);line-height:1.6}
-.rating{font-size:12px;color:var(--c-muted);display:flex;gap:7px;flex-wrap:wrap;margin-top:auto;align-items:center}
-.star{color:#956b31}
-.like{position:absolute;top:10px;right:10px;z-index:2;width:36px;height:36px;border-radius:50%;background:color-mix(in srgb,var(--c-paper) 92%,transparent);color:var(--c-text);display:inline-flex;align-items:center;justify-content:center;border:1px solid color-mix(in srgb,var(--c-ink) 8%,transparent)}
-.like:hover{color:var(--c-accent-warm)}
+.card:focus-within{border-color:var(--c-primary);box-shadow:var(--ring),var(--shadow-card)}
+.media{position:relative;padding:8px 8px 0}
+.thumb{position:relative;aspect-ratio:16/9;overflow:hidden;border-radius:calc(var(--r-md) - 4px);background:var(--c-soft);isolation:isolate}
+.thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform var(--dur-enter) var(--ease-emph)}
+.card:hover .thumb img{transform:scale(1.045)}
+/* designed fallback tile: soft tone wash, faint grid, oversized line icon */
+.tile{display:flex;flex-direction:column;justify-content:flex-end;padding:18px 18px 16px;color:color-mix(in srgb,var(--tone) 70%,var(--c-ink));background:linear-gradient(140deg,color-mix(in srgb,var(--tone) 16%,var(--c-paper)) 0%,color-mix(in srgb,var(--tone) 6%,var(--c-paper)) 100%)}
+.tile::before{content:'';position:absolute;inset:0;z-index:-1;background-image:linear-gradient(color-mix(in srgb,var(--tone) 12%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--tone) 12%,transparent) 1px,transparent 1px);background-size:22px 22px;-webkit-mask-image:linear-gradient(200deg,#000 0%,transparent 70%);mask-image:linear-gradient(200deg,#000 0%,transparent 70%)}
+.tileIcon{position:absolute;right:14px;top:50%;transform:translateY(-58%) rotate(-8deg);color:color-mix(in srgb,var(--tone) 32%,transparent);transition:transform var(--dur-enter) var(--ease-emph)}
+.card:hover .tileIcon{transform:translateY(-62%) rotate(-2deg) scale(1.05)}
+.word{position:relative;font-size:10px;letter-spacing:.14em;font-weight:var(--fw-bold);opacity:.8;margin-bottom:4px}
+.sub{position:relative;font-size:19px;line-height:1.3;letter-spacing:-.03em;font-weight:var(--fw-bold);color:var(--c-ink);max-width:78%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.typeBadge{position:absolute;left:10px;top:10px;display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 9px 0 8px;border-radius:var(--r-pill);background:color-mix(in srgb,var(--c-paper) 92%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font-size:12px;font-weight:var(--fw-bold);color:var(--c-ink);box-shadow:var(--shadow-xs)}
+.typeBadge svg{color:var(--tone)}
+.duration{position:absolute;right:10px;bottom:10px;display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 8px;border-radius:6px;background:color-mix(in srgb,var(--c-primary-deep) 78%,transparent);color:#fff;font-size:12px;font-weight:var(--fw-semibold);font-variant-numeric:tabular-nums}
+.play{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;display:grid;place-items:center;padding-left:2px;background:color-mix(in srgb,var(--c-paper) 94%,transparent);color:var(--c-ink);box-shadow:var(--shadow-pop);opacity:0;transform:scale(.85);transition:opacity var(--dur-base) var(--ease-out),transform var(--dur-base) var(--ease-emph)}
+.card:hover .play{opacity:1;transform:scale(1)}
+.copy{padding:16px 18px 16px;display:flex;flex-direction:column;gap:8px;flex:1}
+.cat{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--c-muted);font-weight:var(--fw-semibold);min-width:0}
+.catText{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.flag{flex:none;font-size:11.5px;font-weight:var(--fw-bold);color:var(--c-accent-ink);background:var(--c-accent-tint);border-radius:var(--r-pill);padding:2px 8px}
+.title{font-size:16.5px;font-weight:var(--fw-bold);letter-spacing:-.025em;line-height:1.45;color:var(--c-ink);min-height:calc(1.45em * 2);text-decoration:none}
+.title span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;transition:color var(--dur-fast)}
+.card:hover .title span{color:var(--c-primary-ink)}
+.title::after{content:'';position:absolute;inset:0;z-index:1}
+.title:focus-visible{outline:none}
+.meta{display:flex;align-items:center;gap:12px;margin-top:auto;padding-top:10px;border-top:1px solid var(--c-line-2);font-size:13px;color:var(--c-muted)}
+.rating{display:inline-flex;align-items:center;gap:4px;color:var(--c-ink)}
+.rating b{font-weight:var(--fw-bold);font-variant-numeric:tabular-nums}
+.star{color:var(--c-star);fill:var(--c-star-fill)}
+.count{color:var(--c-muted);font-variant-numeric:tabular-nums}
+.views{display:inline-flex;align-items:center;gap:4px;font-variant-numeric:tabular-nums}
+.go{margin-left:auto;color:var(--c-primary);opacity:0;transform:translateX(-6px);transition:opacity var(--dur-base),transform var(--dur-base) var(--ease-emph)}
+.card:hover .go,.card:focus-within .go{opacity:1;transform:none}
+.like{position:absolute;top:18px;right:18px;z-index:2;width:36px;height:36px;border-radius:50%;background:color-mix(in srgb,var(--c-paper) 92%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:var(--c-text);display:inline-flex;align-items:center;justify-content:center;box-shadow:var(--shadow-xs);transition:color var(--dur-fast),transform var(--dur-fast) var(--ease-out)}
+.like:hover{color:var(--c-accent-warm);transform:scale(1.06)}
 .liked{color:var(--c-accent-warm)}
 .liked svg{fill:currentColor}
 .horizontal{flex-direction:row;align-items:stretch}
-.horizontal .thumbLink{width:200px;flex:none}
-.horizontal .thumb{height:100%;aspect-ratio:auto;padding:16px}
+.horizontal .media{width:220px;flex:none;padding:8px}
+.horizontal .thumb{height:100%;aspect-ratio:auto;min-height:120px}
 .horizontal .sub{font-size:15px}
-.horizontal .title{min-height:0;font-size:18px}
-@media (max-width:768px){.thumb{padding:20px 23px}.sub{font-size:18px}.copy{padding:16px 17px}.title{min-height:0}.horizontal{flex-direction:column}.horizontal .thumbLink{width:100%}.horizontal .thumb{aspect-ratio:16/9}}
+.horizontal .title{min-height:0;font-size:17px}
+.skeleton{box-shadow:none}
+.skeleton:hover{transform:none;box-shadow:none;border-color:var(--c-line-2)}
+.shimmer{display:block;border-radius:6px;background:linear-gradient(90deg,var(--c-skeleton) 0%,color-mix(in srgb,var(--c-skeleton) 40%,var(--c-paper)) 50%,var(--c-skeleton) 100%);background-size:200% 100%;animation:shimmer 1.4s ease-in-out infinite}
+@keyframes shimmer{from{background-position:100% 0}to{background-position:-100% 0}}
+@media (max-width:768px){.sub{font-size:18px}.copy{padding:14px 16px}.title{min-height:0}.horizontal{flex-direction:column}.horizontal .media{width:100%}.horizontal .thumb{aspect-ratio:16/9}.go{display:none}}
+@media (hover:none){.play{display:none}}
+@media (prefers-reduced-motion: reduce){.card:hover{transform:none}.card:hover .thumb img,.card:hover .tileIcon{transform:none}.shimmer{animation:none}}

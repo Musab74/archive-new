@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import styles from './ContentDetail.module.css';
@@ -11,6 +11,7 @@ import { Breadcrumb } from '../../shared/ui/Breadcrumb';
 import { LegacyHtml } from '../../shared/ui/LegacyHtml';
 import { Button } from '../../shared/ui/Button';
 import { Icon } from '../../shared/ui/Icon';
+import { contentTypeStyle } from '../../shared/ui/ContentCard';
 import { TypeLabel, Tag } from '../../shared/ui/Pill';
 import { Tabs } from '../../shared/ui/Tabs';
 import { Skeleton } from '../../shared/ui/Skeleton';
@@ -124,8 +125,8 @@ export default function ContentDetail() {
           </div>
           {c.keywords.length ? <div className={styles.keywords}>{c.keywords.map((k) => <Tag key={k}>#{k}</Tag>)}</div> : null}
         </div>
-        <div className={styles.poster}>
-          {c.thumbnailUrl ? <img src={c.thumbnailUrl} alt="" /> : <><small>{typeLabel(c.ctype).toUpperCase()}</small><strong>{c.title}</strong></>}
+        <div className={cx(styles.poster, !c.thumbnailUrl && styles.posterTile)} style={{ '--tone': contentTypeStyle(c.ctype).tone } as CSSProperties}>
+          {c.thumbnailUrl ? <img src={c.thumbnailUrl} alt="" /> : <><span className={styles.posterIcon} aria-hidden="true"><Icon name={contentTypeStyle(c.ctype).icon} size={120} strokeWidth={1} /></span><small><Icon name={contentTypeStyle(c.ctype).icon} size={14} />{typeLabel(c.ctype)}</small><strong>{c.title}</strong></>}
           {c.previewUrl ? <a className={styles.previewBtn} href={c.previewUrl} target="_blank" rel="noopener noreferrer"><Icon name="play" size={14} /> {copy.preview}</a> : null}
         </div>
       </section>

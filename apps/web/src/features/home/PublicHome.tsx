@@ -21,6 +21,7 @@ import { competencies, home as copy, jobFields, nav, type CompetencyKey } from '
 import { useReveal, useRevealChild } from '../../shared/motion/useReveal';
 import { EditorialHero, type HeroArea } from './editorial/EditorialHero';
 import { IntroBand, type IntroStep } from './editorial/IntroBand';
+import { JourneyBand, type JourneyStep } from './editorial/JourneyBand';
 import { ContentTabs } from './editorial/ContentTabs';
 import { CtaBand } from './editorial/CtaBand';
 import type { StatItem } from './editorial/HeroStats';
@@ -96,26 +97,6 @@ function BrowseSection() {
   );
 }
 
-function JourneySection() {
-  const reveal = useReveal();
-  const child = useRevealChild();
-  return (
-    <section className={`band ${styles.journey}`} aria-label={copy.journey.label}>
-      <div>
-        <span className={styles.jlabel}>{copy.journey.label}</span>
-        <h2>{copy.journey.title}</h2>
-        <p>{copy.journey.lead}</p>
-        <div className="action-row"><Button variant="ghost" square size="sm" to="/support/guide" iconRight={<Icon name="arrow" size={15} />}>{copy.journey.cta}</Button></div>
-      </div>
-      <motion.div className={styles.steps} {...reveal}>
-        {copy.journey.steps.map((s, i) => (
-          <motion.div key={s.n} className={styles.step} {...child} custom={i}><b>{s.n}</b><div><strong>{s.title}</strong><span>{s.desc}</span></div></motion.div>
-        ))}
-      </motion.div>
-    </section>
-  );
-}
-
 function ConsultingSection({ showFaq }: { showFaq: boolean }) {
   return (
     <Section>
@@ -155,7 +136,7 @@ function HomeHero({ isAuthed, title, siteName }: { isAuthed: boolean; title: str
       lead={copy.heroLead}
       cta={{ label: copy.heroCta, to: '/catalog' }}
       secondary={isAuthed ? { label: nav.myRoom, to: '/home' } : { label: copy.heroLogin, to: '/auth/login' }}
-      areas={{ label: e.areas.label, all: e.areas.all, items: e.areas.items as HeroArea[] }}
+      areas={{ ...e.areas, items: e.areas.items as HeroArea[] }}
       stats={items}
       statsLabel={`${siteName} ${e.stats.aria}`}
     />
@@ -192,7 +173,7 @@ export default function PublicHome() {
       case 'operatingTypes': return <Section key={key} num={copy.modes.num} title={copy.modes.title} lead={copy.modes.lead}><OperatingTypeCards /></Section>;
       case 'featured': return <FeaturedSection key={key} />;
       case 'competencyBrowse': return <BrowseSection key={key} />;
-      case 'journey': return <JourneySection key={key} />;
+      case 'journey': return <JourneyBand key={key} label={copy.journey.eyebrow} title={copy.journey.title} lead={copy.journey.lead} cta={{ label: copy.journey.cta, to: '/support/guide' }} steps={copy.journey.steps as JourneyStep[]} />;
       case 'axis': return <AxisPromo key={key} variant="main" />;
       case 'consulting': return <ConsultingSection key={key} showFaq={faqVisible} />;
       case 'faq': return null; // rendered inside the consulting row (storyboard layout)

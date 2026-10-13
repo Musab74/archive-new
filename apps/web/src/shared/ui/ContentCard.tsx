@@ -1,8 +1,9 @@
+import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import type { CourseCard } from '@ainex/contracts';
 import styles from './ContentCard.module.css';
 import { cx, formatMinutes, formatNumber, typeLabel } from '../utils/format';
-import { Icon } from './Icon';
+import { Icon, type IconName } from './Icon';
 import { catalog as catalogCopy, common } from '../strings/ko';
 
 export interface ContentCardProps {
@@ -18,40 +19,58 @@ export interface ContentCardProps {
   badge?: string;
 }
 
+/** Content type → icon + support-palette tone (thumbnail badge and the designed fallback tile). */
+export const TYPE_STYLE: Record<string, { icon: IconName; tone: string }> = {
+  X: { icon: 'monitor', tone: 'var(--cat-blue)' },
+  Y: { icon: 'bolt', tone: 'var(--cat-teal)' },
+  Z: { icon: 'shorts', tone: 'var(--cat-coral)' },
+  W: { icon: 'book', tone: 'var(--cat-violet)' },
+  A: { icon: 'layers', tone: 'var(--cat-indigo)' },
+};
+
+export const contentTypeStyle = (ctype: string) => TYPE_STYLE[ctype] ?? TYPE_STYLE.Y!;
+
 /**
- * Catalog card (storyboard `.content-card`): 16:9 thumbnail (image or typed colour tile), category line,
- * title, type · minutes, rating (★ 4.7 (38) | 평점 없음), 조회 n, optional like toggle.
+ * Catalog card: 16:9 thumbnail (real image, or a designed tile tinted by content type) with type + duration badges,
+ * category line, 2-line title, rating · views. The title link covers the card; the like toggle sits above it.
  */
 export function ContentCard({ course, onLike, showLike = !!onLike, horizontal, word, sub, className, badge }: ContentCardProps) {
   const to = `/courses/${encodeURIComponent(course.lectureCode)}`;
   const type = typeLabel(course.ctype);
   const liked = !!course.liked;
-  const tone = ['X', 'Y', 'Z', 'W', 'A'].includes(course.ctype) ? course.ctype : 'Y';
+  const ts = contentTypeStyle(course.ctype);
+  const flag = badge ?? (course.serviceType === 'public' ? common.preview : null);
+  const category = [course.category1, course.category2].filter(Boolean).join(' · ') || type;
   return (
-    <article className={cx(styles.card, horizontal && styles.horizontal, className)}>
-      <Link to={to} className={styles.thumbLink} aria-label={catalogCopy.detailView(course.title)} tabIndex={-1}>
-        <div className={cx(styles.thumb, styles[tone as keyof typeof styles])}>
-          {course.thumbnailUrl ? <img src={course.thumbnailUrl} alt="" loading="lazy" /> : (
+    <article className={cx(styles.card, horizontal && styles.horizontal, className)} style={{ '--tone': ts.tone } as CSSProperties}>
+      <div className={styles.media}>
+        <div className={cx(styles.thumb, !course.thumbnailUrl && styles.tile)}>
+          {course.thumbnailUrl ? <img src={course.thumbnailUrl} alt="" loading="lazy" decoding="async" /> : (
             <>
-              <small className={styles.word}>{(word ?? type).toUpperCase()}</small>
-              <strong className={styles.sub}>{sub ?? course.keywords?.[0] ?? course.category1 ?? ''}</strong>
+              <span className={styles.tileIcon} aria-hidden="true"><Icon name={ts.icon} size={64} strokeWidth={1.25} /></span>
+              {word ? <small className={styles.word}>{word.toUpperCase()}</small> : null}
+              <strong className={styles.sub}>{sub ?? course.keywords?.[0] ?? course.category2 ?? course.category1 ?? ''}</strong>
             </>
           )}
-          <span className={styles.play} aria-hidden="true"><Icon name="play" size={10} /></span>
+          <span className={styles.typeBadge}><Icon name={ts.icon} size={13} />{type}</span>
+          {course.minutes > 0 ? <span className={styles.duration}><Icon name="clock" size={12} />{formatMinutes(course.minutes)}</span> : null}
+          <span className={styles.play} aria-hidden="true"><Icon name="play" size={16} /></span>
         </div>
-      </Link>
+      </div>
       {showLike ? (
         <button type="button" className={cx(styles.like, liked && styles.liked)} aria-pressed={liked} aria-label={liked ? catalogCopy.unlike : catalogCopy.like} onClick={() => onLike?.(course, !liked)}>
-          <Icon name="heart" size={18} />
+          <Icon name="heart" size={17} />
         </button>
       ) : null}
       <div className={styles.copy}>
-        <div className={styles.cat}><span>{course.category1 ?? type}</span><span>{badge ?? (course.serviceType === 'public' ? common.preview : course.category2 ?? '')}</span></div>
-        <Link to={to} className={styles.title}>{course.title}</Link>
-        <div className={styles.meta}><span>{type}</span><span>{formatMinutes(course.minutes)}</span></div>
-        <div className={styles.rating}>
-          {course.rating != null && course.ratingCount > 0 ? <span><span className={styles.star} aria-hidden="true">★</span><span className="sr-only">평점 </span> {course.rating.toFixed(1)} ({formatNumber(course.ratingCount)})</span> : <span>{common.noRating}</span>}
-          <span>{common.views} {formatNumber(course.viewCount)}</span>
+        <div className={styles.cat}><span className={styles.catText}>{category}</span>{flag ? <span className={styles.flag}>{flag}</span> : null}</div>
+        <Link to={to} className={styles.title} aria-label={catalogCopy.detailView(course.title)}><span>{course.title}</span></Link>
+        <div className={styles.meta}>
+          {course.rating != null && course.ratingCount > 0
+            ? <span className={styles.rating}><Icon name="star" size={14} className={styles.star} /><b>{course.rating.toFixed(1)}</b><span className={styles.count}>({formatNumber(course.ratingCount)})</span><span className="sr-only">평점</span></span>
+            : <span className={styles.count}>{common.noRating}</span>}
+          <span className={styles.views}><Icon name="eye" size={14} />{common.views} {formatNumber(course.viewCount)}</span>
+          <span className={styles.go} aria-hidden="true"><Icon name="arrow" size={16} /></span>
         </div>
       </div>
     </article>
@@ -60,12 +79,13 @@ export function ContentCard({ course, onLike, showLike = !!onLike, horizontal, w
 
 export function ContentCardSkeleton({ horizontal }: { horizontal?: boolean }) {
   return (
-    <div className={cx(styles.card, horizontal && styles.horizontal)} aria-hidden="true">
-      <div className={styles.thumbLink}><div className={styles.thumb} style={{ background: '#eef1f5' }} /></div>
+    <div className={cx(styles.card, styles.skeleton, horizontal && styles.horizontal)} aria-hidden="true">
+      <div className={styles.media}><div className={cx(styles.thumb, styles.shimmer)} /></div>
       <div className={styles.copy}>
-        <span style={{ height: 12, width: '40%', background: '#eef1f5', borderRadius: 4 }} />
-        <span style={{ height: 44, background: '#eef1f5', borderRadius: 4 }} />
-        <span style={{ height: 12, width: '55%', background: '#eef1f5', borderRadius: 4 }} />
+        <span className={styles.shimmer} style={{ height: 12, width: '42%' }} />
+        <span className={styles.shimmer} style={{ height: 18, width: '92%' }} />
+        <span className={styles.shimmer} style={{ height: 18, width: '64%' }} />
+        <span className={styles.shimmer} style={{ height: 12, width: '50%', marginTop: 8 }} />
       </div>
     </div>
   );

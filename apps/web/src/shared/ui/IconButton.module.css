@@ -1,6 +1,8 @@
-.btn{display:inline-flex;align-items:center;justify-content:center;background:var(--c-paper);border:1px solid var(--c-line-2);width:44px;height:44px;border-radius:50%;padding:10px;color:var(--c-text);flex:none;transition:background-color var(--dur-fast),color var(--dur-fast)}
-.btn:hover:not(:disabled){background:var(--c-soft);color:var(--c-primary)}
-.sm{width:36px;height:36px;padding:7px}
+.btn{display:inline-flex;align-items:center;justify-content:center;background:var(--c-paper);border:1px solid var(--c-line-2);width:42px;height:42px;border-radius:50%;padding:0;color:var(--c-ink);flex:none;transition:background-color var(--dur-fast),color var(--dur-fast),border-color var(--dur-fast),transform var(--dur-fast) var(--ease-out)}
+.btn:hover:not(:disabled){background:var(--c-soft);border-color:var(--c-line);color:var(--c-primary)}
+.btn:active:not(:disabled){transform:scale(.96)}
+.sm{width:36px;height:36px}
 .lg{width:52px;height:52px}
 .plain{border-color:transparent;background:transparent}
+.plain:hover:not(:disabled){background:var(--c-hover);border-color:transparent}
 .active{background:var(--c-ink);color:#fff;border-color:var(--c-ink)}

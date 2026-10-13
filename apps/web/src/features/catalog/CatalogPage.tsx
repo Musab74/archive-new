@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CourseCard } from '@ainex/contracts';
@@ -8,8 +8,11 @@ import { catalogApi, type CoursePage } from '../../shared/api/endpoints/catalog'
 import { useSession } from '../../shared/auth/useSession';
 import { useToast } from '../../app/providers/ToastProvider';
 import { Breadcrumb } from '../../shared/ui/Breadcrumb';
+import { Icon } from '../../shared/ui/Icon';
 import { TypeLabel } from '../../shared/ui/Pill';
 import { Button } from '../../shared/ui/Button';
+import { AppSelect } from '../../shared/ui/AppSelect';
+import { SearchField } from '../../shared/ui/SearchField';
 import { FilterSidebar, FilterSheet, SelectedFilters, type FilterOption, type FilterValue } from '../../shared/ui/FilterSidebar';
 import { ContentCard, ContentCardSkeleton } from '../../shared/ui/ContentCard';
 import { Pagination } from '../../shared/ui/Pagination';
@@ -27,7 +30,6 @@ export default function CatalogPage() {
   const { config } = useDesign();
   const { toast } = useToast();
   const qc = useQueryClient();
-  const searchRef = useRef<HTMLInputElement>(null);
 
   const update = useCallback((patch: Partial<CatalogParams>, resetPage = true) => {
     const next = { ...params, ...patch, page: resetPage ? 1 : (patch.page ?? params.page) };
@@ -78,11 +80,6 @@ export default function CatalogPage() {
     ...(params.q ? [{ key: 'q', label: `“${params.q}”`, onRemove: () => update({ q: '' }) }] : []),
   ];
 
-  const onSearch = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    update({ q: (searchRef.current?.value ?? '').trim() });
-  };
-
   const data = list.data;
   const sortOptions = [...copy.sorts, ...(params.q ? [{ value: 'relevance', label: copy.relevance }] : [])];
   const crumbs = [{ label: isAuthed ? copy.crumbHome : nav.archive, to: isAuthed ? '/home' : '/' }, { label: copy.crumb }];
@@ -90,53 +87,55 @@ export default function CatalogPage() {
   return (
     <div>
       <section className={`band ${styles.title}`}>
-        <Breadcrumb items={crumbs} />
-        <h1>{copy.title}</h1>
-        <p>{copy.lead}</p>
-        {isAuthed ? (
-          <div className={styles.scope}>
-            <TypeLabel small>{config.branding.siteName}</TypeLabel>
-            <Button variant="text" size="xs" to="/my/profile">{nav.myRoom} · 회원·이용정보</Button>
+        <div className={styles.titleRow}>
+          <div>
+            <Breadcrumb items={crumbs} />
+            <h1>{copy.title}</h1>
+            <p>{copy.lead}</p>
+            {isAuthed ? (
+              <div className={styles.scope}>
+                <TypeLabel small>{config.branding.siteName}</TypeLabel>
+                <Button variant="text" size="xs" to="/my/profile">{nav.myRoom} · 회원·이용정보</Button>
+              </div>
+            ) : null}
           </div>
-        ) : null}
+        </div>
+        <SearchField key={params.q} id="catalog-q" size="lg" label={copy.searchLabel} placeholder={copy.searchPlaceholder} submitLabel={copy.search} clearLabel={nav.clearSearch}
+          defaultValue={params.q} loading={list.isFetching && !list.isPending} onSearch={(q) => update({ q })} onClear={() => { if (params.q) update({ q: '' }); }} formClassName={styles.search} />
       </section>
       <div className={styles.body}>
         <FilterSidebar value={filterValue} onChange={onFilter} fields={fields} types={TYPE_OPTIONS} />
         <div className={styles.main}>
-          <form className={styles.search} role="search" onSubmit={onSearch}>
-            <label className="sr-only" htmlFor="catalog-q">{copy.searchLabel}</label>
-            <input id="catalog-q" ref={searchRef} key={params.q} defaultValue={params.q} type="search" placeholder={copy.searchPlaceholder} autoComplete="off" />
-            <button type="submit">{copy.search}</button>
-          </form>
-          <div className={styles.mobileFilter}>
-            <FilterSheet value={filterValue} onChange={onFilter} fields={fields} types={TYPE_OPTIONS} activeCount={activeFilterCount(params)} />
+          <div className={styles.toolbar}>
+            <div className={styles.summary}>
+              <span className={styles.resultsLabel}>{params.q ? copy.results : copy.crumb}</span>
+              <p className={styles.count} aria-live="polite">{list.isPending ? copy.counting : data ? copy.count(data.total) : null}</p>
+            </div>
+            <div className={styles.controls}>
+              <div className={styles.mobileFilter}>
+                <FilterSheet value={filterValue} onChange={onFilter} fields={fields} types={TYPE_OPTIONS} activeCount={activeFilterCount(params)} />
+              </div>
+              <AppSelect className={styles.sort} size="sm" icon="sort" prefix={copy.sortPrefix} aria-label={copy.sort} align="end"
+                value={params.sort} onValueChange={(v) => update({ sort: v as CatalogParams['sort'] })} options={sortOptions} />
+            </div>
           </div>
           <SelectedFilters chips={chips} onClear={() => setSp(serializeCatalogParams(DEFAULT_CATALOG_PARAMS))} />
-          <div className={styles.toolbar}>
-            <p className={styles.count} aria-live="polite">{list.isPending ? copy.counting : data ? <>{copy.count(data.total)}</> : null}</p>
-            <label className={styles.sort}>
-              <span className="sr-only">{copy.sort}</span>
-              <select value={params.sort} onChange={(e) => update({ sort: e.target.value as CatalogParams['sort'] })}>
-                {sortOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </label>
-          </div>
 
           {list.isError ? (
             <StateBlock code="LIST_ERROR" center title={copy.error.title} body={copy.error.body} onRetry={() => void list.refetch()} />
           ) : list.isPending ? (
             <div className={styles.grid} aria-busy="true">{Array.from({ length: 6 }).map((_, i) => <ContentCardSkeleton key={i} />)}</div>
           ) : !data || data.items.length === 0 ? (
-            <StateBlock code="EMPTY" center title={copy.empty.title} body={copy.empty.body} actions={<Button variant="secondary" square size="sm" onClick={() => setSp(serializeCatalogParams(DEFAULT_CATALOG_PARAMS))}>{copy.empty.action}</Button>} />
+            <StateBlock code="EMPTY" center title={copy.empty.title} body={copy.empty.body} actions={<Button variant="secondary" size="sm" onClick={() => setSp(serializeCatalogParams(DEFAULT_CATALOG_PARAMS))}>{copy.empty.action}</Button>} />
           ) : (
             <>
-              <div className={styles.grid} aria-busy={list.isFetching}>
+              <div className={styles.grid} aria-busy={list.isFetching} data-fetching={list.isFetching || undefined}>
                 {data.items.map((c) => <ContentCard key={c.lectureCode} course={c} showLike={isAuthed} onLike={(course, liked) => like.mutate({ course, liked })} />)}
               </div>
               <Pagination page={params.page} total={data.total} size={data.size || CATALOG_PAGE_SIZE} onChange={(p) => update({ page: p }, false)} label={copy.title} />
             </>
           )}
-          <p className={styles.help}>{copy.help}</p>
+          <p className={styles.help}><Icon name="info" size={14} />{copy.help}</p>
         </div>
       </div>
     </div>

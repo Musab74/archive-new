@@ -18,5 +18,5 @@
 .time{font-size:12px;font-variant-numeric:tabular-nums;opacity:.9;margin:0 4px;white-space:nowrap}
 .seek{flex:1;min-width:120px;accent-color:var(--c-accent);height:28px}
 .volume{width:84px;accent-color:var(--c-accent);height:28px}
-.speed select{height:32px;border-radius:6px;border:1px solid rgba(255,255,255,.3);background:#0b1220;color:#fff;font-size:12px;padding:0 6px}
+.speed{width:86px;height:32px;font-size:13px}
 @media (max-width:768px){.controls{gap:2px;padding:6px}.volume{display:none}.time{font-size:11px}}

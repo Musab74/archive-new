@@ -39,7 +39,7 @@ export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPr
     <>
       {icon}
       {children}
-      {iconRight}
+      {iconRight ? <span className={styles.trail} aria-hidden="true">{iconRight}</span> : null}
       {loading ? <span className={styles.spinner} aria-hidden="true"><span /></span> : null}
     </>
   );
@@ -54,7 +54,7 @@ export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPr
       <a ref={ref as React.Ref<HTMLAnchorElement>} href={href} className={cls} target={external ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined} aria-busy={loading || undefined} {...rest}>
         {icon}
         {children}
-        {external ? <><span className={styles.ext} aria-hidden="true">↗</span><span className="sr-only"> ({common.external})</span></> : iconRight}
+        {external ? <><span className={styles.ext} aria-hidden="true"><Icon name="arrow-up-right" size={15} /></span><span className="sr-only"> ({common.external})</span></> : iconRight ? <span className={styles.trail} aria-hidden="true">{iconRight}</span> : null}
         {loading ? <span className={styles.spinner} aria-hidden="true"><span /></span> : null}
       </a>
     );

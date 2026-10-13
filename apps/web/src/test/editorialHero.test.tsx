@@ -5,7 +5,7 @@ import { MotionConfig } from 'framer-motion';
 import { EditorialHero, type HeroArea } from '../features/home/editorial/EditorialHero';
 import { home } from '../shared/strings/ko';
 
-const areas = { label: home.editorial.areas.label, all: home.editorial.areas.all, items: home.editorial.areas.items as HeroArea[] };
+const areas = { ...home.editorial.areas, items: home.editorial.areas.items as HeroArea[] };
 const stats = [
   { key: 'courses', value: 1240, unit: '개', caption: '공개 콘텐츠' },
   { key: 'categories', value: 48, unit: '개', caption: '세부 분야' },
@@ -28,7 +28,8 @@ describe('EditorialHero', () => {
     mount();
     const h1 = screen.getByRole('heading', { level: 1 });
     expect(h1).toHaveTextContent('필요한 배움을,필요한 순간에.');
-    expect(h1.querySelectorAll('span')).toHaveLength(2);
+    expect(h1.children).toHaveLength(2); // one block per line (the tagline breaks after its comma)
+    expect(h1.children[1]!.querySelector('svg')).not.toBeNull(); // the last line carries the drawn underline
     expect(screen.getByRole('link', { name: /콘텐츠 둘러보기/ })).toHaveAttribute('href', '/catalog');
     expect(screen.getByRole('link', { name: '로그인' })).toHaveAttribute('href', '/auth/login');
     expect(screen.getByRole('group', { name: '공개 콘텐츠 1,240개' })).toBeInTheDocument();

@@ -48,8 +48,8 @@ export default function MySaved() {
       <section className={`${styles.card} ${styles.soft}`}><h2 style={{ whiteSpace: 'pre-line', fontSize: 20 }}>{c.heroTitle}</h2><p className={styles.note} style={{ fontSize: 13 }}>{c.heroBody}</p></section>
       <div className={styles.filters}>
         <label style={{ flex: 1, minWidth: 200 }}>{c.search}<input type="search" value={q} placeholder={c.search} onChange={(e) => setQ(e.target.value)} /></label>
-        <label>{c.type}<Select value={type} placeholder={copy.company.types[0]} options={['X', 'Y', 'Z'].map((k) => ({ value: k, label: contentType[k] ?? k }))} onChange={(e) => setType(e.target.value)} /></label>
-        <label>{c.sort}<Select value={sort} options={[{ value: 'recent', label: c.sortRecent }, { value: 'title', label: c.sortTitle }]} onChange={(e) => setSort(e.target.value as 'recent' | 'title')} /></label>
+        <label>{c.type}<Select value={type} placeholder={copy.company.types[0]} options={['X', 'Y', 'Z'].map((k) => ({ value: k, label: contentType[k] ?? k }))} onValueChange={setType} /></label>
+        <label>{c.sort}<Select value={sort} options={[{ value: 'recent', label: c.sortRecent }, { value: 'title', label: c.sortTitle }]} onValueChange={(v) => setSort(v as 'recent' | 'title')} /></label>
       </div>
       {list.isPending ? <Skeleton lines={5} /> : list.isError ? <StateBlock code="LIST_ERROR" title={c.errorTitle} body={c.errorBody} onRetry={() => void list.refetch()} /> : items.length === 0 ? (
         <StateBlock code="EMPTY" symbol="heart" title={filtered ? c.emptyFilteredTitle : c.emptyTitle} body={filtered ? c.emptyFilteredBody : c.emptyBody} actions={filtered ? <Button square size="sm" onClick={() => { setQ(''); setType(''); }}>{copy.records.reset}</Button> : <Button square size="sm" to="/catalog">{learnHome.browse}</Button>} />

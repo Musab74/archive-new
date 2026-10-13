@@ -71,8 +71,8 @@ function RoadmapGenerator() {
             <Textarea id="rm-goal" value={goal} onChange={(e) => setGoal(e.target.value)} placeholder={copy.generator.goalPlaceholder} maxLength={500} required />
           </FormField>
           <div className={styles.genRow}>
-            <FormField label={copy.generator.field} htmlFor="rm-field"><Select id="rm-field" value={field} onChange={(e) => setField(e.target.value)} placeholder={catalogCopy.allTypes} options={jobFields.map((f) => ({ value: f, label: f }))} /></FormField>
-            <FormField label={copy.generator.level} htmlFor="rm-level"><Select id="rm-level" value={level} onChange={(e) => setLevel(e.target.value)} options={copy.generator.levels} /></FormField>
+            <FormField label={copy.generator.field} htmlFor="rm-field"><Select id="rm-field" value={field} onValueChange={setField} placeholder={catalogCopy.allTypes} options={jobFields.map((f) => ({ value: f, label: f }))} /></FormField>
+            <FormField label={copy.generator.level} htmlFor="rm-level"><Select id="rm-level" value={level} onValueChange={setLevel} options={copy.generator.levels} /></FormField>
           </div>
           <FormMessage>{error}</FormMessage>
           {!isAuthed ? <FormMessage tone="ok">{copy.generator.loginNeeded}</FormMessage> : null}

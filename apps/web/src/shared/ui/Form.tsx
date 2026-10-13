@@ -1,7 +1,8 @@
-import { forwardRef, useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes, type ButtonHTMLAttributes } from 'react';
+import { forwardRef, useId, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes, type ButtonHTMLAttributes } from 'react';
 import styles from './Form.module.css';
 import { cx } from '../utils/format';
 import { common } from '../strings/ko';
+import { AppSelect, type AppSelectProps } from './AppSelect';
 
 export interface FormFieldProps { label: ReactNode; required?: boolean; optional?: boolean; help?: ReactNode; error?: ReactNode; htmlFor?: string; children: ReactNode; className?: string; action?: ReactNode }
 
@@ -31,15 +32,15 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
   return <textarea ref={ref} className={cx(styles.input, styles.textarea, className)} aria-invalid={invalid || undefined} {...rest} />;
 });
 
-export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> { invalid?: boolean; options: { value: string; label: string; disabled?: boolean }[]; placeholder?: string }
-export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select({ invalid, className, options, placeholder, ...rest }, ref) {
-  return (
-    <select ref={ref} className={cx(styles.input, styles.select, className)} aria-invalid={invalid || undefined} {...rest}>
-      {placeholder ? <option value="">{placeholder}</option> : null}
-      {options.map((o) => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>)}
-    </select>
-  );
-});
+export interface SelectProps extends Omit<AppSelectProps, 'options'> { options: { value: string; label: string; disabled?: boolean }[] }
+/**
+ * Form select = AppSelect. `placeholder` becomes a selectable "" first option (as the native `<option value="">` did),
+ * so "전체 / 선택하세요" stays a real choice that resets the value.
+ */
+export function Select({ options, placeholder, ...rest }: SelectProps) {
+  const opts = placeholder !== undefined && !options.some((o) => o.value === '') ? [{ value: '', label: placeholder }, ...options] : options;
+  return <AppSelect {...rest} placeholder={placeholder} options={opts} />;
+}
 
 export interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> { label: ReactNode }
 export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Checkbox({ label, className, id, ...rest }, ref) {
