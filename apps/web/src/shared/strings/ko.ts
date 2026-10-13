@@ -238,25 +238,21 @@ export const home = {
     ],
   },
   consulting: { title: '우리 기업에 맞는\n아카이브를 시작하세요.', lead: '대상과 인원, 이용기간과 운영유형을 확인하고\n기업에 맞는 학습환경을 함께 준비합니다.', cta: '기업교육 상담', support: '고객지원' },
-  /** 2026-10 editorial home (orbit hero + old-site sections). Brand name comes from branding.siteName at render time. */
+  /** Editorial home (`visual-right` hero + old-site sections). Brand name comes from branding.siteName at render time. */
   editorial: {
-    deckLabel: '학습 영역',
-    badges: [
-      { key: 'elearning', name: '이러닝', icon: 'video', to: '/catalog?type=elearning', color: 'var(--c-primary)', lane: 'outer' },
-      { key: 'micro', name: '마이크로러닝', icon: 'bolt', to: '/catalog?type=micro', color: 'var(--c-accent-warm)', lane: 'inner' },
-      { key: 'short', name: '숏폼', icon: 'shorts', to: '/catalog?type=short', color: 'var(--c-primary-deep)', lane: 'outer' },
-      { key: 'ai', name: 'AI ZONE', icon: 'sparkles', to: '/ai-zone', color: 'var(--c-accent)', lane: 'inner' },
-      { key: 'live', name: 'Live Class', icon: 'broadcast', to: '/live', color: 'var(--c-ink)', lane: 'outer' },
-      { key: 'assess', name: '역량진단', icon: 'gauge', to: '/my/assessment', color: 'var(--c-primary)', lane: 'inner' },
-    ],
-    cards: [
-      { key: 'common', name: '공통역량', desc: '일의 기본을 탄탄하게 다지는 콘텐츠', chips: ['이러닝', '마이크로러닝', '숏폼'], to: '/catalog?competency=common' },
-      { key: 'job', name: '직무역량', desc: '나의 분야를 더 깊게, 12개 직무 분야', chips: ['기획·마케팅', 'IT·SW', '재무·법무'], to: '/catalog?competency=job' },
-      { key: 'leadership', name: '리더십역량', desc: '함께 성장하는 리더십 콘텐츠', chips: ['셀프', '팀', '전략'], to: '/catalog?competency=leadership' },
-      { key: 'ai', name: 'AI ZONE', desc: 'AI를 배우고 업무에 활용하는 교육', chips: ['AI 입문·기초', '산업별 AI', 'AX 프로젝트'], to: '/ai-zone' },
-      { key: 'live', name: 'LIVE CLASS', desc: '실시간 라이브로 이어지는 학습', chips: ['라이브', '토론방', '질의응답'], to: '/live' },
-      { key: 'roadmap', name: '진단·로드맵', desc: '사전진단에서 추천 로드맵, 사후진단까지', chips: ['사전진단', '로드맵', '사후진단'], to: '/my/assessment' },
-    ],
+    eyebrow: '업무와 성장을 위한 학습 아카이브',
+    areas: {
+      label: '학습 영역',
+      all: '전체 보기',
+      items: [
+        { key: 'common', name: '공통역량', desc: '일의 기본을 탄탄하게 다지는 콘텐츠', icon: 'briefcase', to: '/catalog?competency=common' },
+        { key: 'job', name: '직무역량', desc: '나의 분야를 더 깊게, 12개 직무 분야', icon: 'flag', to: '/catalog?competency=job' },
+        { key: 'leadership', name: '리더십역량', desc: '함께 성장하는 리더십 콘텐츠', icon: 'user', to: '/catalog?competency=leadership' },
+        { key: 'ai', name: 'AI ZONE', desc: 'AI를 배우고 업무에 활용하는 교육', icon: 'sparkles', to: '/ai-zone' },
+        { key: 'live', name: 'LIVE CLASS', desc: '실시간 라이브로 이어지는 학습', icon: 'broadcast', to: '/live' },
+        { key: 'roadmap', name: '진단·로드맵', desc: '사전진단에서 추천 로드맵, 사후진단까지', icon: 'gauge', to: '/my/assessment' },
+      ],
+    },
     stats: {
       courses: { caption: '공개 콘텐츠', unit: '개' },
       categories: { caption: '세부 분야', unit: '개' },
@@ -269,12 +265,13 @@ export const home = {
       body: (site: string) => `${site}에서 업무와 성장에 필요한 콘텐츠를 찾고,\n나에게 맞는 속도로 학습을 이어갈 수 있습니다.`,
       cta: '이용 방법 보기',
       steps: [
-        { n: '01', title: '나에게 맞는 학습 추천', desc: '역량진단과 학습 이력을 바탕으로 다음 콘텐츠를 안내합니다.' },
-        { n: '02', title: '업무에 연결되는 콘텐츠', desc: '공통·직무·리더십 역량을 한곳에서 학습합니다.' },
-        { n: '03', title: '상황에 맞는 학습 방식', desc: '이러닝·마이크로러닝·숏폼 중 필요한 방식으로 학습합니다.' },
+        { n: '01', icon: 'gauge', title: '나에게 맞는 학습 추천', desc: '역량진단과 학습 이력을 바탕으로 다음 콘텐츠를 안내합니다.' },
+        { n: '02', icon: 'briefcase', title: '업무에 연결되는 콘텐츠', desc: '공통·직무·리더십 역량을 한곳에서 학습합니다.' },
+        { n: '03', icon: 'video', title: '상황에 맞는 학습 방식', desc: '이러닝·마이크로러닝·숏폼 중 필요한 방식으로 학습합니다.' },
       ],
     },
     tabs: {
+      label: 'CONTENTS',
       title: '지금 만나는 콘텐츠',
       lead: '인기 과정과 새로 등록된 콘텐츠를 한곳에서 확인하세요.',
       aria: '콘텐츠 목록 선택',
@@ -282,6 +279,8 @@ export const home = {
       more: '콘텐츠 더 보기',
     },
     cta: {
+      label: 'GET STARTED',
+      lead: '기업 맞춤 학습환경 구성부터 수강신청까지 함께 준비합니다.',
       title: (site: string) => `업무에 필요한 배움을 한곳에서.\n${site}와 함께 시작하세요.`,
       apply: '수강신청',
       phone: '1811-9530',

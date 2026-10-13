@@ -6,7 +6,7 @@ React 19 + Vite SPA for the AINEX Archive learning service (https://timeless.uz)
 ```
 apps/web/             the SPA (learner, 기업 교육담당자, admin Design Studio)
   src/features/       pages by area (home, catalog, content, aizone, my, manager, admin, …)
-  src/features/home/editorial/   the 2026-10 home hero (orbit ring, card deck, stats) and old-site sections
+  src/features/home/editorial/   the home hero (copy, stats, learning-area panel with search) and old-site sections
   src/shared/ui/      design-system components (Button, Pill, Header, Footer, ContentCard, …)
   src/shared/design/  DesignConfig → CSS custom properties (tokens) applied on :root
   src/shared/styles/  tokens.css, typography, layout, utilities
@@ -26,7 +26,7 @@ npm run build            # production bundle in apps/web/dist (VITE_API_BASE fro
 The backend (NestJS API) is not part of this repository; the SPA talks to it under `/v1`.
 Design: colours, fonts and layout come from the published DesignConfig (`GET /v1/public/design`);
 `DEFAULT_DESIGN` in `packages/contracts` is the fallback and the current default is the
-`editorial-warm` preset with the `visual-right` (orbit) hero.
+`editorial-warm` preset with the `visual-right` (editorial) hero.
 
 ## CI/CD
 
