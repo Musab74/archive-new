@@ -59,7 +59,7 @@ jobs:
           printf '%s\n' "${{ secrets.AINEX_ARCHIVE }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           echo '[timeless.uz]:2222 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIa78uHk45XtN4nCosu1HdOrdj8Inj6U6a1ak7wD7oqL' > ~/.ssh/known_hosts
-      - name: Release on the server (forced command: unpack → validate → atomic switch → public check → prune)
+      - name: "Release on the server (forced command: unpack, validate, atomic switch, public check, prune)"
         run: |
           ssh -p 2222 -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
             ghdeploy@timeless.uz "release sha=${GITHUB_SHA} ref=${GITHUB_REF_NAME}" < web-dist.tar.gz
