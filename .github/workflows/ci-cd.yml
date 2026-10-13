@@ -40,11 +40,16 @@ jobs:
           path: web-dist.tar.gz
           retention-days: 14
 
-  deploy:
-    name: Deploy to timeless.uz
+  # The server cannot be reached from GitHub's network on SSH (provider-side filtering), so deploys are PULL based:
+  # this job publishes the built site to the `deploy/develop` branch; on the server a systemd timer
+  # (ops/github-deploy/ainex-pull-deploy) fetches that branch every minute and releases it locally.
+  publish:
+    name: Publish build to deploy/develop
     needs: ci
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     environment:
       name: production
       url: https://timeless.uz
@@ -52,42 +57,27 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: web-dist-${{ github.sha }}
-      - name: Prepare SSH
+      - name: Unpack
+        run: mkdir site && tar -xzf web-dist.tar.gz -C site
+      - name: Stamp
         run: |
-          mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          # AINEX_ARCHIVE = the ghdeploy private key (repository secret); the host key below is public
-          printf '%s\n' "${{ secrets.AINEX_ARCHIVE }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          echo '[timeless.uz]:2222 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIa78uHk45XtN4nCosu1HdOrdj8Inj6U6a1ak7wD7oqL' > ~/.ssh/known_hosts
-      - name: Validate the deploy key secret
+          printf 'source=%s\nref=%s\nrun=%s\nbuilt=%s\n' "$GITHUB_SHA" "$GITHUB_REF_NAME" "$GITHUB_RUN_ID" "$(date -u +%FT%TZ)" > site/BUILD_SOURCE
+          cat site/BUILD_SOURCE
+      - name: Push to deploy/develop (orphan branch, one commit per build)
         run: |
-          if ! ssh-keygen -y -f ~/.ssh/deploy_key > ~/.ssh/deploy_key.pub 2> ~/.ssh/keyerr; then
-            echo "::error::AINEX_ARCHIVE is not a valid OpenSSH private key ($(cat ~/.ssh/keyerr)). Paste the whole file from 'sudo cat /root/ghdeploy-github-key' (BEGIN..END lines, Unix line breaks)."; exit 1
-          fi
-          echo "deploy key fingerprint: $(ssh-keygen -lf ~/.ssh/deploy_key.pub)"
-      - name: Check the server is reachable on port 2222 (IPv4, 3 tries, warning only)
+          cd site
+          git init -q -b deploy/develop
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "build ${GITHUB_SHA} from develop (run ${GITHUB_RUN_ID})"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/deploy/develop
+      - name: Wait for the server to pick it up (timer runs every minute)
         run: |
-          for i in 1 2 3; do
-            if nc -4 -z -w 10 timeless.uz 2222; then echo "port 2222 reachable (try $i)"; exit 0; fi
-            echo "try $i: no connection yet"; sleep 10
-          done
-          echo "::warning::could not pre-check timeless.uz:2222 from this runner; trying the release anyway"
-      - name: "Release on the server (forced command: unpack, validate, atomic switch, public check, prune)"
-        run: |
-          ok=0
-          for attempt in 1 2 3; do
-            ssh -4 -v -p 2222 -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=25 -o ServerAliveInterval=15 \
-              ghdeploy@timeless.uz "release sha=${GITHUB_SHA} ref=${GITHUB_REF_NAME}" < web-dist.tar.gz > out.log 2> ssh.log
-            rc=$?
-            echo "attempt $attempt: ssh exit $rc"; cat out.log
-            if grep -q "release ok" out.log; then ok=1; break; fi
-            grep -E "Connecting to|Connection established|Authenticated|Permission denied|Connection timed out|Connection refused|Connection closed|exit-status|Transferred" ssh.log | tail -12
+          for i in $(seq 1 12); do
             sleep 20
+            if curl -fsS -m 15 "https://timeless.uz/BUILD_SOURCE?nocache=$i" 2>/dev/null | grep -q "source=${GITHUB_SHA}"; then
+              echo "https://timeless.uz is serving ${GITHUB_SHA}"; exit 0
+            fi
           done
-          [ "$ok" = 1 ] || { echo "::error::release did not complete — last ssh log:"; tail -30 ssh.log; exit 1; }
-      - name: Verify
-        run: |
-          curl -fsS -m 20 https://timeless.uz/ | grep -q 'id="root"'
-          echo "https://timeless.uz is serving ${GITHUB_SHA}"
-
-# deploy trace 2026-10-13T08:05:14Z
+          echo "::warning::the server has not released ${GITHUB_SHA} yet (timer may be delayed); check /var/log/ainex/deploy.log on the server"

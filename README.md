@@ -34,11 +34,11 @@ Design: colours, fonts and layout come from the published DesignConfig (`GET /v1
 
 1. **ci** — `npm ci`, typecheck, vitest, production build (`VITE_API_BASE=https://api.timeless.uz`), uploads
    `web-dist-<sha>` as an artifact.
-2. **deploy** (pushes to `develop` only, GitHub environment `production`) — streams the built `dist` over SSH to the
-   server's `ghdeploy` user, whose key is locked to one forced command (`ainex-release-web`). That command unpacks
-   into `/var/www/timeless/releases/<ts>-gh`, validates the SPA shell, switches the `current` symlink atomically,
-   checks https://timeless.uz/ and rolls back if the check fails, then keeps the last 5 releases.
+2. **publish** (pushes to `develop` only, GitHub environment `production`) — publishes the built site as one commit on
+   the orphan branch `deploy/develop` (with a `BUILD_SOURCE` stamp). The web server polls that public branch every
+   minute (`ainex-pull-deploy.timer`) and releases new builds locally through `ainex-release-web`: unpack into
+   `/var/www/timeless/releases/<ts>-gh`, validate the SPA shell, atomic `current` switch, public check with rollback,
+   keep the last 5. The job then waits until https://timeless.uz/BUILD_SOURCE reports the new commit.
 
-Repository secret: `AINEX_ARCHIVE` (the ghdeploy private key). The server host key, host, port and user are public and
-live in the workflow itself. The API is deployed separately from the
-platform monorepo.
+No inbound connection to the server and no secrets are needed (the repository is public and only fetched).
+The API is deployed separately from the platform monorepo.
