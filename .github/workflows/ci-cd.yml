@@ -59,10 +59,21 @@ jobs:
           printf '%s\n' "${{ secrets.AINEX_ARCHIVE }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           echo '[timeless.uz]:2222 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIa78uHk45XtN4nCosu1HdOrdj8Inj6U6a1ak7wD7oqL' > ~/.ssh/known_hosts
+      - name: Validate the deploy key secret
+        run: |
+          if ! ssh-keygen -y -f ~/.ssh/deploy_key > ~/.ssh/deploy_key.pub 2> ~/.ssh/keyerr; then
+            echo "::error::AINEX_ARCHIVE is not a valid OpenSSH private key ($(cat ~/.ssh/keyerr)). Paste the whole file from 'sudo cat /root/ghdeploy-github-key' (BEGIN..END lines, Unix line breaks)."; exit 1
+          fi
+          echo "deploy key fingerprint: $(ssh-keygen -lf ~/.ssh/deploy_key.pub)"
+      - name: Check the server is reachable on port 2222
+        run: |
+          getent hosts timeless.uz || true
+          timeout 20 bash -c 'cat < /dev/null > /dev/tcp/timeless.uz/2222' && echo "port 2222 open" || { echo "::error::cannot reach timeless.uz:2222 from the GitHub runner (firewall / geo-block?)"; exit 1; }
       - name: "Release on the server (forced command: unpack, validate, atomic switch, public check, prune)"
         run: |
-          ssh -p 2222 -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
-            ghdeploy@timeless.uz "release sha=${GITHUB_SHA} ref=${GITHUB_REF_NAME}" < web-dist.tar.gz
+          ssh -v -p 2222 -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 \
+            ghdeploy@timeless.uz "release sha=${GITHUB_SHA} ref=${GITHUB_REF_NAME}" < web-dist.tar.gz 2> ssh.log || { tail -40 ssh.log; exit 1; }
+          grep -E "release ok|Authenticated" ssh.log || true
       - name: Verify
         run: |
           curl -fsS -m 20 https://timeless.uz/ | grep -q 'id="root"'
