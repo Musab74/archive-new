@@ -42,3 +42,5 @@ Design: colours, fonts and layout come from the published DesignConfig (`GET /v1
 
 No inbound connection to the server and no secrets are needed (the repository is public and only fetched).
 The API is deployed separately from the platform monorepo.
+
+Pipeline verified end to end on 2026-10-13.
