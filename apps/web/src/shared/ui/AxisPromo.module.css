@@ -1,5 +1,5 @@
 .promo{color:#fff;position:relative;isolation:isolate;word-break:keep-all}
-.main{background:var(--g-band-graphite);padding:70px 78px;overflow:hidden}
+.main{background:var(--g-band-graphite);padding-block:70px;overflow:hidden}
 .decor{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:-1}
 .decor::before,.decor::after{content:'';position:absolute;border:1px solid rgba(255,255,255,.14);border-radius:50%}
 .decor::before{width:320px;height:320px;left:-120px;top:-160px}
@@ -27,9 +27,9 @@
 .sub .button{background:#fff;color:#071521;border-color:#fff;flex:none}
 .sub .button:hover{background:var(--c-soft)}
 .slot{padding:0 54px 38px;background:var(--c-paper)}
-@media (max-width:1150px){.main{padding:50px 36px}.title{font-size:34px}.mark{font-size:24px}.desc{font-size:20px}.slot{padding:0 36px 30px}}
+@media (max-width:1150px){.main{padding-block:50px}.title{font-size:34px}.mark{font-size:24px}.desc{font-size:20px}.slot{padding:0 36px 30px}}
 @media (max-width:768px){
-  .main{padding:28px var(--gutter)}
+  .main{padding-block:28px}
   .grid{display:flex;flex-direction:column;gap:22px}
   .copy{order:0}.list{order:1}
   .mark{font-size:20px;letter-spacing:.08em;padding:10px 16px}

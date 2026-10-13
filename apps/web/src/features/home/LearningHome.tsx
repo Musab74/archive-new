@@ -130,7 +130,7 @@ export default function LearningHome() {
 
   return (
     <div>
-      <section className={styles.hero} aria-label={copy.crumb}>
+      <section className={`band ${styles.hero}`} aria-label={copy.crumb}>
         <div className={styles.heroHead}>
           <div>
             <h1>{copy.greeting(name)}</h1>

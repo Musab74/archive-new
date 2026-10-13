@@ -12,7 +12,7 @@ export function AiZoneStrip() {
   const reveal = useReveal();
   const child = useRevealChild();
   return (
-    <section className={styles.zone} aria-label={copy.eyebrow}>
+    <section className={`band ${styles.zone}`} aria-label={copy.eyebrow}>
       <div className={styles.decor} aria-hidden="true"><span /><span /></div>
       <motion.div className={styles.grid} {...reveal}>
         <div className={styles.list}>

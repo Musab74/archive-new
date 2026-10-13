@@ -1,26 +1,27 @@
-/* Storyboard defaults (AR-01 / AR-20, light mode). DesignProvider overrides these on :root at runtime. */
+/* Static defaults = DEFAULT_DESIGN (Editorial Warm preset, packages/contracts/src/design/presets.ts) so the first paint
+   without a cached design matches the fallback the app applies. DesignProvider overrides the runtime tokens on :root. */
 :root{
-  --c-primary:#4873b8;
-  --c-primary-deep:#153f73;
-  --c-accent:#56bdb6;
-  --c-accent-warm:#e25a4b;
-  --c-ink:#101828;
-  --c-text:#344054;
-  --c-muted:#667085;
-  --c-line:#d0d5dd;
-  --c-line-2:#e4e7ec;
-  --c-soft:#f5f8fc;
-  --c-paper:#ffffff;
-  --c-bg:#ffffff;
-  --c-heading-band:#f3f6fa;
+  --c-primary:#1f3a5f;
+  --c-primary-deep:#14213d;
+  --c-accent:#5b8c84;
+  --c-accent-warm:#cf3f27;
+  --c-ink:#14213d;
+  --c-text:#3b4252;
+  --c-muted:#6b7280;
+  --c-line:#d9d2c7;
+  --c-line-2:#ebe5dc;
+  --c-soft:#f3eee6;
+  --c-paper:#faf7f2;
+  --c-bg:#faf7f2;
+  --c-heading-band:#e8dfd3;
   --c-ok:#067647;
   --c-warn:#b54708;
   --c-danger:#b42318;
   --c-band-ink:#ffffff;
-  --c-band-text:#d6e2f0;
-  --g-hero:linear-gradient(112deg,#f8fafc,var(--c-soft) 55%,#f3fbf9);
-  --g-brand:linear-gradient(120deg,#4873b8,#287d9d 55%,#56bdb6);
-  --g-band-dark:linear-gradient(130deg,#173f73,#398c9a);
+  --c-band-text:#cfd8e6;
+  --g-hero:linear-gradient(180deg,#fcfaf6 0%,#f5efe6 100%);
+  --g-brand:linear-gradient(120deg,#14213d,#1f3a5f 55%,#5b8c84);
+  --g-band-dark:linear-gradient(130deg,#14213d,#1f3a5f);
   --g-band-graphite:linear-gradient(120deg,#23272e,#3a3f47);
   --font-sans:"Pretendard","Noto Sans KR","Malgun Gothic",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --font-heading:"Pretendard","Noto Sans KR","Malgun Gothic",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
@@ -37,14 +38,36 @@
   --r-lg:20px;
   --r-pill:999px;
   --container:1200px;
+
+  /* Derived tokens: mixed from the runtime tokens above (never written by DesignProvider), so every preset and the
+     Design Studio preview stay coherent. Use these instead of hard-coded tints. */
+  --c-primary-tint:color-mix(in srgb,var(--c-primary) 9%,var(--c-paper));
+  --c-primary-tint-line:color-mix(in srgb,var(--c-primary) 22%,var(--c-paper));
+  --c-accent-tint:color-mix(in srgb,var(--c-accent) 12%,var(--c-paper));
+  --c-accent-tint-line:color-mix(in srgb,var(--c-accent) 32%,var(--c-paper));
+  --c-accent-ink:color-mix(in srgb,var(--c-accent) 55%,var(--c-ink));
+  --c-warm-tint:color-mix(in srgb,var(--c-accent-warm) 8%,var(--c-paper));
+  --c-warm-tint-line:color-mix(in srgb,var(--c-accent-warm) 30%,var(--c-paper));
+  --c-warm-ink:color-mix(in srgb,var(--c-accent-warm) 70%,var(--c-ink));
+  --c-ok-tint:color-mix(in srgb,var(--c-ok) 8%,var(--c-paper));
+  --c-danger-tint:color-mix(in srgb,var(--c-danger) 7%,var(--c-paper));
+  --c-danger-tint-line:color-mix(in srgb,var(--c-danger) 24%,var(--c-paper));
+  --c-ink-hover:color-mix(in srgb,var(--c-ink) 86%,#fff);
+  --c-placeholder:color-mix(in srgb,var(--c-muted) 78%,var(--c-paper));
+  --c-subtle:color-mix(in srgb,var(--c-muted) 60%,var(--c-paper));
+  --c-skeleton:color-mix(in srgb,var(--c-line-2) 70%,var(--c-paper));
+  --c-scrim:color-mix(in srgb,var(--c-ink) 42%,transparent);
+  --c-glass:color-mix(in srgb,var(--c-paper) 80%,transparent);
+
   --header-h:82px;
   --gutter:16px;
-  --section-x:64px;
+  /* One horizontal gutter for header, page content and footer so their left edges line up inside the frame. */
+  --section-x:40px;
   --border-subtle:1px solid var(--c-line-2);
   --border-default:1px solid var(--c-line);
-  --shadow-card:0 1px 2px rgba(16,24,40,.04),0 10px 28px rgba(16,24,40,.06);
-  --shadow-hover:0 2px 4px rgba(16,24,40,.05),0 18px 44px rgba(16,24,40,.1);
-  --shadow-pop:0 25px 80px rgba(16,24,40,.19);
+  --shadow-card:0 1px 2px color-mix(in srgb,var(--c-ink) 4%,transparent),0 10px 28px color-mix(in srgb,var(--c-ink) 6%,transparent);
+  --shadow-hover:0 2px 4px color-mix(in srgb,var(--c-ink) 5%,transparent),0 18px 44px color-mix(in srgb,var(--c-ink) 10%,transparent);
+  --shadow-pop:0 25px 80px color-mix(in srgb,var(--c-ink) 19%,transparent);
   --control-h:46px;
   --dur-fast:160ms;
   --dur-base:220ms;
@@ -54,4 +77,5 @@
   --z-modal:70;
   --z-toast:80;
 }
-@media (max-width:768px){:root{--header-h:56px;--section-x:18px}}
+@media (max-width:1150px){:root{--section-x:32px}}
+@media (max-width:768px){:root{--header-h:56px;--section-x:18px;--gutter:18px}}

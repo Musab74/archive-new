@@ -6,7 +6,7 @@
 .side{border-right:1px solid var(--c-line-2);padding:28px 18px;background:var(--c-soft)}
 .side h2{font-size:16px;margin:0 0 12px;padding:0 8px}
 .side a{display:flex;align-items:center;min-height:42px;padding:0 10px;border-radius:var(--r-sm);font-size:14px;color:var(--c-text)}
-.side a:hover{background:#fff;color:var(--c-primary)}
+.side a:hover{background:var(--c-paper);color:var(--c-primary)}
 .side a[aria-current="page"]{background:var(--c-ink);color:#fff;font-weight:var(--fw-bold)}
 .roomMain{min-width:0}
 .player{background:#0b1220;color:#fff;min-height:100dvh;display:flex;flex-direction:column}

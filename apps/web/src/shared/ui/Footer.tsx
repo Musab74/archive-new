@@ -12,6 +12,7 @@ function Ext({ href, children }: { href: string; children: string }) {
 export function Footer() {
   const { config, company } = useDesign();
   const logo = useAssetUrl(config.branding.logoAssetId);
+  const editorial = config.layout.heroVariant === 'visual-right';
   const year = new Date().getFullYear();
   const info: string[] = [];
   if (company.companyName) info.push(company.companyName);
@@ -29,8 +30,10 @@ export function Footer() {
     <footer className={cx(styles.footer, config.layout.footerVariant === 'compact' && styles.compact)} role="contentinfo">
       <div className={styles.inner}>
         <div className={styles.top}>
-          <Link to="/" className={styles.brand} aria-label={config.branding.siteName}>
-            {logo ? <img src={logo} alt={config.branding.logoAlt || config.branding.siteName} /> : <><b aria-hidden="true">{brand.wordmark}</b><span aria-hidden="true">{brand.archive}</span></>}
+          <Link to="/" className={cx(styles.brand, !logo && editorial && styles.inline)} aria-label={config.branding.siteName}>
+            {logo ? <img src={logo} alt={config.branding.logoAlt || config.branding.siteName} />
+              : editorial ? <><span className={styles.badge} aria-hidden="true">{brand.wordmark.charAt(0)}</span><b className={styles.name} aria-hidden="true">{brand.wordmark} <span>{brand.archive}</span></b></>
+              : <><b aria-hidden="true">{brand.wordmark}</b><span aria-hidden="true">{brand.archive}</span></>}
           </Link>
           <nav className={styles.links} aria-label="관련 사이트">
             {config.links.liveClassUrl ? <Ext href={config.links.liveClassUrl}>{copy.links.academy}</Ext> : null}

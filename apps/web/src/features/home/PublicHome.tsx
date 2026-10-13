@@ -102,7 +102,7 @@ function JourneySection() {
   const reveal = useReveal();
   const child = useRevealChild();
   return (
-    <section className={styles.journey} aria-label={copy.journey.label}>
+    <section className={`band ${styles.journey}`} aria-label={copy.journey.label}>
       <div>
         <span className={styles.jlabel}>{copy.journey.label}</span>
         <h2>{copy.journey.title}</h2>

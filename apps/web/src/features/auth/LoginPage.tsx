@@ -55,7 +55,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className={styles.layout}>
+    <div className={`band ${styles.layout}`}>
       <div className={styles.copy}>
         <span className="eyebrow">{copy.login.eyebrow}</span>
         <h1>{copy.login.title}</h1>

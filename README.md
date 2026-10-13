@@ -27,3 +27,12 @@ The backend (NestJS API) is not part of this repository; the SPA talks to it und
 Design: colours, fonts and layout come from the published DesignConfig (`GET /v1/public/design`);
 `DEFAULT_DESIGN` in `packages/contracts` is the fallback and the current default is the
 `editorial-warm` preset with the `visual-right` (orbit) hero.
+
+Styling conventions (`apps/web/src/shared/styles`):
+
+- `tokens.css` holds the same values as `DEFAULT_DESIGN` plus *derived* tokens (`--c-accent-tint`, `--c-warm-ink`,
+  `--c-scrim`, ink-tinted shadows, …) mixed from the runtime tokens. Use those instead of hard-coded hex tints so
+  every preset published from the Design Studio stays coherent.
+- Coloured page bands are full-bleed: add the global `band` class (or use `<Section>`, which already does) and give
+  the element vertical padding only. Header, page content and footer share one gutter (`--section-x`), so their
+  left edges line up.

@@ -34,7 +34,7 @@ export function AxisPromo({ variant = 'main', banner = 'home', className }: Axis
     );
   }
   return (
-    <section className={cx(styles.promo, styles.main, className)} aria-label={copy.mark}>
+    <section className={cx('band', styles.promo, styles.main, className)} aria-label={copy.mark}>
       <span className={styles.decor} aria-hidden="true" />
       <div className={styles.grid}>
         <div className={styles.list}>

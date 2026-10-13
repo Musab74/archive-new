@@ -1,4 +1,5 @@
-.layout{display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:72px;padding:72px 100px;background:linear-gradient(110deg,var(--c-soft),var(--c-paper) 78%)}
+/* full-bleed (global .band) */
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:72px;padding-block:72px 80px;background:linear-gradient(110deg,var(--c-soft),var(--c-paper) 78%)}
 .copy{padding-top:18px}
 .copy h1{font-size:clamp(32px,3.6vw,40px);letter-spacing:-.035em;line-height:1.3;margin:13px 0 22px;white-space:pre-line}
 .copy > p{font-size:16px;line-height:1.9;white-space:pre-line}
@@ -20,13 +21,13 @@
 .consentRow{border-bottom:1px solid var(--c-line-2);display:flex;align-items:center;gap:8px;padding:13px 0}
 .consentRow > :first-child{flex:1}
 .consentAll{border-bottom:2px solid var(--c-ink);padding:13px 0;font-weight:var(--fw-black)}
-.symbol{width:54px;height:54px;border:1px solid #d9e5f4;border-radius:15px;background:var(--c-soft);color:var(--c-primary);display:flex;align-items:center;justify-content:center;margin-bottom:8px}
-.symbol.mint{background:#eef9f7;color:#21796f;border-color:#d5eeea}
-.note{border:1px solid #d8e4f0;border-left:3px solid var(--c-primary);background:var(--c-soft);color:#475467;padding:15px 17px;font-size:14px;line-height:1.75;margin:8px 0}
+.symbol{width:54px;height:54px;border:1px solid var(--c-line-2);border-radius:15px;background:var(--c-soft);color:var(--c-primary);display:flex;align-items:center;justify-content:center;margin-bottom:8px}
+.symbol.mint{background:var(--c-accent-tint);color:var(--c-accent-ink);border-color:var(--c-accent-tint-line)}
+.note{border:1px solid var(--c-line-2);border-left:3px solid var(--c-primary);background:var(--c-soft);color:var(--c-text);padding:15px 17px;font-size:14px;line-height:1.75;margin:8px 0}
 .sub{border-top:1px solid var(--c-line-2);margin-top:12px;padding-top:20px;display:flex;flex-direction:column;gap:10px}
 .resultId{font-size:23px;letter-spacing:1px;margin:12px 0;color:var(--c-primary-deep);font-weight:var(--fw-black)}
 .docBox{max-height:220px;overflow:auto;border:1px solid var(--c-line-2);background:var(--c-soft);padding:14px;font-size:13px;line-height:1.8;color:var(--c-text);border-radius:var(--r-sm)}
 .docBox h4{font-size:13px;margin:0 0 4px}
 .docBox p{font-size:13px;margin:0 0 10px}
-@media (max-width:1150px){.layout{grid-template-columns:1fr;gap:30px;padding:40px 36px}.grid3{grid-template-columns:1fr}}
-@media (max-width:768px){.layout{padding:24px var(--gutter) 32px}.copy h1{font-size:26px;letter-spacing:-.9px}.copy > p{font-size:14px}.card{padding:22px 18px}.card h2{font-size:22px}.section{padding:24px var(--gutter) 40px}}
+@media (max-width:1150px){.layout{grid-template-columns:1fr;gap:30px;padding-block:40px}.grid3{grid-template-columns:1fr}}
+@media (max-width:768px){.layout{padding-block:24px 32px}.copy h1{font-size:26px;letter-spacing:-.9px}.copy > p{font-size:14px}.card{padding:22px 18px}.card h2{font-size:22px}.section{padding:24px var(--section-x) 40px}}

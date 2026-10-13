@@ -11,9 +11,9 @@
 .secondary:hover:not(:disabled){background:var(--c-soft);border-color:var(--c-text)}
 .ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.5)}
 .ghost:hover:not(:disabled){background:rgba(255,255,255,.12)}
-.ghost:focus-visible{outline-color:#bffff4}
+.ghost:focus-visible{outline-color:color-mix(in srgb,var(--c-accent) 55%,#fff)}
 .pillDark{background:var(--c-ink);color:#fff;border-color:var(--c-ink)}
-.pillDark:hover:not(:disabled){background:#1f2a3c}
+.pillDark:hover:not(:disabled){background:var(--c-ink-hover)}
 .text{background:transparent;color:var(--c-text);border-color:transparent;padding-inline:4px;font-weight:var(--fw-semibold);border-radius:var(--r-sm)}
 .text:hover:not(:disabled){color:var(--c-primary);text-decoration:underline;text-underline-offset:4px}
 .white{background:#fff;color:var(--c-primary-deep);border-color:#fff}
@@ -25,7 +25,7 @@
 .loading{color:transparent!important}
 .spinner{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:currentColor}
 .spinner span{width:18px;height:18px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
-.secondary .spinner span,.text .spinner span{border-color:rgba(16,24,40,.2);border-top-color:var(--c-primary)}
+.secondary .spinner span,.text .spinner span{border-color:color-mix(in srgb,var(--c-ink) 20%,transparent);border-top-color:var(--c-primary)}
 .loading .spinner{color:inherit}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion: reduce){.spinner span{animation:none;border-top-color:transparent}}

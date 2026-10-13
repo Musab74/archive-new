@@ -6,5 +6,5 @@
 .bar{height:6px;background:var(--c-line-2);border-radius:3px;overflow:hidden;margin-top:8px}
 .bar span{display:block;height:100%;background:var(--c-primary);border-radius:3px;transition:width var(--dur-slow,.4s) var(--ease-out)}
 .navy .number{color:var(--c-primary-deep)}
-.mint .number{color:#21796f}
+.mint .number{color:var(--c-accent-ink)}
 @media (max-width:768px){.number{font-size:28px}.number small{font-size:14px}}

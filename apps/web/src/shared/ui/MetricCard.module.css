@@ -7,6 +7,6 @@
 .bar{height:6px;background:var(--c-line-2);border-radius:3px;overflow:hidden;margin-top:6px}
 .bar span{display:block;height:100%;background:var(--c-primary);border-radius:3px;transition:width .4s var(--ease-out)}
 .navy .value{color:var(--c-primary-deep)}
-.mint .value{color:#21796f}
+.mint .value{color:var(--c-accent-ink)}
 .muted .value{color:var(--c-muted)}
 @media (max-width:768px){.value{font-size:22px}}

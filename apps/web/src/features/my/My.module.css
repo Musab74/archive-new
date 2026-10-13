@@ -49,12 +49,12 @@
 .hubCard{display:flex;flex-direction:column;gap:8px;border:var(--border-subtle);border-radius:var(--r-md);padding:22px;background:var(--c-paper)}
 .hubCard h3{font-size:16px;margin:0}
 .hubCard p{margin:0;font-size:13px;color:var(--c-text);flex:1}
-.alert{display:flex;align-items:center;gap:12px;padding:14px 18px;border:1px solid #f1dcb0;background:#fff8e9;border-radius:var(--r-sm);font-size:14px;color:#6b4e00}
+.alert{display:flex;align-items:center;gap:12px;padding:14px 18px;border:1px solid color-mix(in srgb,var(--c-warn) 28%,var(--c-paper));background:color-mix(in srgb,var(--c-warn) 7%,var(--c-paper));border-radius:var(--r-sm);font-size:14px;color:color-mix(in srgb,var(--c-warn) 75%,var(--c-ink))}
 .alert > div{flex:1}
 .pill{font-size:12px;font-weight:var(--fw-bold);padding:4px 10px;border-radius:var(--r-pill);background:var(--c-soft);color:var(--c-text);white-space:nowrap}
-.pillOk{background:#e6f4ec;color:var(--c-ok)}
-.pillWarn{background:#fff3e6;color:var(--c-warn)}
-.pillDanger{background:#fde8e6;color:var(--c-danger)}
+.pillOk{background:var(--c-ok-tint);color:var(--c-ok)}
+.pillWarn{background:color-mix(in srgb,var(--c-warn) 9%,var(--c-paper));color:var(--c-warn)}
+.pillDanger{background:var(--c-danger-tint);color:var(--c-danger)}
 .pillInfo{background:var(--c-soft);color:var(--c-primary-deep)}
 .badges{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
 .badge{border:1px solid var(--c-line-2);border-radius:var(--r-sm);padding:16px;display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center;background:var(--c-paper)}

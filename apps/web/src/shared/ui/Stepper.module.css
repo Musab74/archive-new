@@ -1,7 +1,7 @@
 .lpath{display:flex;margin:0 0 38px;padding:0}
 .step{flex:1;text-align:center;position:relative;padding-top:29px;font-size:16px;font-weight:var(--fw-black);color:var(--c-muted)}
 .step::before{content:'';position:absolute;top:0;left:50%;width:15px;height:15px;border:3px solid var(--c-line);border-radius:50%;background:var(--c-paper);transform:translateX(-50%);z-index:2}
-.step::after{content:'';position:absolute;top:6px;left:50%;width:100%;height:2px;background:#d8dde4}
+.step::after{content:'';position:absolute;top:6px;left:50%;width:100%;height:2px;background:var(--c-line)}
 .step:last-child::after{display:none}
 .done{color:var(--c-text)}
 .done::before{border-color:var(--c-primary);background:var(--c-primary)}

@@ -12,7 +12,7 @@ export function Hero({ tag, title, lead, actions, cards = [], imageUrl, imageAlt
   const reveal = useReveal();
   const child = useRevealChild();
   return (
-    <section className={cx(styles.hero, variant === 'centered' && styles.centered, className)} aria-label={tag}>
+    <section className={cx('band', styles.hero, variant === 'centered' && styles.centered, className)} aria-label={tag}>
       <motion.div className={styles.copy} {...reveal}>
         <motion.div className={styles.tag} {...child} custom={0}>{tag}</motion.div>
         <motion.h1 className={styles.title} {...child} custom={1}>{title}</motion.h1>

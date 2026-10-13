@@ -11,7 +11,7 @@ export function LegalDoc({ docKey, title, sections, effectiveDate, extra }: { do
   return (
     <article>
       <Tabs items={copy.tabs.map((t) => ({ key: t.key, label: t.label, to: t.to }))} value={docKey} label={copy.crumb} />
-      <div className={styles.heading}>
+      <div className={`band ${styles.heading}`}>
         <div className="crumb">{copy.crumb}</div>
         <h1>{title}</h1>
         <p className={styles.meta}><span>{copy.effective} {effectiveDate ?? '—'}</span><button type="button" onClick={() => window.print()}>{copy.print}</button></p>

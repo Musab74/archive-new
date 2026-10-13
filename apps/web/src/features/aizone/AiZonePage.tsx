@@ -107,7 +107,7 @@ export default function AiZonePage() {
   const child = useRevealChild();
   return (
     <div>
-      <section className={styles.hero} aria-label={copy.eyebrow}>
+      <section className={`band ${styles.hero}`} aria-label={copy.eyebrow}>
         <div className={styles.four}>
           {copy.categories.map((c, i) => <div key={c.key}><em>{String(i + 1).padStart(2, '0')}</em><div><b>{c.title}</b><span>{c.short}</span></div></div>)}
         </div>
@@ -136,7 +136,7 @@ export default function AiZonePage() {
       </Section>
       <AiCatalog />
       <RoadmapGenerator />
-      <section className={styles.path} aria-labelledby="ai-path">
+      <section className={`band ${styles.path}`} aria-labelledby="ai-path">
         <h2 id="ai-path">{copy.pathTitle}</h2>
         <p>{copy.pathLead}</p>
         <div className={styles.steps}>{copy.pathSteps.map((s) => <div key={s.n}><b>{s.n}</b><strong>{s.title}</strong><span>{s.desc}</span></div>)}</div>

@@ -1,4 +1,4 @@
-.btn{display:inline-flex;align-items:center;justify-content:center;background:var(--c-paper);border:1px solid var(--c-line-2);width:44px;height:44px;border-radius:50%;padding:10px;color:#475467;flex:none;transition:background-color var(--dur-fast),color var(--dur-fast)}
+.btn{display:inline-flex;align-items:center;justify-content:center;background:var(--c-paper);border:1px solid var(--c-line-2);width:44px;height:44px;border-radius:50%;padding:10px;color:var(--c-text);flex:none;transition:background-color var(--dur-fast),color var(--dur-fast)}
 .btn:hover:not(:disabled){background:var(--c-soft);color:var(--c-primary)}
 .sm{width:36px;height:36px;padding:7px}
 .lg{width:52px;height:52px}

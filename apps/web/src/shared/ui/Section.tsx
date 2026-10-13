@@ -16,12 +16,12 @@ export interface SectionProps extends Omit<HTMLAttributes<HTMLElement>, 'title'>
   children?: ReactNode;
 }
 
-/** Section band with the storyboard heading row (01 · title / lead / aside link). */
+/** Full-bleed section band (global .band: edge-to-edge background, content on the frame gutter) with the storyboard heading row (01 · title / lead / aside link). */
 export function Section({ eyebrow, num, title, lead, aside, soft, flush, as = 'section', headingLevel = 'h2', className, children, ...rest }: SectionProps) {
   const Tag = as;
   const H = headingLevel;
   return (
-    <Tag className={cx(styles.section, soft && styles.soft, flush && styles.flush, className)} {...rest}>
+    <Tag className={cx('band', styles.section, soft && styles.soft, flush && styles.flush, className)} {...rest}>
       {(title || lead || aside) && (
         <div className={styles.heading}>
           <div>

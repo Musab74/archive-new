@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import styles from './Header.module.css';
@@ -118,7 +118,8 @@ export function Header() {
         <nav aria-label={nav.mainMenu} className={styles.gnb}>
           {primaryNav.map((item) => {
             const current = item.match(location.pathname, location.search);
-            return <NavLink key={item.to} to={item.to} className={cx(styles.navLink, current && styles.current)} aria-current={current ? 'page' : undefined}>{item.label}</NavLink>;
+            // Plain Link: NavLink ignores the query string, so every /catalog?competency=… entry would claim aria-current on /catalog.
+            return <Link key={item.to} to={item.to} className={cx(styles.navLink, current && styles.current)} aria-current={current ? 'page' : undefined}>{item.label}</Link>;
           })}
         </nav>
         <div className={styles.util}>
@@ -132,8 +133,8 @@ export function Header() {
           {editorial && !isAuthed
             ? <Link to="/support/inquiry/new" className={styles.myBtn}>{nav.apply}</Link>
             : <Link to={isAuthed ? '/my' : `/auth/login?next=${encodeURIComponent('/my')}`} className={styles.myBtn}>{nav.myRoom}</Link>}
-          <IconButton icon="menu" label={nav.allMenu} className="u-hide-mobile" aria-expanded={menuOpen} aria-controls={menuId} onClick={() => { setSearchOpen(false); setMenuOpen((v) => !v); }} />
-          <IconButton icon="menu" label={nav.allMenu} className={styles.mobileOnly} aria-expanded={drawerOpen} aria-controls={drawerId} onClick={() => setDrawerOpen(true)} />
+          <IconButton icon="menu" label={nav.allMenu} className={cx('u-hide-mobile', styles.desktopMenu)} aria-expanded={menuOpen} aria-controls={menuId} onClick={() => { setSearchOpen(false); setMenuOpen((v) => !v); }} />
+          <IconButton icon="menu" label={nav.allMenu} className={cx(styles.mobileOnly, styles.tabletDrawer)} aria-expanded={drawerOpen} aria-controls={drawerId} onClick={() => setDrawerOpen(true)} />
         </div>
       </div>
 

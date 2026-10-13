@@ -89,7 +89,7 @@ export default function CatalogPage() {
 
   return (
     <div>
-      <section className={styles.title}>
+      <section className={`band ${styles.title}`}>
         <Breadcrumb items={crumbs} />
         <h1>{copy.title}</h1>
         <p>{copy.lead}</p>

@@ -95,11 +95,11 @@ export default function ContentDetail() {
 
   return (
     <article>
-      <div className={styles.path}>
+      <div className={`band ${styles.path}`}>
         <Breadcrumb items={[{ label: nav.archive, to: '/catalog' }, { label: c.category1 ?? typeLabel(c.ctype), to: backTo }, { label: copy.crumb }]} />
         <Button variant="text" size="xs" to={backTo} icon={<Icon name="arrow-left" size={14} />}>{copy.backToList}</Button>
       </div>
-      <section className={styles.hero}>
+      <section className={`band ${styles.hero}`}>
         <div className={styles.copy}>
           <div className={styles.labels}>
             <TypeLabel>{typeLabel(c.ctype)}</TypeLabel>
@@ -130,7 +130,7 @@ export default function ContentDetail() {
         </div>
       </section>
 
-      <Tabs items={TABS} value={tab} onChange={setTab} label={copy.crumb} />
+      <Tabs items={TABS} value={tab} onChange={setTab} label={copy.crumb} className={styles.tabs} />
       <div className={styles.body}>
         {tab === 'intro' ? (
           <section className={styles.part} aria-labelledby="intro-h"><h2 id="intro-h">{copy.introTitle}</h2><LegacyHtml html={c.description ?? c.objective ?? '—'} /></section>

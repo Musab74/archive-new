@@ -1,4 +1,4 @@
-.zone{background:var(--g-brand);color:#fff;padding:70px 78px;position:relative;isolation:isolate;overflow:hidden}
+.zone{background:var(--g-brand);color:#fff;padding-block:70px;position:relative;isolation:isolate;overflow:hidden}
 .decor{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
 .decor::after{content:'';position:absolute;width:430px;height:430px;border:1px solid rgba(255,255,255,.16);border-radius:50%;right:-120px;top:-170px}
 .decor span{position:absolute;border-radius:50%}
@@ -18,9 +18,9 @@
 .title{font-size:42px;line-height:1.18;margin:14px 0 0;letter-spacing:-1.8px;color:#fff;white-space:pre-line}
 .note{margin:auto 0 15px;padding-top:26px;font-size:25px;line-height:1.4;letter-spacing:-.8px;font-weight:600;color:#dff5f7;white-space:pre-line}
 .actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}
-@media (max-width:1150px){.zone{padding:50px 36px}.title{font-size:34px}.mark{font-size:24px}.note{font-size:20px}}
+@media (max-width:1150px){.zone{padding-block:50px}.title{font-size:34px}.mark{font-size:24px}.note{font-size:20px}}
 @media (max-width:768px){
-  .zone{background:linear-gradient(145deg,#153f73,#287d9d 58%,#56bdb6);padding:23px var(--gutter)}
+  .zone{padding-block:23px}
   .grid{display:flex;flex-direction:column;gap:14px}
   .copy{order:0}.list{order:1}
   .mark{font-size:10px;letter-spacing:.14em;padding:0;border:0;color:#cffffa}

@@ -11,25 +11,27 @@ export default function SupportLayout() {
   const current = copy.tabs.find((t) => pathname.startsWith(t.to))?.key ?? 'guide';
   const tabItems = copy.tabs.map((t) => ({ key: t.key, label: t.label, to: t.to }));
   return (
-    <div className={styles.body}>
-      <Breadcrumb items={[{ label: nav.archive, to: '/' }, { label: copy.crumb }]} />
-      <section className={styles.hero}>
+    <>
+      <section className={`band ${styles.hero}`}>
+        <Breadcrumb items={[{ label: nav.archive, to: '/' }, { label: copy.crumb }]} />
         <span className="eyebrow">{copy.heroEyebrow}</span>
         <h1>{copy.heroTitle}</h1>
         <p>{copy.heroLead}</p>
       </section>
-      <Tabs items={tabItems} value={current} label={copy.crumb} />
-      <div style={{ paddingTop: 26 }}>
-        <Outlet />
-      </div>
-      <div className={styles.contact}>
-        <strong>{copy.contact.phone}</strong>
-        <p>{copy.contact.hours}<br />{copy.contact.email}</p>
-        <div className={styles.links}>
-          <Button variant="secondary" square size="sm" to="/support/remote">{copy.remote.title}</Button>
-          <Button variant="secondary" square size="sm" to="/auth/find-id">로그인·계정찾기</Button>
+      <div className={styles.body}>
+        <Tabs items={tabItems} value={current} label={copy.crumb} />
+        <div style={{ paddingTop: 26 }}>
+          <Outlet />
+        </div>
+        <div className={styles.contact}>
+          <strong>{copy.contact.phone}</strong>
+          <p>{copy.contact.hours}<br />{copy.contact.email}</p>
+          <div className={styles.links}>
+            <Button variant="secondary" square size="sm" to="/support/remote">{copy.remote.title}</Button>
+            <Button variant="secondary" square size="sm" to="/auth/find-id">로그인·계정찾기</Button>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
