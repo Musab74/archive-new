@@ -67,7 +67,7 @@
 .scrim{position:fixed;inset:0;top:var(--header-h);background:var(--c-scrim);z-index:calc(var(--z-overlay) - 1)}
 /* drawer */
 .drawer{position:fixed;inset:0;z-index:var(--z-modal);display:flex;justify-content:flex-end}
-.drawerScrim{position:absolute;inset:0;background:color-mix(in srgb,var(--c-ink) 50%,transparent)}
+.drawerScrim{position:absolute;inset:0;background:rgba(20,33,61,.45);background:color-mix(in srgb,var(--c-ink) 50%,transparent)}
 .drawerPanel{position:relative;width:min(360px,92vw);height:100%;background:var(--c-paper);overflow:auto;padding:16px 18px 32px;box-shadow:var(--shadow-pop);display:flex;flex-direction:column}
 .drawerHead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 20px;min-height:44px}
 .drawerHead h2{font-size:23px;margin:0}

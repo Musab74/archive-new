@@ -1,0 +1,69 @@
+name: CI/CD (develop)
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [develop]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-timeless
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  ci:
+    name: Typecheck, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm run test
+      - name: Build (production API base)
+        run: npm run build
+        env:
+          VITE_API_BASE: https://api.timeless.uz
+          VITE_PUBLIC_WEB_URL: https://timeless.uz
+      - name: Pack dist
+        run: tar -czf web-dist.tar.gz -C apps/web/dist .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist-${{ github.sha }}
+          path: web-dist.tar.gz
+          retention-days: 14
+
+  deploy:
+    name: Deploy to timeless.uz
+    needs: ci
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://timeless.uz
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist-${{ github.sha }}
+      - name: Prepare SSH
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          # AINEX_ARCHIVE = the ghdeploy private key (repository secret); the host key below is public
+          printf '%s\n' "${{ secrets.AINEX_ARCHIVE }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          echo '[timeless.uz]:2222 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIa78uHk45XtN4nCosu1HdOrdj8Inj6U6a1ak7wD7oqL' > ~/.ssh/known_hosts
+      - name: Release on the server (forced command: unpack → validate → atomic switch → public check → prune)
+        run: |
+          ssh -p 2222 -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            ghdeploy@timeless.uz "release sha=${GITHUB_SHA} ref=${GITHUB_REF_NAME}" < web-dist.tar.gz
+      - name: Verify
+        run: |
+          curl -fsS -m 20 https://timeless.uz/ | grep -q 'id="root"'
+          echo "https://timeless.uz is serving ${GITHUB_SHA}"

@@ -1,4 +1,4 @@
-.backdrop{position:fixed;inset:0;background:color-mix(in srgb,var(--c-ink) 44%,transparent);z-index:var(--z-modal);display:flex;align-items:center;justify-content:center;padding:16px}
+.backdrop{position:fixed;inset:0;background:rgba(20,33,61,.45);background:color-mix(in srgb,var(--c-ink) 44%,transparent);z-index:var(--z-modal);display:flex;align-items:center;justify-content:center;padding:16px}
 .modal{width:520px;max-width:100%;max-height:calc(100dvh - 32px);overflow:auto;border:var(--border-default);border-radius:var(--r-md);padding:28px;background:var(--c-paper);box-shadow:var(--shadow-pop);color:var(--c-ink);outline:none}
 .lg{width:720px}
 .head{display:flex;justify-content:space-between;align-items:center;gap:16px;color:var(--c-muted);font-size:12px;margin-bottom:20px}

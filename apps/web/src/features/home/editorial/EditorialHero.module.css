@@ -9,6 +9,7 @@
 .title{font-size:clamp(40px,4.1vw,56px);line-height:1.12;letter-spacing:-.04em;font-weight:var(--fw-bold);margin:22px 0 20px;color:var(--c-ink)}
 .line{display:block}
 .lead{font-size:18px;line-height:1.75;color:var(--c-text);margin:0;max-width:36ch;white-space:pre-line}
+.ctaPill{border-radius:var(--r-pill)}
 .actions{display:flex;align-items:center;gap:20px;margin-top:28px;flex-wrap:wrap}
 .secondary{font-size:12px;letter-spacing:.1em;text-transform:uppercase;font-weight:var(--fw-bold);color:var(--c-text);text-decoration:none;min-height:44px;display:inline-flex;align-items:center}
 .secondary:hover{color:var(--c-accent-warm)}

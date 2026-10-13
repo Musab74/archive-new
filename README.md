@@ -28,11 +28,17 @@ Design: colours, fonts and layout come from the published DesignConfig (`GET /v1
 `DEFAULT_DESIGN` in `packages/contracts` is the fallback and the current default is the
 `editorial-warm` preset with the `visual-right` (orbit) hero.
 
-Styling conventions (`apps/web/src/shared/styles`):
+## CI/CD
 
-- `tokens.css` holds the same values as `DEFAULT_DESIGN` plus *derived* tokens (`--c-accent-tint`, `--c-warm-ink`,
-  `--c-scrim`, ink-tinted shadows, …) mixed from the runtime tokens. Use those instead of hard-coded hex tints so
-  every preset published from the Design Studio stays coherent.
-- Coloured page bands are full-bleed: add the global `band` class (or use `<Section>`, which already does) and give
-  the element vertical padding only. Header, page content and footer share one gutter (`--section-x`), so their
-  left edges line up.
+`.github/workflows/ci-cd.yml` runs on every push and pull request to `develop`:
+
+1. **ci** — `npm ci`, typecheck, vitest, production build (`VITE_API_BASE=https://api.timeless.uz`), uploads
+   `web-dist-<sha>` as an artifact.
+2. **deploy** (pushes to `develop` only, GitHub environment `production`) — streams the built `dist` over SSH to the
+   server's `ghdeploy` user, whose key is locked to one forced command (`ainex-release-web`). That command unpacks
+   into `/var/www/timeless/releases/<ts>-gh`, validates the SPA shell, switches the `current` symlink atomically,
+   checks https://timeless.uz/ and rolls back if the check fails, then keeps the last 5 releases.
+
+Repository secret: `AINEX_ARCHIVE` (the ghdeploy private key). The server host key, host, port and user are public and
+live in the workflow itself. The API is deployed separately from the
+platform monorepo.

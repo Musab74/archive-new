@@ -61,7 +61,7 @@ export function EditorialHero({ eyebrow, title, lead, cta, secondary, deckLabel,
           </h1>
           <motion.p className={styles.lead} variants={child.variants}>{lead}</motion.p>
           <motion.div className={styles.actions} variants={child.variants}>
-            <Button variant="accent" size="lg" to={cta.to}>{cta.label}</Button>
+            <Button variant="accent" size="lg" to={cta.to} className={styles.ctaPill}>{cta.label}</Button>
             {secondary}
           </motion.div>
           <motion.div className={styles.deckWrap} variants={child.variants}>
