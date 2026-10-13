@@ -1,0 +1,10 @@
+.deck{position:relative;width:min(100%,360px);height:168px}
+.card{position:absolute;left:0;top:0;width:100%;will-change:transform,opacity}
+.cardLink{display:flex;flex-direction:column;gap:8px;background:var(--c-paper);border:var(--border-subtle);border-radius:var(--r-md);padding:18px 20px;min-height:140px;text-decoration:none;color:var(--c-ink);box-shadow:var(--shadow-card)}
+.front .cardLink{box-shadow:var(--shadow-hover)}
+.card:not(.front) .cardLink{pointer-events:none}
+.name{font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-weight:var(--fw-black)}
+.desc{font-size:13px;line-height:1.6;color:var(--c-text)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto}
+.chip{font-size:12px;line-height:1;padding:6px 9px;border:var(--border-default);border-radius:var(--r-sm);color:var(--c-muted);letter-spacing:.01em;white-space:nowrap}
+@media (max-width:768px){.deck{height:156px;margin-inline:auto}.cardLink{padding:15px 16px;min-height:128px}.desc{font-size:12px}}

@@ -1,0 +1,10 @@
+.wrap{position:relative;display:inline-grid;place-items:center;flex:none}
+.wrap svg{position:absolute;inset:0}
+.track{stroke:var(--c-line-2)}
+.bar{stroke:var(--c-primary);transition:stroke-dashoffset .6s var(--ease-out)}
+.ok .bar{stroke:var(--c-ok)}
+.ink .bar{stroke:var(--c-ink)}
+.center{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;padding:0 14px}
+.label{font-size:20px;font-weight:var(--fw-black);color:var(--c-ink);letter-spacing:-.5px;line-height:1.2;font-variant-numeric:tabular-nums}
+.sub{font-size:11px;color:var(--c-muted);margin-top:4px;line-height:1.4}
+@media (prefers-reduced-motion: reduce){.bar{transition:none}}

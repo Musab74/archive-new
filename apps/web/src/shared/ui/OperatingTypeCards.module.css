@@ -1,0 +1,9 @@
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.card{padding:29px 30px;border:1px solid var(--c-line-2);border-top:3px solid var(--c-primary);background:var(--c-paper);display:flex;flex-direction:column;border-radius:0 0 var(--r-sm) var(--r-sm)}
+.general{border-top-color:var(--c-accent)}
+.card h3{font-size:24px;line-height:1.35;margin:15px 0;white-space:pre-line}
+.card p{font-size:14px;line-height:1.8;margin:0 0 14px}
+.key{font-size:17px;font-weight:var(--fw-black);color:var(--c-primary-deep)}
+.general .key{color:#21796f}
+.link{border-top:1px solid var(--c-line-2);width:100%;padding-top:15px;margin-top:auto;justify-content:flex-start}
+@media (max-width:768px){.grid{grid-template-columns:1fr;gap:17px}.card{padding:22px 20px}.card h3{font-size:21px}.card p{font-size:13px;line-height:1.75}.key{font-size:16px}}

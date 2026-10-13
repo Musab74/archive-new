@@ -1,0 +1,13 @@
+/* Ring geometry per breakpoint (read by OrbitRing via getComputedStyle; keep the JS defaults in sync with desktop). */
+.box{position:absolute;inset:0;--ring-r:620px;--ring-w:170px;--ring-cx-off:260px;--ring-cy:0.5;--badge-d:56px;--ring-inset-top:var(--header-h);--hero-ring:var(--c-heading-band)}
+.svg{position:absolute;inset:0;overflow:visible;pointer-events:none}
+.list{list-style:none;margin:0;padding:0;position:absolute;inset:0}
+.slot{position:absolute;left:0;top:0;width:var(--badge-d);height:var(--badge-d);will-change:transform,opacity;opacity:0}
+.inner{position:relative;width:100%;height:100%}
+.badge{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;background:var(--b);color:#fff;text-decoration:none;box-shadow:0 10px 24px color-mix(in srgb,var(--b) 38%,transparent),0 2px 4px rgba(0,0,0,.08)}
+.badge:focus-visible{outline:3px solid var(--c-paper);outline-offset:0;box-shadow:0 0 0 6px color-mix(in srgb,var(--b) 55%,transparent)}
+.streak{position:absolute;left:50%;top:50%;width:calc(var(--badge-d) * 1.5);height:calc(var(--badge-d) * .7);margin-top:calc(var(--badge-d) * -.35);transform-origin:0 50%;border-radius:999px;background:linear-gradient(90deg,var(--b) 0%,color-mix(in srgb,var(--b) 55%,transparent) 30%,transparent 100%);filter:blur(5px);pointer-events:none;will-change:transform,opacity;z-index:-1;opacity:0}
+.tooltip{position:absolute;left:50%;top:calc(100% + 8px);transform:translate(-50%,4px);background:var(--c-ink);color:#fff;font-size:11px;font-weight:var(--fw-bold);padding:5px 9px;border-radius:var(--r-pill);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity var(--dur-fast),transform var(--dur-fast)}
+.inner:hover .tooltip,.badge:focus-visible + .tooltip{opacity:1;transform:translate(-50%,0)}
+@media (max-width:1150px){.box{--ring-r:420px;--ring-w:120px;--ring-cx-off:120px;--ring-cy:0;--badge-d:48px}}
+@media (max-width:768px){.box{--ring-r:240px;--ring-w:70px;--ring-cx-off:60px;--ring-cy:-0.15;--badge-d:40px}}

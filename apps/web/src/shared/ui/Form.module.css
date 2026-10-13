@@ -1,0 +1,23 @@
+.field{display:flex;flex-direction:column;gap:8px;margin:0 0 12px;font-size:14px;font-weight:var(--fw-bold);color:var(--c-text);min-width:0}
+.label{display:flex;align-items:center;gap:6px}
+.req{color:var(--c-danger);font-weight:var(--fw-black)}
+.opt{color:var(--c-muted);font-weight:var(--fw-regular);font-size:12px}
+.row{display:flex;align-items:stretch;gap:7px;min-width:0}
+.input{height:var(--control-h);padding:11px 13px;border:var(--border-default);border-radius:var(--r-sm);background:var(--c-paper);color:var(--c-text);font-size:15px;width:100%;min-width:0;font-weight:var(--fw-regular);transition:border-color var(--dur-fast),box-shadow var(--dur-fast),background-color var(--dur-fast)}
+.input::placeholder{color:#8993a3}
+.input:hover{border-color:var(--c-muted)}
+.input:focus-visible{border-color:var(--c-primary);outline:0;box-shadow:0 0 0 3px color-mix(in srgb,var(--c-accent) 30%,transparent)}
+.input[aria-invalid="true"]{border-color:var(--c-danger)}
+.input[readonly]{background:var(--c-soft);cursor:default}
+.textarea{min-height:120px;height:auto;line-height:1.65;padding:12px}
+.select{appearance:none;padding-right:36px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23667085' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.help{font-size:12px;color:var(--c-muted);font-weight:var(--fw-regular);line-height:1.6}
+.error{font-size:12px;color:var(--c-danger);font-weight:var(--fw-semibold);line-height:1.6}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.55;font-weight:var(--fw-regular);color:var(--c-text);cursor:pointer}
+.check input{width:19px;height:19px;accent-color:var(--c-primary);flex:none;margin:3px 0}
+.check b{font-weight:var(--fw-bold)}
+.fieldError{font-size:13px;color:var(--c-danger);line-height:1.6;padding:12px 14px;background:#fff6f5;border-left:3px solid var(--c-danger);margin:4px 0 8px}
+.fieldOk{font-size:13px;color:#0b6b45;line-height:1.6;padding:12px 14px;background:#effaf4;border-left:3px solid #0b6b45;margin:4px 0 8px}
+.mini{font-size:13px;border:var(--border-default);background:var(--c-paper);color:var(--c-text);padding:10px 12px;white-space:nowrap;flex:none;border-radius:var(--r-sm);font-weight:var(--fw-bold)}
+.mini:hover:not(:disabled){background:var(--c-soft)}
+.mini:disabled{opacity:.55}

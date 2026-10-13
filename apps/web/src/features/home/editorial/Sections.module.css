@@ -1,0 +1,47 @@
+/* ---- intro band (solid deep navy: hard colour break from the paper hero) */
+.intro{background:var(--c-primary-deep);color:var(--c-band-ink)}
+.introInner{display:grid;grid-template-columns:1fr 1.15fr;gap:64px;padding-block:76px}
+.bandLabel{font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:var(--fw-bold);color:var(--c-band-text)}
+.introTitle{font-size:clamp(30px,3vw,38px);line-height:1.24;letter-spacing:-.035em;margin:14px 0 18px;color:var(--c-band-ink);font-weight:var(--fw-bold)}
+.introBody{font-size:16px;line-height:1.8;color:var(--c-band-text);margin:0;white-space:pre-line}
+.steps{list-style:none;margin:0;padding:0;display:grid;align-content:center}
+.step{display:flex;gap:22px;padding:20px 0;border-bottom:1px solid color-mix(in srgb,var(--c-band-ink) 18%,transparent)}
+.step:last-child{border-bottom:0}
+.stepNum{width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--c-band-ink) 10%,transparent);color:var(--c-band-ink);font-size:12px;font-weight:var(--fw-black);letter-spacing:.04em}
+.step strong{display:block;font-size:17px;margin-bottom:4px;color:var(--c-band-ink);letter-spacing:-.01em}
+.step span{font-size:13px;line-height:1.6;color:var(--c-band-text)}
+/* ---- content tabs */
+.tabsSection{background:var(--c-paper)}
+.tabsInner{padding-block:64px 56px}
+.tabsHead{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:28px;flex-wrap:wrap}
+.sectionTitle{font-size:clamp(26px,2.6vw,32px);letter-spacing:-.03em;line-height:1.28;margin:0 0 8px;font-weight:var(--fw-bold)}
+.sectionLead{margin:0;font-size:14px;color:var(--c-text);line-height:1.7}
+.cardGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+.span{grid-column:1/-1}
+.moreRow{display:flex;justify-content:center;margin-top:30px}
+/* ---- CTA band */
+.cta{background:var(--c-soft);border-top:var(--border-subtle);border-bottom:var(--border-subtle)}
+.ctaInner{display:grid;grid-template-columns:1.2fr 1fr;gap:48px;padding-block:64px;align-items:center}
+.ctaTitle{font-size:clamp(22px,2.1vw,28px);line-height:1.35;letter-spacing:-.025em;margin:0 0 22px;white-space:pre-line;font-weight:var(--fw-semibold)}
+.ctaActions{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.ctaCols{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.ctaCol h3{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--c-muted);margin:0 0 10px;font-weight:var(--fw-bold)}
+.ctaCol a{display:flex;align-items:center;min-height:40px;font-size:14px;color:var(--c-text);text-decoration:none}
+.ctaCol a:hover{color:var(--c-accent-warm)}
+@media (max-width:1150px){
+  .introInner{grid-template-columns:1fr;gap:24px;padding-block:52px}
+  .cardGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ctaInner{grid-template-columns:1fr;gap:28px;padding-block:48px}
+}
+@media (max-width:768px){
+  .introInner{padding-block:40px}
+  .introBody{font-size:14px}
+  .step{gap:14px;padding:14px 0}
+  .step strong{font-size:15px}
+  .tabsInner{padding-block:40px 36px}
+  .tabsHead{display:block}
+  .tabsHead > :last-child{margin-top:16px}
+  .cardGrid{grid-template-columns:1fr;gap:14px}
+  .ctaInner{padding-block:36px}
+  .ctaCols{grid-template-columns:1fr 1fr;gap:16px}
+}

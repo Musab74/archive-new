@@ -1,0 +1,17 @@
+.typeLabel{font-size:12px;display:inline-flex;align-items:center;align-self:start;color:var(--c-primary-deep);background:var(--c-soft);border:var(--border-subtle);padding:5px 10px;font-weight:var(--fw-bold);border-radius:var(--r-sm);line-height:1.4;white-space:nowrap}
+.mint{color:#22685f;background:#eef8f6;border-color:#cbe7e1}
+.warm{color:#8a2d22;background:#fff1ee;border-color:#f3cfc8}
+.ink{color:#fff;background:var(--c-ink);border-color:var(--c-ink)}
+.gray{color:var(--c-muted);background:var(--c-soft);border-color:var(--c-line-2)}
+.coral{color:#fff;background:var(--c-accent-warm);border-color:var(--c-accent-warm);letter-spacing:.08em;text-transform:uppercase}
+.coralSoft{color:var(--c-accent-warm);background:color-mix(in srgb,var(--c-accent-warm) 9%,transparent);border-color:color-mix(in srgb,var(--c-accent-warm) 35%,transparent);letter-spacing:.1em;text-transform:uppercase}
+.small{font-size:12px;padding:5px 9px}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--c-text);background:var(--c-soft);border:1px solid var(--c-line-2);padding:4px 10px;border-radius:var(--r-sm);line-height:1.5}
+.pill{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:var(--border-default);background:var(--c-paper);border-radius:var(--r-sm);min-height:40px;padding:8px 15px;font-size:13px;font-weight:var(--fw-bold);color:var(--c-text);transition:background-color var(--dur-fast),color var(--dur-fast),border-color var(--dur-fast);white-space:nowrap}
+.pill:hover{background:var(--c-soft)}
+.pill[aria-pressed="true"],.pill.on{background:var(--c-ink);color:#fff;border-color:var(--c-ink)}
+.pillSoft[aria-pressed="true"],.pillSoft.on{background:var(--c-soft);border-color:var(--c-primary);color:var(--c-primary-deep)}
+.pillSm{min-height:36px;padding:6px 12px;font-size:12px}
+.chip{display:inline-flex;align-items:center;gap:12px;max-width:100%;font-size:12px;background:var(--c-soft);border:1px solid var(--c-line);padding:8px 12px;min-height:38px;border-radius:var(--r-sm);color:var(--c-primary-deep)}
+.chip span{overflow-wrap:anywhere}
+.chip:hover{background:var(--c-line-2)}

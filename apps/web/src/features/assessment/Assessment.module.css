@@ -1,0 +1,77 @@
+.page{padding:28px var(--section-x) 48px;display:flex;flex-direction:column;gap:20px}
+.intro{display:grid;grid-template-columns:1.2fr 1fr;gap:36px;background:var(--c-heading-band);padding:36px;border-radius:var(--r-sm);align-items:start}
+.introCopy h1{font-size:32px;letter-spacing:-1px;margin:10px 0 14px;line-height:1.35}
+.introCopy p{font-size:15px;margin:0 0 10px;line-height:1.8}
+.note{font-size:13px;color:var(--c-muted);line-height:1.7;margin:0}
+.infoList{margin:0;background:var(--c-paper);border:1px solid var(--c-line-2);border-radius:var(--r-sm);padding:6px 20px}
+.infoList > div{display:grid;grid-template-columns:110px 1fr;gap:10px;padding:12px 0;border-bottom:1px solid var(--c-line-2);font-size:14px}
+.infoList > div:last-child{border:0}
+.infoList dt{color:var(--c-muted);font-weight:var(--fw-bold)}
+.infoList dd{margin:0;color:var(--c-ink)}
+.muted{color:var(--c-muted);font-size:12px}
+.stepHead{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap}
+.stepHead h1{font-size:28px;letter-spacing:-.9px;margin:8px 0 8px}
+.stepHead p{margin:0;font-size:14px}
+.labels{display:flex;gap:8px;flex-wrap:wrap}
+.progressPill{font-size:13px;font-weight:var(--fw-black);background:var(--c-ink);color:#fff;border-radius:var(--r-pill);padding:8px 14px;white-space:nowrap}
+.stepper{margin:4px 0 6px}
+.draftNote{font-size:12px;color:var(--c-primary);margin:0}
+.form{display:flex;flex-direction:column;gap:22px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.group h2{font-size:18px;margin:0 0 12px}
+.likert{width:100%;border-collapse:collapse;border-top:2px solid var(--c-ink);font-size:14px}
+.likert th,.likert td{border-bottom:1px solid var(--c-line-2);padding:12px 8px;vertical-align:middle}
+.likert thead th{font-size:12px;color:var(--c-muted);text-align:center;font-weight:var(--fw-bold);background:var(--c-soft)}
+.likert thead th:first-child{text-align:left}
+.likert tbody th{text-align:left;font-weight:var(--fw-regular);width:46%}
+.likert tbody th b{display:block;font-size:15px;color:var(--c-ink)}
+.likert tbody th small{display:block;color:var(--c-muted);font-size:12px;margin-top:2px}
+.likert td{text-align:center;width:10.8%}
+.qNum{font-size:12px;color:var(--c-primary);font-weight:var(--fw-black);margin-right:8px}
+.likertNum{display:block;font-size:14px;color:var(--c-ink)}
+.likertLabel{display:block;font-size:11px;margin-top:2px}
+.radio{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;cursor:pointer;position:relative}
+.radio input{position:absolute;inset:0;opacity:0;cursor:pointer;margin:0}
+.radio span{width:30px;height:30px;border-radius:50%;border:2px solid var(--c-line);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--c-muted)}
+.radio input:checked + span{background:var(--c-primary);border-color:var(--c-primary);color:#fff;font-weight:var(--fw-black)}
+.radio input:focus-visible + span{outline:3px solid var(--c-accent);outline-offset:2px}
+.invalidRow{background:#fff5f4}
+.invalidRow th b{color:var(--c-danger)}
+.actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;padding-top:12px;border-top:1px solid var(--c-line-2)}
+.foot{font-size:13px;margin:0;color:var(--c-muted)}
+.resultGrid{display:grid;grid-template-columns:1.3fr 1fr;gap:20px}
+.resultCard{border:1px solid var(--c-line-2);border-radius:var(--r-sm);padding:22px;background:var(--c-paper);min-width:0}
+.resultCard h2{font-size:18px;margin:0 0 12px}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--c-muted);margin-bottom:12px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.swPre{background:var(--c-primary)}
+.swPost{background:var(--c-accent)}
+.bars{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.barRow{display:grid;grid-template-columns:90px 1fr 54px;gap:12px;align-items:center}
+.barTotal{padding-top:10px;border-top:1px solid var(--c-line-2)}
+.barLabel{font-size:13px;font-weight:var(--fw-bold);color:var(--c-ink)}
+.barTracks{display:flex;flex-direction:column;gap:5px;min-width:0}
+.barTrack{position:relative;height:18px;background:var(--c-line-2);border-radius:4px;overflow:hidden}
+.barTrack span{display:block;height:100%;border-radius:4px;transition:width .5s var(--ease-out)}
+.barTrack b{position:absolute;right:8px;top:0;line-height:18px;font-size:11px;color:var(--c-ink)}
+.barPre{background:var(--c-primary)}
+.barPost{background:var(--c-accent)}
+.diff{font-size:13px;font-weight:var(--fw-black);text-align:right;color:var(--c-muted)}
+.diffUp{color:var(--c-ok)}
+.diffDown{color:var(--c-danger)}
+.useBox{background:var(--c-soft);border-radius:var(--r-sm);padding:24px}
+.useBox h2{font-size:18px;margin:0 0 14px}
+.useGrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.useGrid b{display:block;margin-bottom:4px}
+.useGrid p{margin:0;font-size:13px;line-height:1.7}
+@media (max-width:1024px){.intro,.resultGrid,.useGrid{grid-template-columns:1fr}.grid3{grid-template-columns:1fr}}
+@media (max-width:768px){
+  .page{padding:18px var(--gutter) 32px}
+  .intro{padding:20px}.introCopy h1{font-size:24px}
+  .stepHead h1{font-size:22px}
+  .likert thead th:not(:first-child) .likertLabel{display:none}
+  .likert tbody th{width:40%}
+  .likert th,.likert td{padding:8px 4px}
+  .radio{width:36px;height:36px}.radio span{width:26px;height:26px}
+  .barRow{grid-template-columns:70px 1fr 44px}
+}

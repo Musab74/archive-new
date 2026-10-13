@@ -1,0 +1,14 @@
+h1,h2,h3,h4{font-family:var(--font-heading);line-height:1.32;letter-spacing:-.025em;color:var(--c-ink);font-weight:var(--fw-bold);text-wrap:balance}
+h1{font-size:calc(var(--fs-base) * var(--heading-scale) * var(--heading-scale) * var(--heading-scale) * 1.35)}
+h2{font-size:calc(var(--fs-base) * var(--heading-scale) * var(--heading-scale) * 1.2)}
+h3{font-size:calc(var(--fs-base) * var(--heading-scale) * 1.1)}
+h4{font-size:calc(var(--fs-base) * 1.05);font-weight:var(--fw-bold)}
+p{color:var(--c-text)}
+small{font-size:.85em}
+strong,b{font-weight:var(--fw-bold)}
+.eyebrow{font-size:12px;letter-spacing:.14em;font-weight:var(--fw-bold);color:var(--c-primary);text-transform:uppercase}
+.muted{color:var(--c-muted)}
+.hnum{color:var(--c-primary);font-size:18px;margin-right:12px;font-weight:var(--fw-black)}
+.text-link{display:inline-flex;align-items:center;gap:6px;padding:5px 0;font-size:14px;line-height:1.5;font-weight:var(--fw-semibold);color:var(--c-text);min-height:36px;max-width:100%;text-decoration:none;background:transparent;border:0}
+.text-link:hover{color:var(--c-primary);text-decoration:underline;text-underline-offset:4px}
+@media (max-width:768px){.hnum{font-size:15px;margin-right:7px}}

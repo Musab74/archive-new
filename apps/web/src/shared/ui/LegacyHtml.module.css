@@ -1,0 +1,9 @@
+.body{color:var(--c-text);font-size:15px;line-height:1.8;word-break:keep-all;overflow-wrap:anywhere}
+.body p{margin:0 0 12px}
+.body img{max-width:100%;height:auto;border-radius:var(--r-md)}
+.body table{max-width:100%;border-collapse:collapse;font-size:14px}
+.body td,.body th{border:1px solid var(--c-line-2);padding:6px 8px}
+.body a{color:var(--c-primary);text-decoration:underline}
+.body ul,.body ol{padding-left:22px;margin:0 0 12px}
+.body span,.body font,.body b,.body strong{color:inherit !important;font-family:inherit !important;background:transparent !important}
+.body h1,.body h2,.body h3,.body h4{font-size:1.05em;margin:16px 0 8px;color:var(--c-ink)}

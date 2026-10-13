@@ -1,0 +1,6 @@
+.nav{display:flex;gap:7px;justify-content:center;margin-top:26px;flex-wrap:wrap}
+.btn{background:var(--c-paper);border:1px solid var(--c-line);color:var(--c-text);border-radius:3px;min-width:42px;height:42px;padding:8px 12px;font-size:13px;display:inline-flex;align-items:center;justify-content:center}
+.btn:hover:not(:disabled){background:var(--c-soft)}
+.btn[aria-current="page"]{background:var(--c-ink);border-color:var(--c-ink);color:#fff;font-weight:var(--fw-black)}
+.btn:disabled{color:#98a2b3;background:#fafafa}
+.ellipsis{display:inline-flex;align-items:center;padding:0 4px;color:var(--c-muted)}

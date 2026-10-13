@@ -1,0 +1,17 @@
+{
+  "name": "ainex-archive-frontend",
+  "version": "0.2.0",
+  "private": true,
+  "description": "AINEX Archive web frontend (React + Vite) with the shared @ainex/contracts package — served at https://timeless.uz",
+  "workspaces": ["apps/*", "packages/*"],
+  "engines": { "node": ">=20.19.0" },
+  "scripts": {
+    "build": "npm run build -w @ainex/contracts && npm run build -w @ainex/web",
+    "build:contracts": "npm run build -w @ainex/contracts",
+    "build:web": "npm run build -w @ainex/web",
+    "dev": "npm run build -w @ainex/contracts && npm run dev -w @ainex/web",
+    "typecheck": "npm run build -w @ainex/contracts && npm run typecheck -w @ainex/web",
+    "test": "npm run build -w @ainex/contracts && npm run test -w @ainex/web",
+    "check": "npm run typecheck && npm run test && npm run build"
+  }
+}

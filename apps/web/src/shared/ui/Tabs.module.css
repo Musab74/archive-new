@@ -1,0 +1,8 @@
+.tabs{display:flex;gap:30px;border-bottom:1px solid var(--c-line-2);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{min-height:54px;display:inline-flex;align-items:center;font-size:14px;font-weight:var(--fw-black);color:var(--c-muted);border-bottom:3px solid transparent;white-space:nowrap;padding:0 2px;margin-bottom:-1px;text-decoration:none}
+.tab:hover{color:var(--c-text)}
+.tab[aria-selected="true"],.tab[aria-current="page"]{color:var(--c-primary-deep);border-bottom-color:var(--c-primary)}
+.pills{display:flex;gap:7px;flex-wrap:wrap}
+.panel{outline:none}
+@media (max-width:768px){.tabs{gap:18px;padding-inline:var(--gutter)}.tab{font-size:13px;min-height:48px}}

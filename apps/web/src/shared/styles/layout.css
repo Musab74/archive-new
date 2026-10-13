@@ -1,0 +1,26 @@
+.container{width:100%;max-width:var(--container);margin-inline:auto;padding-inline:var(--gutter)}
+.site{min-height:100dvh;display:flex;flex-direction:column;background:var(--c-bg)}
+.site-main{flex:1;min-width:0}
+.section{padding:64px var(--section-x);border-top:var(--border-subtle)}
+.section--soft{background:var(--c-soft)}
+.section--flush{border-top:0}
+.page-heading{padding:46px var(--section-x) 40px;background:var(--c-heading-band);border-bottom:var(--border-subtle)}
+.page-heading h1,.page-heading h2{font-size:clamp(28px,3vw,34px);line-height:1.28;letter-spacing:-.03em;margin:0 0 12px}
+.page-heading p{margin:0;font-size:15px;line-height:1.7;color:var(--c-text);max-width:72ch}
+.crumb{font-size:12px;color:var(--c-muted);margin-bottom:10px}
+.two-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:stretch}
+.three-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:stretch}
+.action-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px;align-items:center}
+.stack{display:flex;flex-direction:column;gap:12px}
+.frame{width:100%;max-width:var(--container);margin-inline:auto;background:var(--c-paper)}
+/* Full-bleed band inside the boxed frame: 100cqw of the .shell container (viewport minus scrollbar). */
+.bleed{width:100cqw;margin-inline:calc(50% - 50cqw)}
+.bleed-inner{width:100%;max-width:var(--container);margin-inline:auto;padding-inline:var(--section-x);box-sizing:border-box}
+@media (max-width:1150px){.section{padding-inline:36px}.page-heading{padding-inline:36px}}
+@media (max-width:768px){
+  .section{padding:27px var(--section-x)}
+  .page-heading{padding:26px var(--section-x) 24px}
+  .page-heading h1,.page-heading h2{font-size:24px;letter-spacing:-.8px}
+  .page-heading p{font-size:13px}
+  .two-grid,.three-grid{grid-template-columns:1fr;gap:16px}
+}

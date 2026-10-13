@@ -1,0 +1,5 @@
+.crumb{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:12px;color:var(--c-muted);margin-bottom:10px}
+.crumb a{color:var(--c-muted)}
+.crumb a:hover{color:var(--c-primary);text-decoration:underline;text-underline-offset:3px}
+.sep{color:#98a2b3}
+.current{color:var(--c-text);font-weight:var(--fw-semibold)}
