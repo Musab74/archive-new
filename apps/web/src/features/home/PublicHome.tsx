@@ -19,13 +19,11 @@ import { ContentCard, ContentCardSkeleton } from '../../shared/ui/ContentCard';
 import { StateBlock } from '../../shared/ui/StateBlock';
 import { competencies, home as copy, jobFields, nav, type CompetencyKey } from '../../shared/strings/ko';
 import { useReveal, useRevealChild } from '../../shared/motion/useReveal';
-import { EditorialHero } from './editorial/EditorialHero';
-import { IntroBand } from './editorial/IntroBand';
+import { EditorialHero, type HeroArea } from './editorial/EditorialHero';
+import { IntroBand, type IntroStep } from './editorial/IntroBand';
 import { ContentTabs } from './editorial/ContentTabs';
 import { CtaBand } from './editorial/CtaBand';
-import type { OrbitBadgeSpec } from './editorial/OrbitBadge';
 import type { StatItem } from './editorial/HeroStats';
-import editorialStyles from './editorial/EditorialHero.module.css';
 
 const DISCOVERY: { key: CompetencyKey; icon: 'briefcase' | 'flag' | 'user' | 'spark' }[] = [
   { key: 'common', icon: 'briefcase' }, { key: 'job', icon: 'flag' }, { key: 'leadership', icon: 'user' }, { key: 'ai', icon: 'spark' },
@@ -141,8 +139,8 @@ function ConsultingSection({ showFaq }: { showFaq: boolean }) {
   );
 }
 
-/** Orbit hero (heroVariant 'visual-right'): storyboard copy, old-site learning areas in the deck/badges, live counts from /catalog/stats. */
-function OrbitHero({ isAuthed, title, siteName }: { isAuthed: boolean; title: string; siteName: string }) {
+/** Editorial hero (heroVariant 'visual-right'): storyboard copy, old-site learning areas in the explore panel, live counts from /catalog/stats. */
+function HomeHero({ isAuthed, title, siteName }: { isAuthed: boolean; title: string; siteName: string }) {
   const stats = useQuery({ queryKey: ['catalog', 'stats'], queryFn: ({ signal }) => catalogApi.stats(signal), staleTime: 10 * 60_000 });
   const e = copy.editorial;
   const items: StatItem[] = [
@@ -150,19 +148,14 @@ function OrbitHero({ isAuthed, title, siteName }: { isAuthed: boolean; title: st
     { key: 'categories', value: stats.data?.categories ?? null, unit: e.stats.categories.unit, caption: e.stats.categories.caption },
     { key: 'types', value: stats.data?.types ?? e.stats.types.value, unit: e.stats.types.unit, caption: e.stats.types.caption },
   ];
-  const secondary = isAuthed
-    ? <Link to="/home" className={editorialStyles.secondary}>{nav.myRoom} <span aria-hidden="true">→</span></Link>
-    : <Link to="/auth/login" className={editorialStyles.secondary}>{copy.heroLogin} <span aria-hidden="true">→</span></Link>;
   return (
     <EditorialHero
-      eyebrow={copy.heroTag}
+      eyebrow={e.eyebrow}
       title={title}
       lead={copy.heroLead}
       cta={{ label: copy.heroCta, to: '/catalog' }}
-      secondary={secondary}
-      deckLabel={e.deckLabel}
-      badges={e.badges as OrbitBadgeSpec[]}
-      cards={e.cards}
+      secondary={isAuthed ? { label: nav.myRoom, to: '/home' } : { label: copy.heroLogin, to: '/auth/login' }}
+      areas={{ label: e.areas.label, all: e.areas.all, items: e.areas.items as HeroArea[] }}
       stats={items}
       statsLabel={`${siteName} ${e.stats.aria}`}
     />
@@ -185,16 +178,16 @@ export default function PublicHome() {
   const render = (key: HomeSectionKey) => {
     switch (key) {
       case 'hero':
-        return editorial ? <OrbitHero key={key} isAuthed={isAuthed} title={title} siteName={siteName} /> : (
+        return editorial ? <HomeHero key={key} isAuthed={isAuthed} title={title} siteName={siteName} /> : (
           <Hero key={key} tag={copy.heroTag} title={title} lead={copy.heroLead} cards={copy.heroCards} imageUrl={heroImage} imageAlt={siteName} variant={config.layout.heroVariant}
             actions={<>
               <Button square to="/catalog" iconRight={<Icon name="arrow" size={16} />}>{copy.heroCta}</Button>
               {isAuthed ? <Button variant="secondary" square to="/home">{nav.myRoom}</Button> : <Button variant="secondary" square to="/auth/login">{copy.heroLogin}</Button>}
             </>} />
         );
-      case 'intro': return <IntroBand key={key} label={e.intro.label} title={e.intro.title(siteName)} body={e.intro.body(siteName)} cta={{ label: e.intro.cta, to: '/support/guide' }} steps={e.intro.steps} />;
-      case 'contentTabs': return <ContentTabs key={key} title={e.tabs.title} lead={e.tabs.lead} aria={e.tabs.aria} items={e.tabs.items} more={e.tabs.more} />;
-      case 'ctaBand': return <CtaBand key={key} title={e.cta.title(siteName)} apply={{ label: e.cta.apply, to: '/support/inquiry/new' }} phone={{ label: e.cta.phone, href: e.cta.phoneHref }} columns={e.cta.columns} />;
+      case 'intro': return <IntroBand key={key} label={e.intro.label} title={e.intro.title(siteName)} body={e.intro.body(siteName)} cta={{ label: e.intro.cta, to: '/support/guide' }} steps={e.intro.steps as IntroStep[]} />;
+      case 'contentTabs': return <ContentTabs key={key} label={e.tabs.label} title={e.tabs.title} lead={e.tabs.lead} aria={e.tabs.aria} items={e.tabs.items} more={e.tabs.more} />;
+      case 'ctaBand': return <CtaBand key={key} label={e.cta.label} title={e.cta.title(siteName)} lead={e.cta.lead} apply={{ label: e.cta.apply, to: '/support/inquiry/new' }} phone={{ label: e.cta.phone, href: e.cta.phoneHref }} columns={e.cta.columns} />;
       case 'aiZone': return <AiZoneStrip key={key} />;
       case 'operatingTypes': return <Section key={key} num={copy.modes.num} title={copy.modes.title} lead={copy.modes.lead}><OperatingTypeCards /></Section>;
       case 'featured': return <FeaturedSection key={key} />;

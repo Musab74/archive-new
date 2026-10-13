@@ -61,7 +61,7 @@ function NewsPill() {
 
 /**
  * Site header (AR-20 C01): brand, 6 + ARCHIVE nav, search overlay, login/name+logout, 나의 학습실, 전체메뉴 mega menu / mobile drawer.
- * Editorial treatment (heroVariant 'visual-right'): floats transparently over the orbit hero and frosts once scrolled;
+ * Editorial treatment (heroVariant 'visual-right'): floats transparently over the editorial home hero and frosts once scrolled;
  * right cluster = 공지 pill → text link → white pill button.
  */
 export function Header() {

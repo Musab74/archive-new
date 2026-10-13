@@ -10,10 +10,10 @@ import { ContentCard, ContentCardSkeleton } from '../../../shared/ui/ContentCard
 import { StateBlock } from '../../../shared/ui/StateBlock';
 
 export type ContentTabKey = 'all' | 'top' | 'new' | 'ai';
-export interface ContentTabsProps { title: string; lead: string; aria: string; items: { key: string; label: string }[]; more: string; size?: number }
+export interface ContentTabsProps { label: string; title: string; lead: string; aria: string; items: { key: string; label: string }[]; more: string; size?: number }
 
 /** Old-site content tabs (전체 / 인기 / 최신 / AI 추천) backed by the catalog API (popular, TOP10, NEW, AI search). */
-export function ContentTabs({ title, lead, aria, items, more, size = 8 }: ContentTabsProps) {
+export function ContentTabs({ label, title, lead, aria, items, more, size = 8 }: ContentTabsProps) {
   const [tab, setTab] = useState<ContentTabKey>('all');
   const q = useQuery({
     queryKey: ['home', 'tabs', tab, size],
@@ -31,10 +31,11 @@ export function ContentTabs({ title, lead, aria, items, more, size = 8 }: Conten
       <div className={`bleed-inner ${styles.tabsInner}`}>
         <div className={styles.tabsHead}>
           <div>
+            <span className={styles.sectionLabel}>{label}</span>
             <h2 id="home-tabs-h" className={styles.sectionTitle}>{title}</h2>
             <p className={styles.sectionLead}>{lead}</p>
           </div>
-          <PillTabs label={aria} items={items} value={tab} onChange={(k) => setTab(k as ContentTabKey)} />
+          <PillTabs label={aria} items={items} value={tab} onChange={(k) => setTab(k as ContentTabKey)} className={styles.segment} />
         </div>
         <div className={styles.cardGrid} aria-busy={q.isPending}>
           {q.isPending ? Array.from({ length: size }).map((_, i) => <ContentCardSkeleton key={i} />)

@@ -1,5 +1,5 @@
 .header{position:sticky;top:0;z-index:var(--z-header);background:var(--c-paper);border-bottom:1px solid var(--c-line-2);transition:background-color var(--dur-base) var(--ease-out),border-color var(--dur-base) var(--ease-out),box-shadow var(--dur-base) var(--ease-out)}
-/* editorial treatment: floats over the orbit hero, frosts once scrolled */
+/* editorial treatment: floats over the editorial home hero, frosts once scrolled */
 .editorial.transparent{background:transparent;border-bottom-color:transparent}
 .editorial.frosted{background:rgba(255,255,255,.8);background:var(--c-glass);-webkit-backdrop-filter:blur(14px) saturate(1.2);backdrop-filter:blur(14px) saturate(1.2);border-bottom-color:var(--c-line-2)}
 .editorial .navLink{font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:var(--fw-bold);border-bottom:0}

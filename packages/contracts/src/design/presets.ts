@@ -139,7 +139,7 @@ const editorialDesign = (type: DesignConfig['typography'], radius: DesignConfig[
 /** Editorial default shipped before the 2026-10 typography and border refinement. */
 export const LEGACY_EDITORIAL_DEFAULT_DESIGN_V2: DesignConfig = editorialDesign(legacyTypography, { sm: 4, md: 10, lg: 20 });
 
-/** Current default: Editorial Warm palette, the orbit hero (`visual-right`), old-site home sections; storyboard sections stay available but hidden. */
+/** Current default: Editorial Warm palette, the editorial hero (`visual-right`), old-site home sections; storyboard sections stay available but hidden. */
 export const DEFAULT_DESIGN: DesignConfig = editorialDesign(typography, { sm: 6, md: 12, lg: 20 });
 
 export interface ThemePreset { id: string; name: string; description: string; theme: ThemeTokens }

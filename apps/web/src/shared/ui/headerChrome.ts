@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect } from 'react';
 
-/** Lets a page (the orbit hero) ask the sticky header to float transparently over it until the user scrolls. */
+/** Lets a page (the editorial home hero) ask the sticky header to float transparently over it until the user scrolls. */
 export interface HeaderChromeState { overlay: boolean; setOverlay: (v: boolean) => void }
 export const HeaderChromeContext = createContext<HeaderChromeState>({ overlay: false, setOverlay: () => {} });
 

@@ -13,7 +13,7 @@ describe('editorial-warm preset / DEFAULT_DESIGN', () => {
     expect(contrastRatio('#ffffff', preset!.theme.accentWarm)).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(preset!.theme.ink, preset!.theme.headingBand)).toBeGreaterThanOrEqual(7); // badges/text over the ring
   });
-  it('uses the orbit hero and the old-site sections by default; storyboard sections stay available but hidden', () => {
+  it('uses the editorial hero and the old-site sections by default; storyboard sections stay available but hidden', () => {
     expect(DEFAULT_DESIGN.layout.heroVariant).toBe('visual-right');
     expect(DEFAULT_DESIGN.typography).toMatchObject({ baseFontSize: 16, lineHeight: 1.7 });
     expect(DEFAULT_DESIGN.layout.radius).toEqual({ sm: 6, md: 12, lg: 20 });

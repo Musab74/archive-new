@@ -16,7 +16,7 @@ describe('app smoke (API offline)', () => {
   beforeEach(() => { vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('offline'))); localStorage.clear(); });
   afterEach(() => { vi.unstubAllGlobals(); });
 
-  it('renders the public home (orbit hero + old-site sections) with header and footer from DEFAULT_DESIGN', async () => {
+  it('renders the public home (editorial hero + old-site sections) with header and footer from DEFAULT_DESIGN', async () => {
     mount('/');
     expect(await screen.findByRole('heading', { level: 1, name: /필요한 배움을/ })).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: '주 메뉴' })).toBeInTheDocument();
@@ -26,9 +26,9 @@ describe('app smoke (API offline)', () => {
     expect(screen.getByRole('group', { name: '콘텐츠 목록 선택' })).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: '수강신청' }).length).toBeGreaterThanOrEqual(2); // header white pill + CTA band
     expect(screen.queryByText('두 가지 운영, 같은 자유학습')).not.toBeInTheDocument();
-    // orbit badges render as labelled links even under reduced motion (static snapshot, no streaks)
-    expect(screen.getByRole('link', { name: '이러닝' })).toBeInTheDocument();
-    expect(document.querySelector('[data-orbit] svg circle')).not.toBeNull();
+    // explore panel: catalog search + learning areas as links
+    expect(document.querySelector('[data-hero="editorial"] [role="search"]')).not.toBeNull();
+    expect(document.querySelector('[data-hero="editorial"] [data-area="common"]')).toHaveAttribute('href', '/catalog?competency=common');
     await waitFor(() => expect(screen.getAllByText('목록을 불러오지 못했습니다.').length).toBeGreaterThan(0));
     expect(screen.queryByText('AXIS 자격검정 바로가기')).not.toBeInTheDocument(); // axisUrl empty → hidden
   });
@@ -39,7 +39,7 @@ describe('app smoke (API offline)', () => {
     mount('/');
     expect(await screen.findByRole('heading', { level: 1, name: /필요한 배움을/ })).toBeInTheDocument();
     expect(screen.getByText('두 가지 운영, 같은 자유학습')).toBeInTheDocument();
-    expect(document.querySelector('[data-orbit]')).toBeNull();
+    expect(document.querySelector('[data-hero="editorial"]')).toBeNull();
     // sections the legacy config predates are appended hidden (the admin toggles them on in Design Studio)
     expect(DEFAULT_DESIGN.layout.homeSections.find((s) => s.key === 'intro')?.visible).toBe(true);
     expect(screen.queryByRole('heading', { level: 2, name: 'AINEX Archive란' })).not.toBeInTheDocument();
