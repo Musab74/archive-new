@@ -8,6 +8,7 @@ import { Skeleton } from '../../../../shared/ui/Skeleton';
 import { GRANT_LABELS } from '../../../../shared/auth/adminMenu';
 import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
+import { tr } from '../../../../shared/i18n/adminLang';
 import { adm } from '../../strings';
 
 const FIELD_KEYS = ['CompanyName', 'Ceo', 'CompanyNumber', 'SalesReportNumber', 'Phone', 'Fax', 'Email', 'PersonalInformationManager', 'Address', 'Copyright', 'KakaoURL'] as const;
@@ -44,8 +45,8 @@ const grants = (s: string | null | undefined) => (s ?? '').split(',').map((x) =>
 const deptCols: Column<Dept>[] = [
   { key: 'idx', header: 'idx', align: 'right' },
   { key: 'dept', header: adm.site.staff.cols.dept, render: (r) => <StatusBadge tone={r.dept === 'A' ? 'ink' : r.dept === 'B' ? 'warn' : 'info'}>{r.dept} {r.deptLabel}</StatusBadge> },
-  { key: 'name', header: '부서명', render: (r) => <b>{r.name}</b> },
-  { key: 'deep', header: '깊이', align: 'right' },
+  { key: 'name', header: tr('부서명', 'Department name'), render: (r) => <b>{r.name}</b> },
+  { key: 'deep', header: tr('깊이', 'Depth'), align: 'right' },
   { key: 'topMenuGrant', header: adm.site.staff.cols.top, render: (r) => <span style={{ display: 'inline-flex', gap: 3, flexWrap: 'wrap' }}>{grants(r.topMenuGrant).map((g) => <StatusBadge key={g} tone="info" title={GRANT_LABELS[g]}>{g}</StatusBadge>)}</span> },
   { key: 'subMenuGrant', header: adm.site.staff.cols.sub, render: (r) => <span className="mono" style={{ fontSize: 11 }}>{r.subMenuGrant ?? ''}</span> },
   { key: 'order', header: adm.site.staff.cols.order, align: 'right', render: (r) => String(r.order ?? '') },
@@ -69,7 +70,7 @@ export function StaffPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <Card title={`${adm.site.staff.staff} (${q.data?.staff.length ?? 0})`}><DataTable columns={staffCols} rows={q.data?.staff} rowKey={(r) => r.idx} loading={q.isPending} dense /></Card>
           <Card title={`${adm.site.staff.departments} (${q.data?.departments.length ?? 0})`}>
-            <Callout className="u-mb-8">메뉴 권한 코드: {Object.entries(GRANT_LABELS).map(([k, v]) => `${k}=${v}`).join(' · ')}. 부서 A는 모든 메뉴, 부서 B(영업)는 조회만 가능합니다.</Callout>
+            <Callout className="u-mb-8">{tr('메뉴 권한 코드', 'Menu permission codes')}: {Object.entries(GRANT_LABELS).map(([k, v]) => `${k}=${v}`).join(' · ')}. {tr('부서 A는 모든 메뉴, 부서 B(영업)는 조회만 가능합니다.', 'Department A can use every menu; department B (sales) is read-only.')}</Callout>
             <DataTable columns={deptCols} rows={q.data?.departments} rowKey={(r) => r.idx} loading={q.isPending} dense />
           </Card>
         </div>

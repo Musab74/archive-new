@@ -7,7 +7,9 @@ import { ADMIN_MENU, buildAdminMenu, GRANT_LABELS, type AdminMenuGroup } from '.
 import { PageTransition } from '../../shared/motion/PageTransition';
 import { IconButton } from '../../shared/ui/IconButton';
 import { Icon } from '../../shared/ui/Icon';
+import { tr } from '../../shared/i18n/adminLang';
 import { adm } from './strings';
+import { LangSwitch } from './LangSwitch';
 
 const COLLAPSE_KEY = 'admin.sidebar.collapsed';
 const DESIGN_LABELS: Record<string, string> = { '': adm.design.nav.overview, presets: adm.design.nav.presets, tokens: adm.design.nav.tokens, typography: adm.design.nav.typography, branding: adm.design.nav.branding, media: adm.design.nav.media, layout: adm.design.nav.layout, links: adm.design.nav.links, preview: adm.design.nav.preview, versions: adm.design.nav.versions, audit: adm.design.nav.audit };
@@ -56,10 +58,10 @@ export default function AdminShell() {
   return (
     <div className={cx(styles.shell, collapsed && styles.collapsed)}>
       {mobileOpen ? <div className={styles.sideScrim} onClick={() => setMobileOpen(false)} aria-hidden="true" /> : null}
-      <aside className={cx(styles.sidebar, mobileOpen && styles.sidebarOpen)} aria-label="관리자 메뉴">
+      <aside className={cx(styles.sidebar, mobileOpen && styles.sidebarOpen)} aria-label={tr('관리자 메뉴', 'Admin menu')}>
         <Link to="/admin" className={styles.brand} title={adm.brand}>
           <span className={styles.brandMark} aria-hidden="true">A</span>
-          <span className={styles.brandText}><b>AINEX ARCHIVE</b><small>관리자 콘솔</small></span>
+          <span className={styles.brandText}><b>AINEX ARCHIVE</b><small>{tr('관리자 콘솔', 'Admin console')}</small></span>
         </Link>
         <nav className={styles.menu}>
           <NavLink to="/admin" end className={styles.item} title={adm.top.home}><Icon name="dashboard" size={19} /><span className={styles.label}>{adm.top.home}</span></NavLink>
@@ -89,13 +91,14 @@ export default function AdminShell() {
       </aside>
       <div className={styles.mainCol}>
         <header className={styles.topbar}>
-          <IconButton icon="menu" label="메뉴" size="sm" className={styles.mobileMenuBtn} onClick={() => setMobileOpen((v) => !v)} aria-expanded={mobileOpen} />
-          <nav className={styles.crumbs} aria-label="현재 위치">
+          <IconButton icon="menu" label={tr('메뉴', 'Menu')} size="sm" className={styles.mobileMenuBtn} onClick={() => setMobileOpen((v) => !v)} aria-expanded={mobileOpen} />
+          <nav className={styles.crumbs} aria-label={tr('현재 위치', 'Breadcrumb')}>
             <Icon name="home" size={16} className={styles.crumbHome} />
             {crumbs.map((c, i) => <span key={`${c.label}${i}`} className={styles.crumb}>{i > 0 ? <Icon name="chevron-right" size={14} className={styles.crumbSep} /> : null}{c.to && i < crumbs.length - 1 ? <Link to={c.to}>{c.label}</Link> : <b aria-current={i === crumbs.length - 1 ? 'page' : undefined}>{c.label}</b>}</span>)}
           </nav>
           <div className={styles.topRight}>
-            <a href="/" target="_blank" rel="noopener noreferrer" className={styles.siteLink}><Icon name="arrow-up-right" size={16} /><span>{adm.top.site}</span><span className="sr-only"> (새 창)</span></a>
+            <LangSwitch className={styles.topLang} />
+            <a href="/" target="_blank" rel="noopener noreferrer" className={styles.siteLink}><Icon name="arrow-up-right" size={16} /><span>{adm.top.site}</span><span className="sr-only">{tr(' (새 창)', ' (opens in a new window)')}</span></a>
             <span className={cx(styles.countdown, warn && styles.countdownWarn)} title={adm.top.countdown} aria-live={warn ? 'polite' : undefined}>
               <Icon name="timer" size={16} /><span className={styles.cdLabel}>{adm.top.countdown}</span><b>{formatCountdown(secondsLeft)}</b>
               <button type="button" onClick={() => void extend()}>{adm.top.extend}</button>

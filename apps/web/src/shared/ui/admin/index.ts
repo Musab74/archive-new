@@ -3,6 +3,8 @@ export type { Column, DataTableProps } from './DataTable';
 export { nextSort, sortRows, pageSlice, pageCount, pageWindow } from './tableSort';
 export type { SortState, SortDir } from './tableSort';
 export { FilterBar, FilterField } from './FilterBar';
+export { DateField, parseIsoDate, toIsoDate, maskIsoDate } from './DateField';
+export type { DateFieldProps } from './DateField';
 export { DetailDrawer } from './DetailDrawer';
 export { ConfirmDialog } from './ConfirmDialog';
 export { JsonViewer } from './JsonViewer';

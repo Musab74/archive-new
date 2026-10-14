@@ -6,7 +6,7 @@ import {
   MonitorPlay, Phone, Play, Plus, Radio, Route, Search, ShieldCheck, SlidersHorizontal, Smartphone, Sparkle, Sparkles, Star, Target,
   TrendingUp, TriangleAlert, User, Users, Video, WandSparkles, X, Zap, LogOut, House, RefreshCw, Download, Pencil, Trash2, Send, Tags,
   PanelLeftClose, PanelLeftOpen, RotateCcw, ChevronLeft, Settings, LayoutDashboard, Inbox, Palette, Activity, Timer, FolderTree, Copy, UserCog,
-  ListOrdered, CalendarClock, FileWarning, type LucideIcon,
+  ListOrdered, CalendarClock, FileWarning, Languages, type LucideIcon,
 } from 'lucide-react';
 
 /**
@@ -27,7 +27,7 @@ const ICONS = {
   logout: LogOut, home: House, refresh: RefreshCw, download: Download, edit: Pencil, trash: Trash2, send: Send, tags: Tags,
   'panel-close': PanelLeftClose, 'panel-open': PanelLeftOpen, reset: RotateCcw, 'chevron-left': ChevronLeft, settings: Settings,
   dashboard: LayoutDashboard, inbox: Inbox, palette: Palette, activity: Activity, timer: Timer, folders: FolderTree, copy: Copy,
-  'user-cog': UserCog, ordered: ListOrdered, 'calendar-clock': CalendarClock, 'file-warning': FileWarning,
+  'user-cog': UserCog, ordered: ListOrdered, 'calendar-clock': CalendarClock, 'file-warning': FileWarning, languages: Languages,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICONS;

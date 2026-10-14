@@ -6,6 +6,7 @@ import { MiniSite, Swatches } from '../ThemePreviewCard';
 import { PublishDialog, IssueList } from '../PublishDialog';
 import { diffConfigs } from '../designHelpers';
 import { adm } from '../../strings';
+import { tr } from '../../../../shared/i18n/adminLang';
 
 export default function DesignOverviewPage() {
   const { draft, server, live, dirty, issues, canWrite } = useDesignStudio();
@@ -18,11 +19,11 @@ export default function DesignOverviewPage() {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
       <Card title={o.active} aside={live ? <StatusBadge tone="ok">v{live.versionNumber}</StatusBadge> : <StatusBadge>—</StatusBadge>}>
-        {live ? <><MiniSite config={live.config} /><div className="u-mt-8"><DescList items={[[o.publishedAt, live.publishedAt?.replace('T', ' ').slice(0, 19)], ['ETag', <span key="e" className="mono">{live.etag}</span>], ['프리셋', live.config.presetId], ['테마', <Swatches key="s" theme={live.config.theme} />]]} /></div></> : <Callout>게시된 디자인을 불러오지 못했습니다 (GET /public/design).</Callout>}
+        {live ? <><MiniSite config={live.config} /><div className="u-mt-8"><DescList items={[[o.publishedAt, live.publishedAt?.replace('T', ' ').slice(0, 19)], ['ETag', <span key="e" className="mono">{live.etag}</span>], [tr('프리셋', 'Preset'), live.config.presetId], [tr('테마', 'Theme'), <Swatches key="s" theme={live.config.theme} />]]} /></div></> : <Callout>{tr('게시된 디자인을 불러오지 못했습니다 (GET /public/design).', 'Could not load the published design (GET /public/design).')}</Callout>}
       </Card>
-      <Card title={o.draft} aside={dirty ? <StatusBadge tone="warn">{adm.design.dirty}</StatusBadge> : <StatusBadge tone="info">저장됨</StatusBadge>}>
+      <Card title={o.draft} aside={dirty ? <StatusBadge tone="warn">{adm.design.dirty}</StatusBadge> : <StatusBadge tone="info">{tr('저장됨', 'Saved')}</StatusBadge>}>
         <MiniSite config={draft} />
-        <div className="u-mt-8"><DescList items={[[o.baseVersion, `v${server.baseVersion}`], [o.updatedBy, `${server.updatedBy} · ${server.updatedAt.replace('T', ' ').slice(0, 19)}`], ['프리셋', draft.presetId], ['테마', <Swatches key="s" theme={draft.theme} />], ['게시본과 차이', changedVsLive === null ? '—' : changedVsLive ? <Link key="d" to="/admin/design/versions">{changedVsLive}개 토큰 변경</Link> : '없음']]} /></div>
+        <div className="u-mt-8"><DescList items={[[o.baseVersion, `v${server.baseVersion}`], [o.updatedBy, `${server.updatedBy} · ${server.updatedAt.replace('T', ' ').slice(0, 19)}`], [tr('프리셋', 'Preset'), draft.presetId], [tr('테마', 'Theme'), <Swatches key="s" theme={draft.theme} />], [tr('게시본과 차이', 'Changes vs live'), changedVsLive === null ? '—' : changedVsLive ? <Link key="d" to="/admin/design/versions">{tr(`${changedVsLive}개 토큰 변경`, `${changedVsLive} token${changedVsLive === 1 ? '' : 's'} changed`)}</Link> : tr('없음', 'None')]]} /></div>
       </Card>
       <Card title={o.issues} aside={errors ? <StatusBadge tone="danger">{o.errors(errors)}</StatusBadge> : <StatusBadge tone="ok">{o.noIssues}</StatusBadge>}>
         <IssueList issues={issues} />

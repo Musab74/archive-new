@@ -3,6 +3,7 @@ import * as RS from '@radix-ui/react-select';
 import styles from './AppSelect.module.css';
 import { Icon, type IconName } from './Icon';
 import { cx } from '../utils/format';
+import { useT } from '../i18n/adminLang';
 
 export interface AppSelectOption { value: string; label: string; disabled?: boolean }
 
@@ -49,16 +50,17 @@ const toOuter = (v: string) => (v === EMPTY ? '' : v);
  * with string values, so "" works as a real option value (e.g. 전체).
  */
 export function AppSelect({
-  value, onValueChange, options, placeholder, id, name, disabled, required, invalid, loading, emptyText = '선택할 항목이 없습니다.',
+  value, onValueChange, options, placeholder, id, name, disabled, required, invalid, loading, emptyText,
   size = 'md', tone = 'default', icon, prefix, align = 'start', portal = true, className, style, ...aria
 }: AppSelectProps) {
+  const t = useT();
   const hasValue = useMemo(() => options.some((o) => o.value === value), [options, value]);
   const inner = hasValue ? toInner(value) : '';
   const content = (
     <RS.Content className={cx(styles.content, tone === 'dark' && styles.contentDark)} position="popper" sideOffset={6} align={align} collisionPadding={12}>
       <RS.ScrollUpButton className={styles.scroll}><Icon name="chevron-up" size={16} /></RS.ScrollUpButton>
       <RS.Viewport className={styles.viewport}>
-        {options.length === 0 ? <div className={styles.empty} role="presentation">{emptyText}</div> : options.map((o) => (
+        {options.length === 0 ? <div className={styles.empty} role="presentation">{emptyText ?? t('선택할 항목이 없습니다.', 'Nothing to choose from.')}</div> : options.map((o) => (
           <RS.Item key={o.value || EMPTY} value={toInner(o.value)} disabled={o.disabled} className={styles.item}>
             <RS.ItemText>{o.label}</RS.ItemText>
             <RS.ItemIndicator className={styles.check}><Icon name="check" size={16} strokeWidth={2.25} /></RS.ItemIndicator>
@@ -80,7 +82,7 @@ export function AppSelect({
       >
         {icon ? <Icon name={icon} size={16} className={styles.lead} /> : null}
         {prefix ? <span className={styles.prefix}>{prefix}</span> : null}
-        <span className={styles.value}><RS.Value placeholder={placeholder ?? '선택'} /></span>
+        <span className={styles.value}><RS.Value placeholder={placeholder ?? t('선택', 'Select')} /></span>
         <RS.Icon className={styles.chevron}>
           {loading ? <Icon name="loader" size={16} className={styles.spin} /> : <Icon name="chevron-down" size={16} />}
         </RS.Icon>

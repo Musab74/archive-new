@@ -8,12 +8,13 @@ import { Modal } from '../../../shared/ui/Modal';
 import { AButton, AInput, Callout, StatusBadge } from '../../../shared/ui/admin';
 import { useDesignStudio } from './DesignStudioContext';
 import { adm } from '../strings';
+import { tr } from '../../../shared/i18n/adminLang';
 
 export function IssueList({ issues }: { issues: DesignValidationIssue[] }) {
   if (!issues.length) return <Callout tone="ok">{adm.design.tokens.noIssues}</Callout>;
   return (
     <ul style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
-      {issues.map((i, k) => <li key={`${i.path}${k}`}><StatusBadge tone={i.level === 'error' ? 'danger' : 'warn'}>{i.level === 'error' ? '오류' : '경고'}</StatusBadge> <span className="mono">{i.path}</span> — {i.message}</li>)}
+      {issues.map((i, k) => <li key={`${i.path}${k}`}><StatusBadge tone={i.level === 'error' ? 'danger' : 'warn'}>{i.level === 'error' ? tr('오류', 'Error') : tr('경고', 'Warning')}</StatusBadge> <span className="mono">{i.path}</span> — {i.message}</li>)}
     </ul>
   );
 }
@@ -57,7 +58,7 @@ export function PublishDialog({ open, onClose }: { open: boolean; onClose: () =>
       <h3 style={{ fontSize: 13, margin: '0 0 6px' }}>{adm.design.overview.issues} · {errors.length ? <StatusBadge tone="danger">{adm.design.overview.errors(errors.length)}</StatusBadge> : <StatusBadge tone="ok">{adm.design.overview.noIssues}</StatusBadge>} {all.length - errors.length ? <StatusBadge tone="warn">{adm.design.overview.warnings(all.length - errors.length)}</StatusBadge> : null}</h3>
       <IssueList issues={all} />
       {errors.length ? <Callout tone="warn" className="u-mt-8">{p.blocked}</Callout> : all.length ? <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>{p.warnings}</p> : null}
-      <div className="u-mt-16"><label htmlFor="pub-desc" style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>{p.description}</label><AInput id="pub-desc" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={200} placeholder="예) 2026 봄 테마 적용" /></div>
+      <div className="u-mt-16"><label htmlFor="pub-desc" style={{ fontSize: 12, fontWeight: 700, display: 'block', marginBottom: 4 }}>{p.description}</label><AInput id="pub-desc" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={200} placeholder={tr('예) 2026 봄 테마 적용', 'e.g. Applied the spring 2026 theme')} /></div>
     </Modal>
   );
 }

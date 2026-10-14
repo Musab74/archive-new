@@ -5,6 +5,7 @@ import { AButton, AInput, Card, FieldRow } from '../../../../shared/ui/admin';
 import { useDesignStudio } from '../DesignStudioContext';
 import { MediaPicker, useMediaLibrary } from '../MediaPicker';
 import { adm } from '../../strings';
+import { tr } from '../../../../shared/i18n/adminLang';
 
 type Slot = 'logoAssetId' | 'faviconAssetId' | 'heroAssetId';
 
@@ -41,11 +42,11 @@ export default function BrandingPage() {
         <FieldRow label={t.siteName} htmlFor="br-name" required><AInput id="br-name" value={b.siteName} onChange={(e) => set({ siteName: e.target.value })} maxLength={60} disabled={!canWrite} invalid={!b.siteName.trim()} /></FieldRow>
         <FieldRow label={t.tagline} htmlFor="br-tag"><AInput id="br-tag" value={b.tagline} onChange={(e) => set({ tagline: e.target.value })} maxLength={120} disabled={!canWrite} /></FieldRow>
         <AssetField slot="logoAssetId" label={t.logo} value={b.logoAssetId} assets={assets} onPick={() => setPicking('logoAssetId')} onClear={() => set({ logoAssetId: null })} disabled={!canWrite} />
-        <FieldRow label={t.logoAlt} htmlFor="br-alt" help="스크린리더가 읽는 로고 설명 (예: 회사명)"><AInput id="br-alt" value={b.logoAlt} onChange={(e) => set({ logoAlt: e.target.value })} maxLength={120} disabled={!canWrite} /></FieldRow>
+        <FieldRow label={t.logoAlt} htmlFor="br-alt" help={tr('스크린리더가 읽는 로고 설명 (예: 회사명)', 'Logo description read by screen readers (e.g. company name)')}><AInput id="br-alt" value={b.logoAlt} onChange={(e) => set({ logoAlt: e.target.value })} maxLength={120} disabled={!canWrite} /></FieldRow>
         <AssetField slot="faviconAssetId" label={t.favicon} value={b.faviconAssetId} assets={assets} onPick={() => setPicking('faviconAssetId')} onClear={() => set({ faviconAssetId: null })} disabled={!canWrite} />
         <AssetField slot="heroAssetId" label={t.hero} value={b.heroAssetId} assets={assets} onPick={() => setPicking('heroAssetId')} onClear={() => set({ heroAssetId: null })} disabled={!canWrite} />
       </div>
-      <MediaPicker open={picking !== null} onClose={() => setPicking(null)} title={`${slotLabel[picking ?? 'logoAssetId']} ${t.pick}`} selectedId={picking ? b[picking] : null} onPick={(a) => { if (picking) set({ [picking]: a.id } as Partial<typeof b>); }} />
+      <MediaPicker open={picking !== null} onClose={() => setPicking(null)} title={tr(`${slotLabel[picking ?? 'logoAssetId']} ${t.pick}`, `${t.pick}: ${slotLabel[picking ?? 'logoAssetId']}`)} selectedId={picking ? b[picking] : null} onPick={(a) => { if (picking) set({ [picking]: a.id } as Partial<typeof b>); }} />
     </Card>
   );
 }

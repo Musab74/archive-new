@@ -7,6 +7,7 @@ import { IssueList } from '../PublishDialog';
 import { GRADIENT_TOKENS, TOKEN_GROUPS, isHex, issuesForToken, normalizeHex, presetThemeFor, type ColorTokenKey, type GradientTokenKey } from '../designHelpers';
 import { MiniSite } from '../ThemePreviewCard';
 import { adm } from '../../strings';
+import { tr } from '../../../../shared/i18n/adminLang';
 
 function ColorRow({ token, label, hint, value, presetValue, onChange, disabled, issueLevel }: { token: ColorTokenKey; label: string; hint: string; value: string; presetValue: string; onChange: (v: string) => void; disabled: boolean; issueLevel: 'error' | 'warning' | null }) {
   const [text, setText] = useState(value);
@@ -15,7 +16,7 @@ function ColorRow({ token, label, hint, value, presetValue, onChange, disabled, 
   const commit = (raw: string) => { const n = normalizeHex(raw); if (n) onChange(n); else setText(value); };
   return (
     <div className={cx(styles.tokenRow, issueLevel === 'error' && styles.hasError, issueLevel === 'warning' && styles.hasWarn)}>
-      <input type="color" value={isHex(value) ? value : '#000000'} onChange={(e) => onChange(e.target.value)} aria-label={`${label} 색상`} disabled={disabled} />
+      <input type="color" value={isHex(value) ? value : '#000000'} onChange={(e) => onChange(e.target.value)} aria-label={tr(`${label} 색상`, `${label} colour`)} disabled={disabled} />
       <div className={styles.tokenName}><b>{label}</b><small title={hint}>{hint}</small></div>
       <AInput aria-label={`${label} HEX`} value={shown} onFocus={() => { setText(value); setFocused(true); }} onBlur={() => { setFocused(false); commit(text); }} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commit(text); (e.target as HTMLInputElement).blur(); } }} invalid={!isHex(value)} className="mono" maxLength={7} disabled={disabled} />
       <AButton size="xs" variant="ghost" onClick={() => onChange(presetValue)} disabled={disabled || value === presetValue} title={`${adm.design.tokens.reset} ${presetValue}`}>↺</AButton>
@@ -56,8 +57,8 @@ export default function TokensPage() {
         <Card title={adm.design.actions.preview}><MiniSite config={draft} /></Card>
         <Card title={adm.design.tokens.issues} aside={errors ? <StatusBadge tone="danger">{adm.design.overview.errors(errors)}</StatusBadge> : <StatusBadge tone="ok">OK</StatusBadge>}>
           <IssueList issues={issues} />
-          {serverIssues.length && !issues.length ? <Callout className="u-mt-8">서버 검증(저장본): {serverIssues.map((i) => i.path).join(', ')}</Callout> : null}
-          <p className="muted" style={{ fontSize: 11, marginTop: 8 }}>기준: 본문/배경 ≥ 3:1(권장 4.5), 흰 글자/primary ≥ 3:1. 오류가 있으면 게시할 수 없습니다.</p>
+          {serverIssues.length && !issues.length ? <Callout className="u-mt-8">{tr('서버 검증(저장본)', 'Server check (saved draft)')}: {serverIssues.map((i) => i.path).join(', ')}</Callout> : null}
+          <p className="muted" style={{ fontSize: 11, marginTop: 8 }}>{tr('기준: 본문/배경 ≥ 3:1(권장 4.5), 흰 글자/primary ≥ 3:1. 오류가 있으면 게시할 수 없습니다.', 'Thresholds: text/background ≥ 3:1 (4.5 recommended), white text/primary ≥ 3:1. Errors block publishing.')}</p>
         </Card>
       </div>
     </div>

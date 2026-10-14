@@ -8,6 +8,7 @@ import { StateBlock } from '../../../../shared/ui/StateBlock';
 import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
 import { adm } from '../../strings';
+import { tr } from '../../../../shared/i18n/adminLang';
 
 const GUBUNS = [{ key: '1', label: 'PICK' }, { key: '2', label: 'TOP10' }, { key: '3', label: 'NEW' }, { key: '4', label: 'HRDe' }];
 type Item = CurationList['items'][number];
@@ -37,22 +38,22 @@ export default function ListsPage() {
   const columns: Column<Item>[] = [
     { key: 'order', header: l.cols.order, align: 'right', width: 60, render: (_r, i) => i + 1 },
     { key: 'lectureCode', header: l.cols.code, nowrap: true, render: (r) => <b className="mono">{r.lectureCode}</b> },
-    { key: 'name', header: l.cols.name, render: (r) => r.name ?? <span className="muted">(저장 후 과정명 표시)</span> },
+    { key: 'name', header: l.cols.name, render: (r) => r.name ?? <span className="muted">{tr('(저장 후 과정명 표시)', '(Title shown after saving)')}</span> },
     { key: 'ctype', header: l.cols.ctype, align: 'center', render: (r) => r.ctype ?? '' },
-    { key: 'courseVisible', header: l.cols.visible, align: 'center', render: (r) => (r.courseVisible ? <YnBadge value="Y" yes="노출" /> : <StatusBadge tone="warn">과정 숨김</StatusBadge>) },
+    { key: 'courseVisible', header: l.cols.visible, align: 'center', render: (r) => (r.courseVisible ? <YnBadge value="Y" yes={tr('노출', 'Visible')} /> : <StatusBadge tone="warn">{tr('과정 숨김', 'Course hidden')}</StatusBadge>) },
     { key: 'regDate', header: l.cols.regDate, nowrap: true, render: (r) => r.regDate ?? '' },
     { key: '_act', header: '', width: 170, render: (_r, i) => <span style={{ display: 'inline-flex', gap: 4 }}><AButton size="xs" disabled={!canWrite || i === 0} onClick={() => setItems(moveItem(items, i, -1))} aria-label={l.up}>▲</AButton><AButton size="xs" disabled={!canWrite || i === items.length - 1} onClick={() => setItems(moveItem(items, i, 1))} aria-label={l.down}>▼</AButton><AButton size="xs" variant="danger" disabled={!canWrite} onClick={() => setItems(items.filter((_x, j) => j !== i))}>{l.remove}</AButton></span> },
   ];
   return (
     <AdminPage title={l.title} lead={l.lead} actions={<AButton variant="primary" disabled={!canWrite || !dirty} title={readOnlyTitle} loading={save.isPending} onClick={() => save.mutate(items.map((i) => i.lectureCode))}>{l.save}</AButton>}>
-      <TabStrip label="구분" items={GUBUNS.map((g) => ({ key: g.key, label: g.label, to: `/admin/lists?gubun=${g.key}` }))} value={gubun} />
+      <TabStrip label={tr('구분', 'List')} items={GUBUNS.map((g) => ({ key: g.key, label: g.label, to: `/admin/lists?gubun=${g.key}` }))} value={gubun} />
       {q.isError ? <StateBlock code="LIST_ERROR" center onRetry={() => void q.refetch()} /> : (
-        <Card title={`${q.data?.label ?? ''} · ${items.length}개`} aside={dirty ? <StatusBadge tone="warn">{l.dirty}</StatusBadge> : null}>
+        <Card title={tr(`${q.data?.label ?? ''} · ${items.length}개`, `${q.data?.label ?? ''} · ${items.length} items`)} aside={dirty ? <StatusBadge tone="warn">{l.dirty}</StatusBadge> : null}>
           <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
             <AInput value={code} onChange={(e) => setCode(e.target.value.trim())} placeholder={l.addPlaceholder} style={{ width: 260 }} disabled={!canWrite} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }} />
             <AButton onClick={add} disabled={!canWrite || !code}>{l.add}</AButton>
           </div>
-          <DataTable columns={columns} rows={q.isPending ? undefined : items} rowKey={(r) => r.lectureCode} loading={q.isPending} dense emptyTitle="목록이 비어 있습니다." emptyBody="과정코드를 추가하고 저장하세요." />
+          <DataTable columns={columns} rows={q.isPending ? undefined : items} rowKey={(r) => r.lectureCode} loading={q.isPending} dense emptyTitle={tr('목록이 비어 있습니다.', 'The list is empty.')} emptyBody={tr('과정코드를 추가하고 저장하세요.', 'Add course codes and save.')} />
           {!canWrite ? <Callout tone="warn" className="u-mt-8">{adm.readOnly}</Callout> : null}
         </Card>
       )}

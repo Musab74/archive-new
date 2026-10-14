@@ -9,6 +9,7 @@ import { useDesignStudio } from '../DesignStudioContext';
 import { MiniSite, Swatches } from '../ThemePreviewCard';
 import { withTheme } from '../designHelpers';
 import { adm } from '../../strings';
+import { tr } from '../../../../shared/i18n/adminLang';
 
 export default function PresetsPage() {
   const { draft, canWrite, dirty, adopt } = useDesignStudio();
@@ -20,7 +21,7 @@ export default function PresetsPage() {
   const customised = !!current && JSON.stringify(current.theme) !== JSON.stringify(draft.theme);
   return (
     <div>
-      {dirty ? <Callout tone="warn" className="u-mb-8">프리셋 적용은 서버 초안을 바로 바꿉니다. 저장하지 않은 로컬 변경은 덮어쓰입니다.</Callout> : null}
+      {dirty ? <Callout tone="warn" className="u-mb-8">{tr('프리셋 적용은 서버 초안을 바로 바꿉니다. 저장하지 않은 로컬 변경은 덮어쓰입니다.', 'Applying a preset changes the server draft immediately. Unsaved local changes will be overwritten.')}</Callout> : null}
       {customised ? <Callout className="u-mb-8">{adm.design.presets.custom}</Callout> : null}
       <div className={styles.presetGrid}>
         {list.map((p) => {

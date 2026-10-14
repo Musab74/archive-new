@@ -6,10 +6,10 @@ import type { AdminCourseDetail } from '../../../../shared/api/schemas';
 import { AButton, ACheckbox, AdminPage, AInput, ASelect, ATextarea, Callout, Card, DataTable, DescList, FieldRow, type Column } from '../../../../shared/ui/admin';
 import { StateBlock } from '../../../../shared/ui/StateBlock';
 import { Skeleton } from '../../../../shared/ui/Skeleton';
-import { contentType } from '../../../../shared/strings/ko';
 import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
 import { adm } from '../../strings';
+import { tr } from '../../../../shared/i18n/adminLang';
 
 const KEYS = ['ContentsName', 'Category1', 'Category2', 'Keyword1', 'Keyword2', 'Keyword3', 'Keyword4', 'Intro', 'EduTarget', 'EduGoal', 'ContentsTime'] as const;
 type Form = Record<(typeof KEYS)[number], string> & { UseYN: boolean };
@@ -23,12 +23,12 @@ export function courseDiff(base: Form, cur: Form): Record<string, unknown> {
 type Term = AdminCourseDetail['terms'][number];
 const termCols: Column<Term>[] = [
   { key: 'idx', header: 'idx', align: 'right' },
-  { key: 'start', header: '시작', nowrap: true, render: (r) => r.start ?? '' },
-  { key: 'end', header: '종료', nowrap: true, render: (r) => r.end ?? '' },
-  { key: 'serviceType', header: '유형', render: (r) => r.serviceType ?? '' },
-  { key: 'openYear', header: '연도', render: (r) => String(r.openYear ?? '') },
-  { key: 'openTerme', header: '회차', render: (r) => String(r.openTerme ?? '') },
-  { key: 'openChapter', header: '차시', render: (r) => String(r.openChapter ?? '') },
+  { key: 'start', header: tr('시작', 'Start'), nowrap: true, render: (r) => r.start ?? '' },
+  { key: 'end', header: tr('종료', 'End'), nowrap: true, render: (r) => r.end ?? '' },
+  { key: 'serviceType', header: tr('유형', 'Type'), render: (r) => r.serviceType ?? '' },
+  { key: 'openYear', header: tr('연도', 'Year'), render: (r) => String(r.openYear ?? '') },
+  { key: 'openTerme', header: tr('회차', 'Term'), render: (r) => String(r.openTerme ?? '') },
+  { key: 'openChapter', header: tr('차시', 'Chapter'), render: (r) => String(r.openChapter ?? '') },
 ];
 
 export default function CourseEditPage() {
@@ -55,14 +55,14 @@ export default function CourseEditPage() {
             <Card title={e.basic}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <FieldRow label={e.name} htmlFor="ce-name" required><AInput id="ce-name" value={form.ContentsName} onChange={(ev) => set({ ContentsName: ev.target.value })} maxLength={200} disabled={!canWrite} /></FieldRow>
-                <FieldRow label={e.useYN} help={e.hideWarn}><ACheckbox label="사이트에 노출(UseYN=Y)" checked={form.UseYN} onChange={(ev) => set({ UseYN: ev.target.checked })} disabled={!canWrite} /></FieldRow>
+                <FieldRow label={e.useYN} help={e.hideWarn}><ACheckbox label={tr('사이트에 노출(UseYN=Y)', 'Visible on site (UseYN=Y)')} checked={form.UseYN} onChange={(ev) => set({ UseYN: ev.target.checked })} disabled={!canWrite} /></FieldRow>
                 <FieldRow label={e.contentsTime} htmlFor="ce-time"><AInput id="ce-time" value={form.ContentsTime} onChange={(ev) => set({ ContentsTime: ev.target.value })} maxLength={20} style={{ width: 160 }} disabled={!canWrite} /></FieldRow>
               </div>
             </Card>
             <Card title={e.meta}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <FieldRow label={e.category1} htmlFor="ce-c1">{cat1.length ? <ASelect id="ce-c1" value={form.Category1} onChange={(ev) => set({ Category1: ev.target.value, Category2: '' })} options={cat1} placeholder="선택" disabled={!canWrite} /> : <AInput id="ce-c1" value={form.Category1} onChange={(ev) => set({ Category1: ev.target.value })} maxLength={50} disabled={!canWrite} />}</FieldRow>
-                <FieldRow label={e.category2} htmlFor="ce-c2">{cat2.length ? <ASelect id="ce-c2" value={form.Category2} onChange={(ev) => set({ Category2: ev.target.value })} options={cat2} placeholder="선택" disabled={!canWrite} /> : <AInput id="ce-c2" value={form.Category2} onChange={(ev) => set({ Category2: ev.target.value })} maxLength={50} disabled={!canWrite} />}</FieldRow>
+                <FieldRow label={e.category1} htmlFor="ce-c1">{cat1.length ? <ASelect id="ce-c1" value={form.Category1} onChange={(ev) => set({ Category1: ev.target.value, Category2: '' })} options={cat1} placeholder={tr('선택', 'Select')} disabled={!canWrite} /> : <AInput id="ce-c1" value={form.Category1} onChange={(ev) => set({ Category1: ev.target.value })} maxLength={50} disabled={!canWrite} />}</FieldRow>
+                <FieldRow label={e.category2} htmlFor="ce-c2">{cat2.length ? <ASelect id="ce-c2" value={form.Category2} onChange={(ev) => set({ Category2: ev.target.value })} options={cat2} placeholder={tr('선택', 'Select')} disabled={!canWrite} /> : <AInput id="ce-c2" value={form.Category2} onChange={(ev) => set({ Category2: ev.target.value })} maxLength={50} disabled={!canWrite} />}</FieldRow>
                 {([1, 2, 3, 4] as const).map((i) => { const k = `Keyword${i}` as const; return <FieldRow key={k} label={e.keyword(i)} htmlFor={`ce-${k}`}><AInput id={`ce-${k}`} value={form[k]} onChange={(ev) => set({ [k]: ev.target.value } as Partial<Form>)} maxLength={100} disabled={!canWrite} list="kw-list" /></FieldRow>; })}
                 <datalist id="kw-list">{(cats.data?.keywords ?? []).map((k) => <option key={k.idx} value={k.keyword ?? ''} />)}</datalist>
               </div>
@@ -78,9 +78,9 @@ export default function CourseEditPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {dirty ? <Callout tone="warn">{adm.courses.lists.dirty}</Callout> : null}
             <Card title={e.readonly}>
-              <DescList items={[['코드', d.lectureCode], ['유형', `${d.ctype ?? ''} ${contentType[d.ctype ?? ''] ?? ''}`], ['HRD', `${d.hrdCode ?? '-'} / seq ${d.hrdSeq ?? '-'}`], ['패키지', d.isPackage ? d.packageCodes.join(', ') : 'N'], ['서비스·모바일', `${d.serviceType ?? '-'} · ${d.mobile ?? '-'}`], ['콘텐츠 URL', d.contentsUrl], ['모바일 URL', d.mobileUrl], ['제공기간', `${d.contentsStart ?? ''} ~ ${d.contentsEnd ?? ''}`], ['가격', d.prices ? `${d.prices.normal.toLocaleString('ko-KR')} / 우선 ${d.prices.priority.toLocaleString('ko-KR')} / 대 ${d.prices.large1.toLocaleString('ko-KR')} / ${d.prices.large2.toLocaleString('ko-KR')}` : null], ['법정교육', d.legalEduReq], ['수강 건수', d.enrollments], ['조회', d.views], ['강사', d.professor], ['등록·업로드', `${d.regDate ?? ''} · ${d.uploadDate ?? ''}`]]} />
+              <DescList items={[[tr('코드', 'Code'), d.lectureCode], [tr('유형', 'Type'), `${d.ctype ?? ''} ${adm.ctypes[d.ctype ?? ''] ?? ''}`], ['HRD', `${d.hrdCode ?? '-'} / seq ${d.hrdSeq ?? '-'}`], [tr('패키지', 'Package'), d.isPackage ? d.packageCodes.join(', ') : 'N'], [tr('서비스·모바일', 'Service · mobile'), `${d.serviceType ?? '-'} · ${d.mobile ?? '-'}`], [tr('콘텐츠 URL', 'Contents URL'), d.contentsUrl], [tr('모바일 URL', 'Mobile URL'), d.mobileUrl], [tr('제공기간', 'Availability'), `${d.contentsStart ?? ''} ~ ${d.contentsEnd ?? ''}`], [tr('가격', 'Price'), d.prices ? `${d.prices.normal.toLocaleString('ko-KR')} / ${tr('우선', 'priority')} ${d.prices.priority.toLocaleString('ko-KR')} / ${tr('대', 'large')} ${d.prices.large1.toLocaleString('ko-KR')} / ${d.prices.large2.toLocaleString('ko-KR')}` : null], [tr('법정교육', 'Mandatory training'), d.legalEduReq], [tr('수강 건수', 'Enrollments'), d.enrollments], [tr('조회', 'Views'), d.views], [tr('강사', 'Instructor'), d.professor], [tr('등록·업로드', 'Created · uploaded'), `${d.regDate ?? ''} · ${d.uploadDate ?? ''}`]]} />
             </Card>
-            <Card title={`${e.terms} (${d.terms.length})`}><DataTable columns={termCols} rows={d.terms} rowKey={(r) => r.idx} dense emptyTitle="회차가 없습니다." emptyBody=" " /></Card>
+            <Card title={`${e.terms} (${d.terms.length})`}><DataTable columns={termCols} rows={d.terms} rowKey={(r) => r.idx} dense emptyTitle={tr('회차가 없습니다.', 'No terms.')} emptyBody=" " /></Card>
           </div>
         </div>
       )}

@@ -8,6 +8,7 @@ import { AButton, AInput, Callout } from '../../../shared/ui/admin';
 import { FormMessage } from '../../../shared/ui/Form';
 import { adm } from '../strings';
 import { Icon } from '../../../shared/ui/Icon';
+import { LangSwitch } from '../LangSwitch';
 
 /** /admin/login — id, password, 2차 인증(휴대폰 뒤 4자리). */
 export default function AdminLoginPage() {
@@ -41,6 +42,7 @@ export default function AdminLoginPage() {
   return (
     <div className={styles.loginWrap}>
       <form className={styles.loginCard} onSubmit={(e) => void submit(e)} aria-labelledby="admin-login-title">
+        <LangSwitch className={styles.loginLang} />
         <span className={styles.loginMark} aria-hidden="true"><Icon name="shield" size={24} /></span>
         <span className="eyebrow">{adm.brand}</span>
         <h1 id="admin-login-title">{adm.login.title}</h1>

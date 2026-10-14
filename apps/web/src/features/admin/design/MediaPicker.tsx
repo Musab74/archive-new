@@ -7,6 +7,7 @@ import { Modal } from '../../../shared/ui/Modal';
 import { AButton, Callout } from '../../../shared/ui/admin';
 import { cx } from '../../../shared/utils/format';
 import { adm } from '../strings';
+import { tr } from '../../../shared/i18n/adminLang';
 
 export function useMediaLibrary(page = 1, size = 48) {
   return useQuery({ queryKey: ['design', 'media', page, size], queryFn: ({ signal }) => designApi.media(page, size, signal), staleTime: 30_000 });
@@ -21,7 +22,7 @@ export function MediaPicker({ open, onClose, onPick, title, selectedId }: { open
   const items = q.data?.items ?? [];
   return (
     <Modal open={open} onClose={onClose} title={title} size="lg" actions={<><AButton onClick={onClose}>{adm.common.cancel}</AButton><AButton variant="primary" disabled={!picked} onClick={() => { if (picked) { onPick(picked); onClose(); } }}>{adm.common.apply}</AButton></>}>
-      {q.isError ? <Callout tone="warn">목록을 불러오지 못했습니다.</Callout> : items.length === 0 && !q.isPending ? <Callout>업로드된 이미지가 없습니다. 미디어 라이브러리에서 먼저 업로드해 주세요.</Callout> : (
+      {q.isError ? <Callout tone="warn">{tr('목록을 불러오지 못했습니다.', 'Could not load the list.')}</Callout> : items.length === 0 && !q.isPending ? <Callout>{tr('업로드된 이미지가 없습니다. 미디어 라이브러리에서 먼저 업로드해 주세요.', 'No images uploaded yet. Upload one in the media library first.')}</Callout> : (
         <div className={styles.mediaGrid} role="listbox" aria-label={title}>
           {items.map((a) => (
             <button key={a.id} type="button" role="option" aria-selected={(picked?.id ?? selectedId) === a.id} className={cx(styles.mediaCard, (picked?.id ?? selectedId) === a.id && styles.picked)} onClick={() => setPicked(a)} onDoubleClick={() => { onPick(a); onClose(); }} style={{ textAlign: 'left', padding: 0 }}>

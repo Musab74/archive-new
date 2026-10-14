@@ -5,8 +5,9 @@ import { cx } from '../../../../shared/utils/format';
 import { useDesignStudio } from '../DesignStudioContext';
 import { HOME_SECTION_LABELS, moveSection, normalizeHomeSections, toggleSection } from '../designHelpers';
 import { adm } from '../../strings';
+import { tr } from '../../../../shared/i18n/adminLang';
 
-const LABELS: Record<string, string> = { standard: '기본', compact: '컴팩트', centered: '가운데 정렬', split: '좌우 분할', 'visual-right': '이미지 우측', columns: '다단', elevated: '그림자', outlined: '외곽선' };
+const LABELS: Record<string, string> = { standard: tr('기본', 'Standard'), compact: tr('컴팩트', 'Compact'), centered: tr('가운데 정렬', 'Centered'), split: tr('좌우 분할', 'Split'), 'visual-right': tr('이미지 우측', 'Image right'), columns: tr('다단', 'Columns'), elevated: tr('그림자', 'Shadow'), outlined: tr('외곽선', 'Outline') };
 
 /** Simple CSS thumbnails per variant. */
 function Thumb({ kind, variant }: { kind: 'header' | 'hero' | 'footer' | 'card'; variant: string }) {
@@ -35,7 +36,7 @@ export default function LayoutPage() {
   const sections = normalizeHomeSections(l.homeSections, { missingVisible: false });
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <Card title="구성 변형">
+      <Card title={tr('구성 변형', 'Layout variants')}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <VariantPicker kind="header" label={t.header} options={HEADER_VARIANTS} value={l.headerVariant} onChange={(v) => set({ headerVariant: v as typeof l.headerVariant })} disabled={!canWrite} />
           <VariantPicker kind="hero" label={t.hero} options={HERO_VARIANTS} value={l.heroVariant} onChange={(v) => set({ heroVariant: v as typeof l.heroVariant })} disabled={!canWrite} />
@@ -49,9 +50,9 @@ export default function LayoutPage() {
         <div className={styles.sectionList}>
           {sections.map((s, i) => (
             <div key={s.key} className={cx(styles.sectionRow, !s.visible && styles.hidden)}>
-              <ACheckbox label={<span className="sr-only">{t.show}</span>} checked={s.visible} onChange={(e) => set({ homeSections: toggleSection(sections, s.key, e.target.checked) })} disabled={!canWrite} aria-label={`${HOME_SECTION_LABELS[s.key]} ${t.show}`} />
+              <ACheckbox label={<span className="sr-only">{t.show}</span>} checked={s.visible} onChange={(e) => set({ homeSections: toggleSection(sections, s.key, e.target.checked) })} disabled={!canWrite} aria-label={tr(`${HOME_SECTION_LABELS[s.key]} ${t.show}`, `${t.show}: ${HOME_SECTION_LABELS[s.key]}`)} />
               <span style={{ fontSize: 13 }}><b>{i + 1}. {HOME_SECTION_LABELS[s.key]}</b> <span className="muted mono" style={{ fontSize: 11 }}>{s.key}</span></span>
-              <span style={{ display: 'inline-flex', gap: 4 }}><AButton size="xs" aria-label={`${HOME_SECTION_LABELS[s.key]} ${t.up}`} disabled={!canWrite || i === 0} onClick={() => set({ homeSections: moveSection(sections, i, -1) })}>▲</AButton><AButton size="xs" aria-label={`${HOME_SECTION_LABELS[s.key]} ${t.down}`} disabled={!canWrite || i === sections.length - 1} onClick={() => set({ homeSections: moveSection(sections, i, 1) })}>▼</AButton></span>
+              <span style={{ display: 'inline-flex', gap: 4 }}><AButton size="xs" aria-label={tr(`${HOME_SECTION_LABELS[s.key]} ${t.up}`, `${t.up}: ${HOME_SECTION_LABELS[s.key]}`)} disabled={!canWrite || i === 0} onClick={() => set({ homeSections: moveSection(sections, i, -1) })}>▲</AButton><AButton size="xs" aria-label={tr(`${HOME_SECTION_LABELS[s.key]} ${t.down}`, `${t.down}: ${HOME_SECTION_LABELS[s.key]}`)} disabled={!canWrite || i === sections.length - 1} onClick={() => set({ homeSections: moveSection(sections, i, 1) })}>▼</AButton></span>
             </div>
           ))}
         </div>

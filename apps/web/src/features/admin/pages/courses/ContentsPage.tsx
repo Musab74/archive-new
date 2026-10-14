@@ -6,6 +6,7 @@ import type { ContentsRow } from '../../../../shared/api/schemas';
 import { useSearchState } from '../../../../shared/utils/useSearchState';
 import { AdminPage, AInput, DataTable, FilterBar, FilterField, type Column } from '../../../../shared/ui/admin';
 import { adm } from '../../strings';
+import { tr } from '../../../../shared/i18n/adminLang';
 
 const DEFAULTS = { q: '', gubun: '', page: 1 };
 const SIZE = 20;
@@ -14,7 +15,7 @@ const columns: Column<ContentsRow>[] = [
   { key: 'idx', header: c.idx, align: 'right', sortable: true },
   { key: 'gubun', header: c.gubun, align: 'center', render: (r) => r.gubun ?? '' },
   { key: 'title', header: c.title, sortable: true, render: (r) => <b>{r.title}</b> },
-  { key: 'lectureTimeMin', header: c.min, align: 'right', sortable: true, render: (r) => (r.lectureTimeMin != null ? `${r.lectureTimeMin}분` : '') },
+  { key: 'lectureTimeMin', header: c.min, align: 'right', sortable: true, render: (r) => (r.lectureTimeMin != null ? tr(`${r.lectureTimeMin}분`, `${r.lectureTimeMin} min`) : '') },
   { key: 'usedIn', header: c.usedIn, align: 'right', sortable: true },
   { key: 'size', header: c.size, render: (r) => (r.size?.width || r.size?.height ? `${r.size.width ?? '?'}×${r.size.height ?? '?'}` : '') },
   { key: 'regDate', header: c.regDate, nowrap: true, sortable: true, render: (r) => r.regDate ?? '' },
