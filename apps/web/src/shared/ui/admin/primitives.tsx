@@ -1,6 +1,7 @@
-import { forwardRef, useId, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import { forwardRef, useId, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './admin.module.css';
+import { AppSelect, type AppSelectProps } from '../AppSelect';
 import { cx } from '../../utils/format';
 
 export interface Crumb { label: string; to?: string }
@@ -75,15 +76,16 @@ export interface ATextareaProps extends TextareaHTMLAttributes<HTMLTextAreaEleme
 export const ATextarea = forwardRef<HTMLTextAreaElement, ATextareaProps>(function ATextarea({ invalid, className, ...rest }, ref) {
   return <textarea ref={ref} className={cx(styles.input, styles.textarea, className)} aria-invalid={invalid || undefined} {...rest} />;
 });
-export interface ASelectProps extends SelectHTMLAttributes<HTMLSelectElement> { options: { value: string; label: string }[]; placeholder?: string; invalid?: boolean }
-export const ASelect = forwardRef<HTMLSelectElement, ASelectProps>(function ASelect({ options, placeholder, invalid, className, ...rest }, ref) {
-  return (
-    <select ref={ref} className={cx(styles.input, styles.select, className)} aria-invalid={invalid || undefined} {...rest}>
-      {placeholder !== undefined ? <option value="">{placeholder}</option> : null}
-      {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-    </select>
-  );
-});
+export interface ASelectProps extends Omit<AppSelectProps, 'options' | 'onValueChange' | 'size'> {
+  options: { value: string; label: string }[];
+  /** Change-event shape kept from the native select so admin forms read `e.target.value` unchanged. */
+  onChange?: (e: { target: { value: string } }) => void;
+}
+/** Admin select = the shared AppSelect (compact). `placeholder` becomes a selectable "" first option, as before. */
+export function ASelect({ options, placeholder, onChange, ...rest }: ASelectProps) {
+  const opts = placeholder !== undefined && !options.some((o) => o.value === '') ? [{ value: '', label: placeholder }, ...options] : options;
+  return <AppSelect size="sm" {...rest} placeholder={placeholder} options={opts} onValueChange={(v) => onChange?.({ target: { value: v } })} />;
+}
 
 /** Label + control in a 140px / 1fr row (admin forms). */
 export function FieldRow({ label, children, help, error, htmlFor, required }: { label: ReactNode; children: ReactNode; help?: ReactNode; error?: ReactNode; htmlFor?: string; required?: boolean }) {

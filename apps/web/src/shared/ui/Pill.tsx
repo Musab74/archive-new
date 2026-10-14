@@ -2,6 +2,7 @@ import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
 import styles from './Pill.module.css';
 import { cx } from '../utils/format';
 import { catalog as catalogCopy } from '../strings/ko';
+import { Icon } from './Icon';
 
 export type TypeLabelTone = 'navy' | 'mint' | 'warm' | 'ink' | 'gray' | 'coral' | 'coral-soft';
 
@@ -19,6 +20,7 @@ export interface PillProps extends ButtonHTMLAttributes<HTMLButtonElement> { pre
 export function Pill({ pressed = false, soft, small, className, children, type, ...rest }: PillProps) {
   return (
     <button type={type ?? 'button'} aria-pressed={pressed} className={cx(styles.pill, soft && styles.pillSoft, small && styles.pillSm, className)} {...rest}>
+      <span className={styles.tick} aria-hidden="true"><Icon name="check" size={14} strokeWidth={2.5} /></span>
       {children}
     </button>
   );
@@ -29,7 +31,7 @@ export function Chip({ label, onRemove }: { label: string; onRemove: () => void 
   return (
     <button type="button" className={styles.chip} onClick={onRemove} aria-label={catalogCopy.remove(label)}>
       <span>{label}</span>
-      <span aria-hidden="true">×</span>
+      <span className={styles.x} aria-hidden="true"><Icon name="close" size={13} strokeWidth={2.25} /></span>
     </button>
   );
 }

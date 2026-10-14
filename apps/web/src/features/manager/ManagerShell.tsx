@@ -5,6 +5,7 @@ import { Footer } from '../../shared/ui/Footer';
 import { PageTransition } from '../../shared/motion/PageTransition';
 import { ManagerProvider, useManager } from './ManagerContext';
 import { mgr } from './strings';
+import { AppSelect } from '../../shared/ui/AppSelect';
 
 const nav = [
   { to: '/manager', label: mgr.nav.overview, end: true },
@@ -20,10 +21,8 @@ function CompanySelector() {
   return (
     <div className={styles.company}>
       <label htmlFor="mgr-company">{mgr.company.label}</label>
-      <select id="mgr-company" value={companyCode} onChange={(e) => setCompanyCode(e.target.value)} disabled={loading || !!error}>
-        <option value="">{loading ? '불러오는 중…' : mgr.company.all}</option>
-        {companies.map((c) => <option key={c.companyCode} value={c.companyCode}>{c.companyName ?? c.companyCode}</option>)}
-      </select>
+      <AppSelect id="mgr-company" value={companyCode} onValueChange={setCompanyCode} disabled={!!error} loading={loading} icon="building"
+        options={[{ value: '', label: loading ? '불러오는 중…' : mgr.company.all }, ...companies.map((c) => ({ value: c.companyCode, label: c.companyName ?? c.companyCode }))]} />
       <small>{error ? mgr.company.none : company ? `${company.companyCode} · ${mgr.company.trainees(company.trainees)}` : companies.length ? `${companies.length}개 기업 · 전체 합계` : loading ? '' : mgr.company.none}</small>
     </div>
   );

@@ -12,7 +12,7 @@ export function CtaBand({ label, title, lead, apply, phone, columns }: CtaBandPr
       <div className={`bleed-inner ${styles.ctaInner}`}>
         <div className={styles.ctaPanel}>
           <div className={styles.ctaMain}>
-            <span className={styles.bandLabel}>{label}</span>
+            <span className={styles.ctaLabel}>{label}</span>
             <h2 id="home-cta-h" className={styles.ctaTitle}>{title}</h2>
             <p className={styles.ctaLead}>{lead}</p>
             <div className={styles.ctaActions}>

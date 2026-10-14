@@ -71,7 +71,7 @@ describe('Design Studio — diff helper', () => {
     b.branding.logoAssetId = '11111111-1111-4111-8111-111111111111';
     const diff = diffConfigs(a, b);
     expect(diff.map((d) => d.path)).toEqual(['branding.logoAssetId', 'layout.homeSections', 'theme.primary', 'typography.baseFontSize']);
-    expect(diff.find((d) => d.path === 'theme.primary')).toEqual({ path: 'theme.primary', a: '#1f3a5f', b: '#2e8b57' });
+    expect(diff.find((d) => d.path === 'theme.primary')).toEqual({ path: 'theme.primary', a: DEFAULT_DESIGN.theme.primary, b: '#2e8b57' });
     expect(diff.find((d) => d.path === 'branding.logoAssetId')!.a).toBe('');
   });
 });

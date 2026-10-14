@@ -1,14 +1,19 @@
-h1,h2,h3,h4{font-family:var(--font-heading);line-height:1.32;letter-spacing:-.025em;color:var(--c-ink);font-weight:var(--fw-bold);text-wrap:balance}
+h1,h2,h3,h4{font-family:var(--font-heading);line-height:var(--lh-snug);letter-spacing:-.03em;color:var(--c-ink);font-weight:var(--fw-bold);text-wrap:balance}
 h1{font-size:calc(var(--fs-base) * var(--heading-scale) * var(--heading-scale) * var(--heading-scale) * 1.35)}
 h2{font-size:calc(var(--fs-base) * var(--heading-scale) * var(--heading-scale) * 1.2)}
 h3{font-size:calc(var(--fs-base) * var(--heading-scale) * 1.1)}
 h4{font-size:calc(var(--fs-base) * 1.05);font-weight:var(--fw-bold)}
-p{color:var(--c-text)}
+p{color:var(--c-text);text-wrap:pretty}
 small{font-size:.85em}
 strong,b{font-weight:var(--fw-bold)}
-.eyebrow{font-size:12px;letter-spacing:.14em;font-weight:var(--fw-bold);color:var(--c-primary);text-transform:uppercase}
+/* Section label: small uppercase line above a heading (ABOUT / CONTENTS …), primary-ink with a short rule */
+.eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:var(--fs-2xs);letter-spacing:var(--ls-label);font-weight:var(--fw-bold);color:var(--c-primary-ink);text-transform:uppercase;line-height:1.4}
+.eyebrow::before{content:'';width:18px;height:2px;border-radius:2px;background:currentColor;opacity:.55}
 .muted{color:var(--c-muted)}
 .hnum{color:var(--c-primary);font-size:18px;margin-right:12px;font-weight:var(--fw-black)}
-.text-link{display:inline-flex;align-items:center;gap:6px;padding:5px 0;font-size:14px;line-height:1.5;font-weight:var(--fw-semibold);color:var(--c-text);min-height:36px;max-width:100%;text-decoration:none;background:transparent;border:0}
-.text-link:hover{color:var(--c-primary);text-decoration:underline;text-underline-offset:4px}
+.text-link{display:inline-flex;align-items:center;gap:6px;padding:5px 0;font-size:14px;line-height:1.5;font-weight:var(--fw-semibold);color:var(--c-text);min-height:36px;max-width:100%;text-decoration:none;background:transparent;border:0;transition:color var(--dur-fast)}
+.text-link:hover{color:var(--c-primary)}
+.text-link svg{transition:transform var(--dur-fast) var(--ease-out)}
+.text-link:hover svg{transform:translateX(3px)}
+.tabular{font-variant-numeric:tabular-nums}
 @media (max-width:768px){.hnum{font-size:15px;margin-right:7px}}

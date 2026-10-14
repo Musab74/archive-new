@@ -31,7 +31,7 @@ export default function MyCompanyTraining() {
           <dl className={styles.kv}><div><dt>{c.companyLabel}</dt><dd>{company.data.companyName ?? company.data.companyCode}</dd></div></dl>
           <div className={styles.filters}>
             <label style={{ flex: 1, minWidth: 200 }}>{c.search}<input type="search" value={q} placeholder={c.search} onChange={(e) => setQ(e.target.value)} /></label>
-            <label>{c.type}<Select value={type} options={c.types.map((t, i) => ({ value: i === 0 ? '' : t, label: t }))} onChange={(e) => setType(e.target.value)} /></label>
+            <label>{c.type}<Select value={type} options={c.types.map((t, i) => ({ value: i === 0 ? '' : t, label: t }))} onValueChange={setType} /></label>
           </div>
           <StateBlock code="EMPTY" symbol="briefcase" title={c.emptyTitle} body={c.emptyBody} actions={<Button variant="secondary" square size="sm" to="/support/counsel">{c.inquiry}</Button>} />
         </>

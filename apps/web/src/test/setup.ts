@@ -21,4 +21,10 @@ if (typeof window !== 'undefined') {
     Object.defineProperty(window, 'ResizeObserver', { writable: true, value: RO });
   }
   Object.defineProperty(window, 'scrollTo', { writable: true, value: () => {} });
+  // Radix Select (AppSelect) uses pointer capture and scrollIntoView, which jsdom does not implement.
+  const proto = window.HTMLElement.prototype as unknown as Record<string, unknown>;
+  if (!proto.hasPointerCapture) proto.hasPointerCapture = () => false;
+  if (!proto.releasePointerCapture) proto.releasePointerCapture = () => {};
+  if (!proto.setPointerCapture) proto.setPointerCapture = () => {};
+  if (!proto.scrollIntoView) proto.scrollIntoView = () => {};
 }

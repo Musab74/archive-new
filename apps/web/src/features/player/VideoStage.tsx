@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import styles from './VideoStage.module.css';
 import { Icon } from '../../shared/ui/Icon';
+import { AppSelect } from '../../shared/ui/AppSelect';
 import { player as copy } from '../../shared/strings/ko';
 import { clock, spoken } from '../../shared/player/time';
 import { cx } from '../../shared/utils/format';
@@ -118,10 +119,8 @@ export function VideoStage({ src, videoRef, playing, canPlay, onPlay, onPause, o
         />
         <button type="button" className={styles.btn} onClick={toggleMute} aria-label={muted ? copy.controls.unmute : copy.controls.mute} aria-pressed={muted}><span className={styles.skip}>{muted ? '🔇' : '🔊'}</span></button>
         <input type="range" className={styles.volume} min={0} max={1} step={0.05} value={muted ? 0 : volume} aria-label={copy.controls.volume} onChange={(e) => setVol(Number(e.target.value))} />
-        <label className={styles.speed}>
-          <span className="sr-only">{copy.controls.speed}</span>
-          <select value={speed} onChange={(e) => changeSpeed(Number(e.target.value))}>{SPEEDS.map((s) => <option key={s} value={s}>{s}×</option>)}</select>
-        </label>
+        {/* in-place panel (portal={false}): a <body> portal would be invisible while the stage is fullscreen */}
+        <AppSelect className={styles.speed} tone="dark" size="sm" portal={false} align="end" aria-label={copy.controls.speed} value={String(speed)} onValueChange={(v) => changeSpeed(Number(v))} options={SPEEDS.map((s) => ({ value: String(s), label: `${s}×` }))} />
         <button type="button" className={styles.btn} onClick={toggleFullscreen} aria-label={fullscreen ? copy.controls.exitFullscreen : copy.controls.fullscreen} disabled={!fsSupported} title={fsSupported ? undefined : copy.controls.noFullscreen}><span className={styles.skip}>⛶</span></button>
       </div>
       <p id="player-shortcuts" className="sr-only">{copy.controls.shortcuts}</p>

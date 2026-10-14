@@ -13,16 +13,6 @@
 .jobs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--c-line-2);border-left:1px solid var(--c-line-2)}
 .jobs a{font-size:13px;line-height:1.6;text-align:left;background:var(--c-paper);border-right:1px solid var(--c-line-2);border-bottom:1px solid var(--c-line-2);padding:15px 16px;min-height:54px;color:var(--c-text);display:flex;align-items:center}
 .jobs a:hover{background:var(--c-soft);color:var(--c-primary-deep)}
-.journey{padding-block:60px;background:var(--g-brand);color:#fff;display:grid;grid-template-columns:1fr 1.08fr;gap:55px}
-.journey h2{font-size:36px;letter-spacing:-1.3px;line-height:1.35;margin:15px 0 18px;color:#fff;white-space:pre-line}
-.jlabel{font-size:13px;font-weight:var(--fw-black);color:#defcf9;letter-spacing:.12em}
-.journey p{font-size:15px;color:#e5f2f9;margin:0;line-height:1.8;white-space:pre-line}
-.steps{display:grid;align-content:center}
-.step{display:flex;gap:21px;border-bottom:1px solid rgba(255,255,255,.3);padding:18px 0}
-.step:last-child{border:0}
-.step > b{font-size:13px;color:#c7f8ef;padding-top:3px}
-.step strong{font-size:18px;display:block;margin-bottom:5px}
-.step span{font-size:13px;line-height:1.6;color:#e4f5f5}
 .support{display:grid;grid-template-columns:1fr 1fr;gap:55px}
 .support h2{font-size:29px;line-height:1.4;letter-spacing:-1px;margin:0 0 16px;white-space:pre-line}
 .support p{font-size:14px;line-height:1.8;white-space:pre-line}
@@ -30,11 +20,13 @@
 .faq:first-child{border-top:1px solid var(--c-line-2)}
 .faq summary{font-size:14px;font-weight:var(--fw-bold);line-height:1.6;cursor:pointer;min-height:30px;list-style:none;display:flex;justify-content:space-between;gap:12px;align-items:center}
 .faq summary::-webkit-details-marker{display:none}
-.faq summary::after{content:'+';color:var(--c-subtle);flex:none}
-.faq[open] summary::after{content:'−'}
+.faq summary::after{content:'';flex:none;width:8px;height:8px;border-right:2px solid var(--c-muted);border-bottom:2px solid var(--c-muted);transform:translateY(-2px) rotate(45deg);transition:transform var(--dur-base) var(--ease-emph),border-color var(--dur-fast)}
+.faq[open] summary::after{transform:translateY(2px) rotate(-135deg);border-color:var(--c-primary)}
+.faq[open] p{animation:faqIn var(--dur-slow) var(--ease-emph)}
+@keyframes faqIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 .faq p{font-size:13px;margin:12px 0 2px;line-height:1.8}
 .empty{grid-column:1/-1}
-@media (max-width:1150px){.grid,.discovery{grid-template-columns:repeat(2,minmax(0,1fr))}.jobs{grid-template-columns:repeat(3,minmax(0,1fr))}.journey{grid-template-columns:1fr;gap:20px}.support{grid-template-columns:1fr;gap:28px}}
+@media (max-width:1150px){.grid,.discovery{grid-template-columns:repeat(2,minmax(0,1fr))}.jobs{grid-template-columns:repeat(3,minmax(0,1fr))}.support{grid-template-columns:1fr;gap:28px}}
 @media (max-width:768px){
   .toolbar{display:block;margin-bottom:20px}
   .search{max-width:none;margin-top:15px}
@@ -46,15 +38,7 @@
   .jobs{grid-template-columns:repeat(2,minmax(0,1fr))}
   .jobs a{font-size:12px;padding:11px 10px;min-height:57px}
   .jobLabel{font-size:13px;margin:23px 0 11px}
-  .journey{display:block;padding-block:30px}
-  .journey h2{font-size:28px;letter-spacing:-1px}
-  .journey p{font-size:14px}
-  .jlabel{font-size:11px}
-  .steps{margin-top:23px}
-  .step{gap:14px;padding:16px 0}
-  .step strong{font-size:16px}
-  .step span{font-size:12px}
-  .support h2{font-size:24px}
+                  .support h2{font-size:24px}
   .support p{font-size:13px}
 }
 @media (max-width:480px){.discovery{grid-template-columns:1fr}}

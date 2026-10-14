@@ -27,7 +27,7 @@ describe('Button accessibility', () => {
     const ext = screen.getByRole('link', { name: /AXIS 자격검정 바로가기/ });
     expect(ext).toHaveAttribute('target', '_blank');
     expect(ext).toHaveAttribute('rel', 'noopener noreferrer');
-    expect(ext).toHaveTextContent('↗');
+    expect(ext.querySelector('svg[aria-hidden="true"]')).not.toBeNull(); // ↗ external mark (icon)
     expect(ext).toHaveTextContent('(새 창)');
   });
 

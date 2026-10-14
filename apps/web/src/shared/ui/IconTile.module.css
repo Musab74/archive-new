@@ -1,0 +1,5 @@
+.tile{--tile:40px;flex:none;width:var(--tile);height:var(--tile);display:grid;place-items:center;border-radius:calc(var(--r-md) - 2px);color:var(--tone);background:color-mix(in srgb,var(--tone) 11%,var(--c-paper));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tone) 18%,transparent);transition:transform var(--dur-base) var(--ease-emph),background-color var(--dur-base),color var(--dur-base)}
+.tile svg{transition:transform var(--dur-base) var(--ease-emph)}
+.sm{--tile:32px;border-radius:calc(var(--r-sm) + 1px)}
+.lg{--tile:52px;border-radius:var(--r-md)}
+.solid{color:#fff;background:var(--tone);box-shadow:0 8px 18px -8px color-mix(in srgb,var(--tone) 70%,transparent)}

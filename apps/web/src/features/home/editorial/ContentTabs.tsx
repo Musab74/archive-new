@@ -31,11 +31,11 @@ export function ContentTabs({ label, title, lead, aria, items, more, size = 8 }:
       <div className={`bleed-inner ${styles.tabsInner}`}>
         <div className={styles.tabsHead}>
           <div>
-            <span className={styles.sectionLabel}>{label}</span>
+            <span className="eyebrow">{label}</span>
             <h2 id="home-tabs-h" className={styles.sectionTitle}>{title}</h2>
             <p className={styles.sectionLead}>{lead}</p>
           </div>
-          <PillTabs label={aria} items={items} value={tab} onChange={(k) => setTab(k as ContentTabKey)} className={styles.segment} />
+          <PillTabs label={aria} items={items} value={tab} onChange={(k) => setTab(k as ContentTabKey)} />
         </div>
         <div className={styles.cardGrid} aria-busy={q.isPending}>
           {q.isPending ? Array.from({ length: size }).map((_, i) => <ContentCardSkeleton key={i} />)
@@ -43,7 +43,7 @@ export function ContentTabs({ label, title, lead, aria, items, more, size = 8 }:
             : list.length === 0 ? <div className={styles.span}><StateBlock code="EMPTY" center hideActions /></div>
             : list.map((c) => <ContentCard key={c.lectureCode} course={c} />)}
         </div>
-        <div className={styles.moreRow}><Button variant="secondary" to={tab === 'ai' ? '/ai-zone' : '/catalog'} iconRight={<Icon name="arrow" size={15} />}>{more}</Button></div>
+        <div className={styles.moreRow}><Button variant="secondary" size="lg" to={tab === 'ai' ? '/ai-zone' : '/catalog'} iconRight={<Icon name="arrow" size={16} />}>{more}</Button></div>
       </div>
     </section>
   );

@@ -192,7 +192,7 @@ export function AssessmentFlow({ phase }: { phase: Phase }) {
           {tracks.isPending ? <Skeleton lines={3} /> : tracks.isError ? <StateBlock code="LIST_ERROR" onRetry={() => void tracks.refetch()} /> : (
             <>
               <FormField label={copy.profile.col1} required htmlFor="col1" error={msg && !draft.col1 ? msg : undefined}>
-                <Select id="col1" value={draft.col1} invalid={!!msg && !draft.col1} placeholder={copy.profile.col1Placeholder} options={(tracks.data.jobTracks.length ? tracks.data.jobTracks : [draft.col1].filter(Boolean)).map((t) => ({ value: t, label: t }))} onChange={(e) => { patch({ col1: e.target.value }); setMsg(null); }} />
+                <Select id="col1" value={draft.col1} invalid={!!msg && !draft.col1} placeholder={copy.profile.col1Placeholder} options={(tracks.data.jobTracks.length ? tracks.data.jobTracks : [draft.col1].filter(Boolean)).map((t) => ({ value: t, label: t }))} onValueChange={(v) => { patch({ col1: v }); setMsg(null); }} />
               </FormField>
               <div className={styles.grid3}>
                 <FormField label={copy.profile.col2} optional htmlFor="col2"><Input id="col2" value={draft.col2} maxLength={100} onChange={(e) => patch({ col2: e.target.value })} /></FormField>

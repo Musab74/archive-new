@@ -44,7 +44,7 @@ export default function CounselPage() {
         <div className={cx(styles.note, styles.warm)}><b>{c.suspicious.title}</b>{c.suspicious.body}</div>
       </div>
       <form className={styles.form} onSubmit={onSubmit} noValidate>
-        <FormField label={c.category} required htmlFor="cs-cat"><Select id="cs-cat" value={form.category} onChange={set('category')} options={c.categories} /></FormField>
+        <FormField label={c.category} required htmlFor="cs-cat"><Select id="cs-cat" value={form.category} onValueChange={(v) => setForm((f) => ({ ...f, category: v }))} options={c.categories} /></FormField>
         {form.category === '2' ? (
           <FormField label={c.lectureCode} required htmlFor="cs-code" error={errors.lectureCode} help={c.lectureHelp}><Input id="cs-code" value={form.lectureCode} onChange={set('lectureCode')} placeholder={c.lectureCodePlaceholder} maxLength={50} invalid={!!errors.lectureCode} /></FormField>
         ) : null}

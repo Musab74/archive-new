@@ -118,7 +118,7 @@ export default function RoadmapPage() {
             <form className={styles.aiForm} onSubmit={onGenerate} noValidate>
               <h2 id="ai-h">{copy.ai.title}</h2>
               <p>{copy.ai.lead}</p>
-              <FormField label={copy.ai.jobField} required htmlFor="rm-field"><Select id="rm-field" value={jobField} options={jobFields.map((f) => ({ value: f, label: f }))} onChange={(e) => setJobField(e.target.value)} /></FormField>
+              <FormField label={copy.ai.jobField} required htmlFor="rm-field"><Select id="rm-field" value={jobField} options={jobFields.map((f) => ({ value: f, label: f }))} onValueChange={setJobField} /></FormField>
               <FormField label={copy.ai.goal} required htmlFor="rm-goal"><Input id="rm-goal" value={goal} placeholder={copy.ai.goalPlaceholder} maxLength={200} invalid={!!formMsg && !goal.trim()} onChange={(e) => setGoal(e.target.value)} /></FormField>
               <FormField label={copy.ai.hours} required htmlFor="rm-hours"><Input id="rm-hours" type="number" min={1} max={40} value={hours} onChange={(e) => setHours(e.target.value)} /></FormField>
               <FormMessage>{formMsg}</FormMessage>

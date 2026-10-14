@@ -1,0 +1,43 @@
+/* AppSelect — trigger mirrors the Input (height, border, radius, focus ring); the panel is a floating card. */
+.trigger{display:inline-flex;align-items:center;gap:8px;width:100%;min-width:0;height:var(--control-h);padding:0 12px 0 14px;border:var(--border-default);border-radius:var(--r-sm);background:var(--c-paper);color:var(--c-ink);font-size:15px;font-weight:var(--fw-semibold);line-height:1.2;text-align:left;cursor:pointer;transition:border-color var(--dur-fast),box-shadow var(--dur-fast),background-color var(--dur-fast)}
+.trigger:hover:not(:disabled){border-color:color-mix(in srgb,var(--c-ink) 28%,var(--c-line))}
+.trigger:focus-visible{outline:0;border-color:var(--c-primary);box-shadow:var(--ring)}
+.trigger[data-state="open"]{border-color:var(--c-primary);box-shadow:var(--ring)}
+.trigger[aria-invalid="true"]{border-color:var(--c-danger)}
+.trigger:disabled{cursor:default;opacity:.6;background:var(--c-soft)}
+.trigger[data-placeholder] .value{color:var(--c-placeholder);font-weight:var(--fw-regular)}
+.sm{height:40px;font-size:14px;padding:0 10px 0 12px}
+.value{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prefix{flex:none;font-size:.86em;font-weight:var(--fw-semibold);color:var(--c-muted);padding-right:8px;border-right:1px solid var(--c-line);line-height:1}
+.lead{flex:none;color:var(--c-muted)}
+.chevron{flex:none;display:grid;place-items:center;color:var(--c-muted);transition:transform var(--dur-base) var(--ease-emph)}
+.trigger[data-state="open"] .chevron{transform:rotate(180deg);color:var(--c-primary)}
+.spin{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.quiet{border-color:transparent;background:transparent}
+.quiet:hover:not(:disabled){background:var(--c-hover);border-color:transparent}
+.dark{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.22);color:#fff}
+.dark:hover:not(:disabled){border-color:rgba(255,255,255,.5)}
+.dark .chevron,.dark .prefix,.dark .lead{color:rgba(255,255,255,.7)}
+
+.content{z-index:var(--z-popover);min-width:var(--radix-select-trigger-width);max-width:min(420px,calc(100vw - 24px));max-height:min(360px,var(--radix-select-content-available-height));overflow:hidden;background:var(--c-paper);border:var(--border-subtle);border-radius:var(--r-md);box-shadow:var(--shadow-pop);transform-origin:var(--radix-select-content-transform-origin);animation:selectIn var(--dur-base) var(--ease-emph)}
+.content[data-state="closed"]{animation:selectOut var(--dur-fast) var(--ease-out) forwards}
+.viewport{padding:6px}
+.item{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:40px;padding:9px 12px;border-radius:calc(var(--r-md) - 4px);font-size:14px;line-height:1.45;color:var(--c-text);cursor:pointer;user-select:none;outline:0;transition:background-color var(--dur-fast),color var(--dur-fast)}
+.item[data-highlighted]{background:var(--c-soft);color:var(--c-ink)}
+.item[data-state="checked"]{color:var(--c-primary-ink);font-weight:var(--fw-bold);background:var(--c-primary-tint)}
+.item[data-state="checked"][data-highlighted]{background:color-mix(in srgb,var(--c-primary) 14%,var(--c-paper))}
+.item[data-disabled]{opacity:.45;cursor:default}
+.check{flex:none;display:grid;place-items:center;color:var(--c-primary)}
+.empty{padding:14px 12px;font-size:13px;color:var(--c-muted)}
+.scroll{display:grid;place-items:center;height:26px;color:var(--c-muted);cursor:default;background:var(--c-paper)}
+.contentDark{background:color-mix(in srgb,var(--c-primary-deep) 94%,#fff);border-color:rgba(255,255,255,.12)}
+.contentDark .item{color:rgba(255,255,255,.82)}
+.contentDark .item[data-highlighted]{background:rgba(255,255,255,.08);color:#fff}
+.contentDark .item[data-state="checked"]{background:rgba(255,255,255,.12);color:#fff}
+.contentDark .check{color:#fff}
+.contentDark .scroll{background:color-mix(in srgb,var(--c-primary-deep) 94%,#fff)}
+@keyframes selectIn{from{opacity:0;transform:translateY(-4px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes selectOut{from{opacity:1}to{opacity:0;transform:translateY(-2px) scale(.99)}}
+@media (max-width:768px){.trigger{font-size:16px}.sm{font-size:15px}.item{min-height:44px;font-size:15px}}
+@media (prefers-reduced-motion: reduce){.content,.content[data-state="closed"]{animation:none}.chevron{transition:none}}

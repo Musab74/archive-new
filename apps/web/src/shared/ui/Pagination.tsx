@@ -22,11 +22,11 @@ export function Pagination({ page, total, size, onChange, label = common.page, s
   if (pages <= 1) return null;
   return (
     <nav className={styles.nav} aria-label={label}>
-      <button type="button" className={styles.btn} disabled={page <= 1} onClick={() => onChange(page - 1)} aria-label={common.prev}><Icon name="chevron-right" size={16} style={{ transform: 'rotate(180deg)' }} /></button>
+      <button type="button" className={styles.btn} disabled={page <= 1} onClick={() => onChange(page - 1)} aria-label={common.prev}><Icon name="arrow-left" size={16} /></button>
       {pageRange(page, pages, siblings).map((p, i) => p === '…' ? <span key={`e${i}`} className={styles.ellipsis} aria-hidden="true">…</span> : (
         <button key={p} type="button" className={styles.btn} aria-current={p === page ? 'page' : undefined} onClick={() => onChange(p)}>{p}</button>
       ))}
-      <button type="button" className={styles.btn} disabled={page >= pages} onClick={() => onChange(page + 1)} aria-label={common.next}><Icon name="chevron-right" size={16} /></button>
+      <button type="button" className={styles.btn} disabled={page >= pages} onClick={() => onChange(page + 1)} aria-label={common.next}><Icon name="arrow" size={16} /></button>
     </nav>
   );
 }

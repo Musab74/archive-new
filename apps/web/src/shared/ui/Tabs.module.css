@@ -1,8 +1,21 @@
-.tabs{display:flex;gap:30px;border-bottom:1px solid var(--c-line-2);overflow-x:auto;scrollbar-width:none}
+.tabs{display:flex;gap:28px;border-bottom:1px solid var(--c-line);overflow-x:auto;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
-.tab{min-height:54px;display:inline-flex;align-items:center;font-size:14px;font-weight:var(--fw-black);color:var(--c-muted);border-bottom:3px solid transparent;white-space:nowrap;padding:0 2px;margin-bottom:-1px;text-decoration:none}
-.tab:hover{color:var(--c-text)}
-.tab[aria-selected="true"],.tab[aria-current="page"]{color:var(--c-primary-deep);border-bottom-color:var(--c-primary)}
-.pills{display:flex;gap:7px;flex-wrap:wrap}
+.tab{position:relative;min-height:52px;display:inline-flex;align-items:center;font-size:15px;font-weight:var(--fw-semibold);color:var(--c-muted);white-space:nowrap;padding:0 2px;text-decoration:none;transition:color var(--dur-fast)}
+.tab:hover{color:var(--c-ink)}
+.tab[aria-selected="true"],.tab[aria-current="page"]{color:var(--c-ink);font-weight:var(--fw-bold)}
+.bar{position:absolute;left:0;right:0;bottom:-1px;height:2px;border-radius:2px;background:var(--c-primary)}
 .panel{outline:none}
-@media (max-width:768px){.tabs{gap:18px;padding-inline:var(--gutter)}.tab{font-size:13px;min-height:48px}}
+/* segmented control */
+.segment{display:inline-flex;flex-wrap:wrap;gap:2px;padding:4px;background:var(--c-soft);border:var(--border-subtle);border-radius:calc(var(--r-md) + 2px);max-width:100%}
+.seg{position:relative;min-height:38px;padding:7px 18px;border-radius:var(--r-md);font-size:14px;font-weight:var(--fw-semibold);color:var(--c-muted);white-space:nowrap;transition:color var(--dur-fast);isolation:isolate}
+.seg:hover:not(:disabled){color:var(--c-ink)}
+.seg[aria-pressed="true"]{color:var(--c-ink);font-weight:var(--fw-bold)}
+.seg:disabled{opacity:.45}
+.thumb{position:absolute;inset:0;z-index:-1;border-radius:var(--r-md);background:var(--c-paper);box-shadow:0 1px 2px color-mix(in srgb,var(--c-ink) 10%,transparent),0 4px 12px -4px color-mix(in srgb,var(--c-ink) 14%,transparent)}
+.segLabel{position:relative}
+.segmentSoft{background:transparent;border-color:transparent;padding:0;gap:6px}
+.segmentSoft .seg{border:1px solid var(--c-line);border-radius:var(--r-pill);background:var(--c-paper)}
+.segmentSoft .thumb{border-radius:var(--r-pill);background:var(--c-ink);box-shadow:none}
+.segmentSoft .seg[aria-pressed="true"]{color:#fff;border-color:var(--c-ink)}
+.segmentSm .seg{min-height:34px;padding:5px 14px;font-size:13px}
+@media (max-width:768px){.tabs{gap:20px}.tab{font-size:14px;min-height:48px}.seg{padding:7px 14px}}
