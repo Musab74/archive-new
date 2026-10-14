@@ -6,6 +6,7 @@ import { useAdminSession } from '../../shared/auth/useAdminSession';
 import { ADMIN_MENU, buildAdminMenu, GRANT_LABELS, type AdminMenuGroup } from '../../shared/auth/adminMenu';
 import { PageTransition } from '../../shared/motion/PageTransition';
 import { IconButton } from '../../shared/ui/IconButton';
+import { Icon } from '../../shared/ui/Icon';
 import { adm } from './strings';
 
 const COLLAPSE_KEY = 'admin.sidebar.collapsed';
@@ -54,44 +55,61 @@ export default function AdminShell() {
 
   return (
     <div className={cx(styles.shell, collapsed && styles.collapsed)}>
+      {mobileOpen ? <div className={styles.sideScrim} onClick={() => setMobileOpen(false)} aria-hidden="true" /> : null}
       <aside className={cx(styles.sidebar, mobileOpen && styles.sidebarOpen)} aria-label="관리자 메뉴">
-        <Link to="/admin" className={styles.brand}><b>A</b><span>{adm.brand}</span></Link>
+        <Link to="/admin" className={styles.brand} title={adm.brand}>
+          <span className={styles.brandMark} aria-hidden="true">A</span>
+          <span className={styles.brandText}><b>AINEX ARCHIVE</b><small>관리자 콘솔</small></span>
+        </Link>
         <nav className={styles.menu}>
-          <NavLink to="/admin" end className={styles.dash} data-short="홈"><span>{adm.top.home}</span></NavLink>
+          <NavLink to="/admin" end className={styles.item} title={adm.top.home}><Icon name="dashboard" size={19} /><span className={styles.label}>{adm.top.home}</span></NavLink>
           {menu.map((g) => (
             <div key={g.letter} className={styles.group}>
               <button type="button" className={styles.groupHead} aria-expanded={isOpen(g.letter)} onClick={() => setOpenGroups((o) => ({ ...o, [g.letter]: !isOpen(g.letter) }))} title={g.label}>
-                <span className={styles.letter}>{g.letter}</span><span>{GRANT_LABELS[g.letter] ?? g.label}</span><span className={styles.chev} aria-hidden="true">▾</span>
+                <span className={styles.label}>{GRANT_LABELS[g.letter] ?? g.label}</span>
+                <Icon name="chevron-down" size={15} className={styles.chev} />
               </button>
               {isOpen(g.letter) || collapsed ? (
                 <div className={styles.items}>
-                  {g.items.map((it) => <NavLink key={it.to} to={it.to} data-short={it.label.slice(0, 2)} title={it.label} end={it.to === '/admin/design' ? false : undefined}><span>{it.label}</span></NavLink>)}
+                  {g.items.map((it) => (
+                    <NavLink key={it.to} to={it.to} className={styles.item} title={it.label} end={it.to === '/admin/design' ? false : undefined}>
+                      <Icon name={it.icon ?? g.icon ?? 'file'} size={19} /><span className={styles.label}>{it.label}</span>
+                    </NavLink>
+                  ))}
                 </div>
               ) : null}
             </div>
           ))}
         </nav>
         <div className={styles.sideFoot}>
-          <button type="button" className={styles.toggle} onClick={() => setCollapsed((v) => !v)} aria-pressed={collapsed}>{collapsed ? '»' : `« ${adm.top.collapse}`}</button>
+          <button type="button" className={styles.toggle} onClick={() => setCollapsed((v) => !v)} aria-pressed={collapsed} title={collapsed ? adm.top.expand : adm.top.collapse}>
+            <Icon name={collapsed ? 'panel-open' : 'panel-close'} size={18} /><span className={styles.label}>{collapsed ? adm.top.expand : adm.top.collapse}</span>
+          </button>
         </div>
       </aside>
       <div className={styles.mainCol}>
         <header className={styles.topbar}>
           <IconButton icon="menu" label="메뉴" size="sm" className={styles.mobileMenuBtn} onClick={() => setMobileOpen((v) => !v)} aria-expanded={mobileOpen} />
           <nav className={styles.crumbs} aria-label="현재 위치">
-            {crumbs.map((c, i) => <span key={`${c.label}${i}`}>{i > 0 ? <span aria-hidden="true"> › </span> : null}{c.to && i < crumbs.length - 1 ? <Link to={c.to}>{c.label}</Link> : <b aria-current={i === crumbs.length - 1 ? 'page' : undefined}>{c.label}</b>}</span>)}
+            <Icon name="home" size={16} className={styles.crumbHome} />
+            {crumbs.map((c, i) => <span key={`${c.label}${i}`} className={styles.crumb}>{i > 0 ? <Icon name="chevron-right" size={14} className={styles.crumbSep} /> : null}{c.to && i < crumbs.length - 1 ? <Link to={c.to}>{c.label}</Link> : <b aria-current={i === crumbs.length - 1 ? 'page' : undefined}>{c.label}</b>}</span>)}
           </nav>
           <div className={styles.topRight}>
-            <a href="/" target="_blank" rel="noopener noreferrer" style={{ fontSize: 12 }}>{adm.top.site} ↗</a>
+            <a href="/" target="_blank" rel="noopener noreferrer" className={styles.siteLink}><Icon name="arrow-up-right" size={16} /><span>{adm.top.site}</span><span className="sr-only"> (새 창)</span></a>
             <span className={cx(styles.countdown, warn && styles.countdownWarn)} title={adm.top.countdown} aria-live={warn ? 'polite' : undefined}>
-              <span>{adm.top.countdown}</span><b>{formatCountdown(secondsLeft)}</b>
+              <Icon name="timer" size={16} /><span className={styles.cdLabel}>{adm.top.countdown}</span><b>{formatCountdown(secondsLeft)}</b>
               <button type="button" onClick={() => void extend()}>{adm.top.extend}</button>
             </span>
-            {admin ? <span className={styles.staff}><b>{admin.name}</b><span>{admin.deptName ?? GRANT_LABELS[admin.dept] ?? admin.dept} · {admin.dept}{!canWrite ? ` · ${adm.top.readOnly}` : ''}</span></span> : null}
-            <button type="button" className={styles.logout} onClick={() => { void logout('user'); navigate('/admin/login'); }}>{adm.top.logout}</button>
+            {admin ? (
+              <span className={styles.staff}>
+                <span className={styles.avatar} aria-hidden="true">{admin.name.charAt(0)}</span>
+                <span className={styles.staffText}><b>{admin.name}</b><small>{admin.deptName ?? GRANT_LABELS[admin.dept] ?? admin.dept} · {admin.dept}{!canWrite ? ` · ${adm.top.readOnly}` : ''}</small></span>
+              </span>
+            ) : null}
+            <button type="button" className={styles.logout} onClick={() => { void logout('user'); navigate('/admin/login'); }} title={adm.top.logout}><Icon name="logout" size={17} /><span>{adm.top.logout}</span></button>
           </div>
         </header>
-        {!canWrite ? <div className={styles.readOnlyBar} role="status">{adm.readOnly}</div> : null}
+        {!canWrite ? <div className={styles.readOnlyBar} role="status"><Icon name="lock" size={15} />{adm.readOnly}</div> : null}
         <main id="main" className={styles.content} tabIndex={-1}><PageTransition><Outlet /></PageTransition></main>
       </div>
     </div>

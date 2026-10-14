@@ -4,7 +4,9 @@ import {
   ChevronDown, ChevronRight, ChevronUp, CircleCheck, Clock, Compass, ExternalLink, Eye, FileText, Flag, Funnel, Gauge, GraduationCap, Headset,
   Heart, Info, Layers, LayoutGrid, Library, Lightbulb, ListChecks, LoaderCircle, Lock, Mail, Megaphone, Menu, MessageCircle, Minus,
   MonitorPlay, Phone, Play, Plus, Radio, Route, Search, ShieldCheck, SlidersHorizontal, Smartphone, Sparkle, Sparkles, Star, Target,
-  TrendingUp, TriangleAlert, User, Users, Video, WandSparkles, X, Zap, type LucideIcon,
+  TrendingUp, TriangleAlert, User, Users, Video, WandSparkles, X, Zap, LogOut, House, RefreshCw, Download, Pencil, Trash2, Send, Tags,
+  PanelLeftClose, PanelLeftOpen, RotateCcw, ChevronLeft, Settings, LayoutDashboard, Inbox, Palette, Activity, Timer, FolderTree, Copy, UserCog,
+  ListOrdered, CalendarClock, FileWarning, type LucideIcon,
 } from 'lucide-react';
 
 /**
@@ -22,6 +24,10 @@ const ICONS = {
   book: BookOpen, target: Target, brain: Brain, chart: ChartColumn, megaphone: Megaphone, bell: Bell, loader: LoaderCircle,
   monitor: MonitorPlay, building: Building2, headset: Headset, message: MessageCircle, lightbulb: Lightbulb,
   shield: ShieldCheck, award: Award, checklist: ListChecks, grid: LayoutGrid, library: Library, bot: Bot, wand: WandSparkles,
+  logout: LogOut, home: House, refresh: RefreshCw, download: Download, edit: Pencil, trash: Trash2, send: Send, tags: Tags,
+  'panel-close': PanelLeftClose, 'panel-open': PanelLeftOpen, reset: RotateCcw, 'chevron-left': ChevronLeft, settings: Settings,
+  dashboard: LayoutDashboard, inbox: Inbox, palette: Palette, activity: Activity, timer: Timer, folders: FolderTree, copy: Copy,
+  'user-cog': UserCog, ordered: ListOrdered, 'calendar-clock': CalendarClock, 'file-warning': FileWarning,
 } satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof ICONS;

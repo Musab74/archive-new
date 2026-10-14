@@ -1,0 +1,37 @@
+/* Admin console theme. The console is the operators' tool, so it always uses the AINEX Blue palette, whatever design
+   the learner site has published. AdminRoot sets data-console="admin" on <html> while /admin is mounted; !important
+   wins over the inline tokens DesignProvider writes on :root. Derived tokens (tokens.css layer 2) recompute from these
+   because they live on the same element. Design Studio previews set their own inline vars and are unaffected. */
+:root[data-console="admin"]{
+  --c-primary:#1b2cc1 !important;
+  --c-primary-deep:#091540 !important;
+  --c-accent:#7692ff !important;
+  --c-accent-warm:#c9472f !important;
+  --c-ink:#091540 !important;
+  --c-text:#2b3553 !important;
+  --c-muted:#5d6888 !important;
+  --c-line:#d9e2f2 !important;
+  --c-line-2:#e8eef9 !important;
+  --c-soft:#eef3fd !important;
+  --c-paper:#ffffff !important;
+  --c-bg:#f4f7fd !important;
+  --c-heading-band:#e6eefc !important;
+  --c-band-ink:#ffffff !important;
+  --c-band-text:#c6d4f6 !important;
+  --g-band-dark:linear-gradient(135deg,#060f30 0%,#091540 50%,#16229a 100%) !important;
+  --font-sans:"Pretendard","Noto Sans KR","Malgun Gothic",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif !important;
+  --r-sm:8px !important;
+  --r-md:12px !important;
+  --r-lg:18px !important;
+  /* console-only */
+  --console-side:#091540;
+  --console-side-2:#0e1d55;
+  --console-side-text:#b9c6e8;
+  --console-side-muted:#7f8db5;
+  --console-active:#1b2cc1;
+  --console-sky:#abd2fa;
+  --console-side-w:264px;
+  --console-side-w-collapsed:76px;
+  --console-top-h:68px;
+}
+:root[data-console="admin"] body{background:var(--c-bg);font-size:15px}

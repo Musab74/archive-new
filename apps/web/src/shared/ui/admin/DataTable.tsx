@@ -1,5 +1,6 @@
 import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
 import styles from './admin.module.css';
+import { Icon } from '../Icon';
 import { cx } from '../../utils/format';
 import { isAppError } from '../../api/client';
 import { nextSort, pageCount, pageSlice, pageWindow, sortRows, type SortState } from './tableSort';
@@ -98,7 +99,7 @@ export function DataTable<T>({ columns, rows, rowKey, loading, error, onRetry, e
                   {c.sortable ? (
                     <button type="button" className={styles.sortBtn} aria-pressed={sortedBy} onClick={() => setSort(c.key)}>
                       {c.header}
-                      <span className={styles.sortMark} aria-hidden="true">{sortedBy ? (activeSort!.dir === 'asc' ? '▲' : '▼') : '↕'}</span>
+                      <span className={styles.sortMark} aria-hidden="true"><Icon name={sortedBy ? (activeSort!.dir === 'asc' ? 'chevron-up' : 'chevron-down') : 'sort'} size={14} /></span>
                     </button>
                   ) : c.header}
                 </th>
@@ -111,10 +112,10 @@ export function DataTable<T>({ columns, rows, rowKey, loading, error, onRetry, e
             <tr key={`sk${i}`} className={styles.skeletonRow} aria-hidden="true">{columns.map((c) => <td key={c.key}><span className={styles.skeletonBar} style={{ width: `${40 + ((i * 17 + c.key.length * 7) % 50)}%` }} /></td>)}</tr>
           )) : null}
           {errMessage ? (
-            <tr><td colSpan={colCount}><div className={styles.tableState} role="alert"><b>목록 조회 실패</b>{errMessage}{onRetry ? <div className="u-mt-8"><button type="button" className={cx(styles.btn, styles.btnSm)} onClick={onRetry}>다시 불러오기</button></div> : null}</div></td></tr>
+            <tr><td colSpan={colCount}><div className={styles.tableState} role="alert"><span className={cx(styles.stateIcon, styles.stateIconWarn)} aria-hidden="true"><Icon name="alert" size={22} /></span><b>목록 조회 실패</b>{errMessage}{onRetry ? <div className="u-mt-8"><button type="button" className={cx(styles.btn, styles.btnSm)} onClick={onRetry}>다시 불러오기</button></div> : null}</div></td></tr>
           ) : null}
           {isEmpty ? (
-            <tr><td colSpan={colCount}><div className={styles.tableState}><b>{emptyTitle}</b>{emptyBody ?? '조건을 바꾸거나 잠시 후 다시 확인해 주세요.'}</div></td></tr>
+            <tr><td colSpan={colCount}><div className={styles.tableState}><span className={styles.stateIcon} aria-hidden="true"><Icon name="inbox" size={22} /></span><b>{emptyTitle}</b>{emptyBody ?? '조건을 바꾸거나 잠시 후 다시 확인해 주세요.'}</div></td></tr>
           ) : null}
           {!errMessage && visible.map((row, i) => {
             const key = rowKey(row, i);
@@ -136,9 +137,9 @@ export function DataTable<T>({ columns, rows, rowKey, loading, error, onRetry, e
           <span>{footer ?? (size ? `총 ${totalCount.toLocaleString('ko-KR')}건 · ${currentPage}/${pages} 페이지` : null)}</span>
           {showPager ? (
             <nav className={styles.pager} aria-label="페이지">
-              <button type="button" onClick={() => goPage(currentPage - 1)} disabled={currentPage <= 1} aria-label="이전">‹</button>
+              <button type="button" onClick={() => goPage(currentPage - 1)} disabled={currentPage <= 1} aria-label="이전"><Icon name="chevron-left" size={16} /></button>
               {pageWindow(currentPage, pages).map((p, i) => p === '…' ? <span key={`e${i}`} aria-hidden="true">…</span> : <button key={p} type="button" aria-current={p === currentPage ? 'page' : undefined} onClick={() => goPage(p)}>{p}</button>)}
-              <button type="button" onClick={() => goPage(currentPage + 1)} disabled={currentPage >= pages} aria-label="다음">›</button>
+              <button type="button" onClick={() => goPage(currentPage + 1)} disabled={currentPage >= pages} aria-label="다음"><Icon name="chevron-right" size={16} /></button>
             </nav>
           ) : null}
         </div>

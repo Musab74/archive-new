@@ -24,25 +24,31 @@ tokens, shared components or layout rules change.
 An administrator changes the theme in **Design Studio → 프리셋 / 토큰 → 게시**. The SPA picks the new config up from
 `GET /v1/public/design` on the next load; no rebuild or restart.
 
-### 2.1 Brand tokens — `ainex-premium` preset (current `DEFAULT_DESIGN`)
+### 2.1 Brand tokens — `ainex-blue` preset (current `DEFAULT_DESIGN`)
+
+Brand palette: **#091540** deep navy · **#1b2cc1** royal blue · **#7692ff** cornflower · **#abd2fa** sky.
 
 | DesignConfig key | CSS var | Value | Use |
 | --- | --- | --- | --- |
-| `ink` | `--c-ink` | `#142544` Primary Navy | headings, dark buttons, announcement bar |
-| `primaryDeep` | `--c-primary-deep` | `#0c1930` Deep Navy | dark bands, overlays |
-| `primary` | `--c-primary` | `#3468d5` Professional Blue | primary buttons, active states, focus ring, links |
-| `accent` | `--c-accent` | `#18a6c9` Cyan | highlights (headline underline, AI band), tints |
-| `accentWarm` | `--c-accent-warm` | `#c9472f` Coral | 공지 tag and promotional details only |
-| `text` / `muted` | `--c-text` / `--c-muted` | `#334155` / `#64748b` | body / secondary text |
-| `line` / `lineSoft` | `--c-line` / `--c-line-2` | `#e2e8f0` / `#edf1f6` | borders / hairlines |
+| `ink` / `primaryDeep` | `--c-ink` / `--c-primary-deep` | `#091540` deep navy | headings, dark buttons, announcement bar, dark bands |
+| `primary` | `--c-primary` | `#1b2cc1` royal blue | primary buttons, active states, focus ring, links |
+| `accent` | `--c-accent` | `#7692ff` cornflower | highlights, underline, gradients, tints — **never under white text** (2.9:1) |
+| — | `--c-sky` | `#abd2fa` sky | light fills on dark (always with navy text, 11.2:1) |
+| `accentWarm` | `--c-accent-warm` | `#c9472f` coral | 공지 tag only |
+| `text` / `muted` | `--c-text` / `--c-muted` | `#2b3553` / `#5d6888` | body / secondary text |
+| `line` / `lineSoft` | `--c-line` / `--c-line-2` | `#d9e2f2` / `#e8eef9` | borders / hairlines |
 | `surface` | `--c-paper` | `#ffffff` | cards, panels, header |
-| `background` | `--c-bg` | `#faf9f6` Warm Background | page |
-| `surfaceSoft`, `headingBand` | `--c-soft`, `--c-heading-band` | `#f3f6fa` Cool Surface | quiet fills, page-heading bands |
+| `background` | `--c-bg` | `#f7f9fe` | page |
+| `surfaceSoft`, `headingBand` | `--c-soft`, `--c-heading-band` | `#eef3fd`, `#e6eefc` | quiet fills, page-heading bands |
 
-Contrast (checked by `validateDesignContrast` and `src/test/presets.test.ts`): text/background 9.8:1, muted/background
-4.5:1, white/primary 5.1:1, white/coral 4.7:1, white/navy 15.2:1. The preset passes the publish gate with no warnings.
-Earlier system defaults stay exported verbatim (`LEGACY_DEFAULT_DESIGN_V1`, `LEGACY_EDITORIAL_DEFAULT_DESIGN_V2/V3`) so
-already-published designs keep parsing and the API can recognise untouched defaults. `editorial-warm` remains a preset.
+Contrast (checked by `validateDesignContrast` and `src/test/presets.test.ts`): text/background 11.5:1, muted/background
+5.2:1, white/primary 9.7:1, white/navy 17.6:1, white/coral 4.7:1, navy/cornflower 6.1:1. The preset passes the publish
+gate with no warnings. Other presets: `ainex-premium` (previous default), `editorial-warm`, storyboard variants.
+Earlier system defaults stay exported verbatim (`LEGACY_DEFAULT_DESIGN_V1`, `LEGACY_EDITORIAL_DEFAULT_DESIGN_V2/V3`,
+`LEGACY_PREMIUM_DEFAULT_DESIGN_V4`) so already-published designs keep parsing and the API can recognise untouched defaults.
+
+**Going live:** the learner site shows the design *published* in Design Studio. Apply **AINEX Blue** in
+Design Studio → 프리셋 and publish to switch the public site (no rebuild).
 
 ### 2.2 System tokens
 
@@ -165,9 +171,26 @@ Never animate assessment, player or other task-critical flows.
 - Touch targets ≥ 40 px (44 px in the drawer and sheet). Inputs are 16 px on phones (no iOS zoom).
 - Sections alternate surface (`--c-paper` / `--c-bg` / navy) instead of repeating one layout.
 
-## 11. Rules
+## 11. Admin console (`/admin`)
+
+- **Console theme** (`shared/styles/console.css`): while any `/admin` route is mounted, `AdminRoot` sets
+  `data-console="admin"` on `<html>` and the console always uses the AINEX Blue palette, whatever the learner site has
+  published (operators get one consistent tool; tenant branding stays on learner pages and in Design Studio previews,
+  which set their own inline variables). Leaving `/admin` removes the attribute.
+- **Type and sizing:** 15 px base, page title 26 px, card title 16.5 px, table 14.5 px (headers 13 px), labels 13–14 px,
+  controls 40 px (sm 34, xs 30), nav rows 44 px, table rows ≈ 48 px.
+- **Shell:** navy gradient sidebar (`--console-side*`) with an icon per group and item (icons live in
+  `shared/auth/adminMenu.ts`), royal-blue active pill, collapsible to a 76 px icon rail (tooltips via `title`), ≤ 900 px
+  slide-in with scrim. Top bar: breadcrumb with home icon, 사이트 보기, session timer chip with 연장, staff avatar, logout.
+- **Kit** (`shared/ui/admin`): `AdminPage` shows the page's menu icon automatically (or `icon`), `Card icon`,
+  `Kpi icon/iconTone` (tinted `IconTile`, warn tiles get a red edge), `AButton icon`, `Callout` icons, filter bar
+  검색/초기화 icons, `DataTable` sort/pager icons and empty/error state icons, token-only badges and tabs.
+- **Login:** navy → royal-blue gradient with a faint grid, white card, shield mark.
+
+## 12. Rules
 
 - Use tokens; never hard-code tenant colours. Dark-surface overlays may use `rgba(255,255,255,…)`.
+- Never put white text on the cornflower accent; light brand tones carry navy text.
 - Use `AppSelect` (or `Form.Select` / `ASelect`) — never a native `<select>`.
 - Use `Icon` / `IconTile` — no emoji or mixed icon sets.
 - Keep separation: layout (CSS modules) · tokens (`tokens.css`, `DesignConfig`) · branding assets (Design Studio

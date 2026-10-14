@@ -32,9 +32,9 @@ describe('designToCssVars / applyTokens', () => {
   it('writes the variables on :root and sets layout data attributes', () => {
     applyTokens(DEFAULT_DESIGN);
     const root = document.documentElement;
-    expect(root.style.getPropertyValue('--c-primary')).toBe('#3468d5'); // professional blue
-    expect(root.style.getPropertyValue('--c-ink')).toBe('#142544'); // primary navy
-    expect(root.style.getPropertyValue('--c-heading-band')).toBe('#f3f6fa'); // cool surface
+    expect(root.style.getPropertyValue('--c-primary')).toBe('#1b2cc1'); // royal blue
+    expect(root.style.getPropertyValue('--c-ink')).toBe('#091540'); // deep navy
+    expect(root.style.getPropertyValue('--c-heading-band')).toBe('#e6eefc'); // sky-tinted band
     expect(root.style.getPropertyValue('--c-accent-warm')).toBe('#c9472f'); // the single coral accent
     expect(root.getAttribute('data-design')).toBe('applied');
     expect(root.getAttribute('data-header')).toBe('standard');
@@ -56,7 +56,7 @@ describe('designToCssVars / applyTokens', () => {
     writeCachedDesign({ etag: 'W/"abc"', config: DEFAULT_DESIGN });
     const cached = readCachedDesign();
     expect(cached?.etag).toBe('W/"abc"');
-    expect(cached?.config.presetId).toBe('ainex-premium');
+    expect(cached?.config.presetId).toBe('ainex-blue');
     localStorage.setItem('design.v1', '{broken');
     expect(readCachedDesign()).toBeNull();
   });
