@@ -427,3 +427,25 @@ export const CompanyImportRowSchema = z.object({ line: z.number(), action: z.enu
 export const CompanyImportResultSchema = z.object({ mode: z.enum(['dryRun', 'commit']), summary: z.object({ total: z.number(), create: z.number(), update: z.number(), error: z.number() }), rows: z.array(CompanyImportRowSchema), applied: z.object({ created: z.number(), updated: z.number(), skipped: z.number() }).nullable() });
 export type CompanyImportResult = z.infer<typeof CompanyImportResultSchema>;
 export type CompanyImportPlanRow = z.infer<typeof CompanyImportRowSchema>;
+
+// ---------------------------------------------------------------------------
+// 회원 관리 ports (/admin/staff-members, /admin/departments, /admin/members/withdrawn, /admin/members/privacy-log, /admin/enrollments)
+// ---------------------------------------------------------------------------
+export const StaffRowSchema = z.object({ idx: z.number(), id: z.string(), dept: optStr, deptLabel: optStr, deptIdx: z.number(), deptName: optStr, deptString: optStr, name: optStr, team: optStr, mobile: optStr, phone: optStr, email: optStr, bankName: optStr, bankNumber: optStr, lastLogin: optStr, lastLoginIp: optStr, useYN: optStr, regDate: optStr, commissionRatio: optNum });
+export type StaffRow = z.infer<typeof StaffRowSchema>;
+export const StaffDetailSchema = z.object({ staff: StaffRowSchema.extend({ deptPath: optStr }), loginCount: z.number(), loginHistory: z.array(z.object({ ip: optStr, device: optStr, at: optStr })) });
+export type StaffDetail = z.infer<typeof StaffDetailSchema>;
+export const DepartmentNodeSchema = z.object({ idx: z.number(), dept: z.string(), deptLabel: optStr, parent: optNum, deep: z.number(), name: optStr, deptString: optStr, topMenuGrant: z.string(), subMenuGrant: z.string(), order: optNum, children: z.number(), staff: z.number() });
+export type DepartmentNode = z.infer<typeof DepartmentNodeSchema>;
+export const DepartmentsSchema = z.object({ items: z.array(DepartmentNodeSchema), grants: z.object({ top: z.array(z.object({ code: z.string(), label: z.string() })), sub: z.record(z.array(z.object({ code: z.string(), label: z.string() }))) }) });
+export type Departments = z.infer<typeof DepartmentsSchema>;
+export const WithdrawnRowSchema = z.object({ idx: z.number(), id: z.string(), name: optStr, companyCode: optStr, companyName: optStr, birthDay: optStr, gender: optStr, email: optStr, mobile: optStr, depart: optStr, position: optStr, lastLogin: optStr, regDate: optStr, memberOutDate: optStr });
+export type WithdrawnRow = z.infer<typeof WithdrawnRowSchema>;
+export const PrivacyLogRowSchema = z.object({ idx: z.number(), targetId: optStr, targetName: optStr, adminId: optStr, table: optStr, field: optStr, gubun: optStr, reason: optStr, url: optStr, at: optStr });
+export type PrivacyLogRow = z.infer<typeof PrivacyLogRowSchema>;
+export const EnrollmentOptionsSchema = z.object({ courses: z.array(z.object({ lectureCode: z.string(), name: z.string(), ctype: optStr })), tutors: z.array(z.object({ id: z.string(), name: optStr, team: optStr })), sales: z.array(z.object({ id: z.string(), name: optStr, team: optStr })), serviceTypes: z.array(z.object({ value: z.string(), label: z.string() })), progress: z.array(z.number()) });
+export type EnrollmentOptions = z.infer<typeof EnrollmentOptionsSchema>;
+export const MemberPickSchema = z.object({ items: z.array(z.object({ id: z.string(), name: optStr, companyCode: optStr, companyName: optStr, depart: optStr })) });
+export type MemberPick = z.infer<typeof MemberPickSchema>;
+export const EnrollmentResultSchema = z.object({ ok: z.boolean(), studySeq: z.number(), termeIdx: z.number(), termeCreated: z.boolean(), studyKey: z.string(), member: z.object({ id: z.string(), name: optStr, companyCode: optStr }), course: z.object({ lectureCode: z.string(), name: optStr }), reStudyUntil: z.string() });
+export type EnrollmentResult = z.infer<typeof EnrollmentResultSchema>;

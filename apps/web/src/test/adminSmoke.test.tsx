@@ -25,6 +25,8 @@ function apiMock(opts: { adminSession: boolean }) {
     if (url.endsWith('/admin/dashboard')) return json(dashboard);
     if (url.includes('/admin/members')) return json(members);
     if (url.endsWith('/admin/companies/meta')) return json(companyMeta);
+    if (url.includes('/admin/staff-members')) return json({ items: [{ idx: 2, id: 'sales01', dept: 'B', deptLabel: '영업자', deptIdx: 2, deptName: '영업부', deptString: '2|', name: '영업', team: '영업부', mobile: '010-8888-0000', phone: null, email: null, bankName: null, bankNumber: null, lastLogin: null, lastLoginIp: null, useYN: 'Y', regDate: '2026-10-12 10:00:00', commissionRatio: 10 }], page: 1, size: 20, total: 1 });
+    if (url.endsWith('/admin/departments')) return json({ items: [{ idx: 2, dept: 'B', deptLabel: '영업자', parent: 0, deep: 1, name: '영업부', deptString: '2|', topMenuGrant: 'A,B', subMenuGrant: 'A1,B1', order: 2, children: 0, staff: 1 }], grants: { top: [{ code: 'A', label: '회원관리' }], sub: { A: [{ code: 'A1', label: '사업주관리' }] } } });
     if (url.includes('/admin/companies')) return json(companies);
     if (url.endsWith('/public/design')) return json({ error: { code: 'NOT_FOUND', message: 'x' } }, 404);
     return json({ error: { code: 'NOT_FOUND', message: `${method} ${url}` } }, 404);
@@ -88,12 +90,22 @@ describe('admin + manager routes', () => {
 
   it('keeps every old menu: a not-yet-ported entry opens a legacy page that links to the PHP admin', async () => {
     vi.stubGlobal('fetch', apiMock({ adminSession: true }));
-    mount('/admin/legacy/lecture_reg');
-    expect(await screen.findByRole('heading', { level: 1, name: '수강 등록' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /hrd_manager\/lecture_reg\.php/ })).toHaveAttribute('href', 'https://hrdeedu.co.kr/hrd_manager/lecture_reg.php');
+    mount('/admin/legacy/study_sms');
+    expect(await screen.findByRole('heading', { level: 1, name: '학습참여독려' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /hrd_manager\/study_sms\.php/ })).toHaveAttribute('href', 'https://hrdeedu.co.kr/hrd_manager/study_sms.php');
     const side = screen.getByRole('complementary', { name: '관리자 메뉴' });
-    expect(side).toHaveTextContent('탈퇴회원 관리');
-    expect(side).toHaveTextContent('개인정보 열람내역');
+    expect(side).toHaveTextContent('예약문자발송');
+    expect(side).toHaveTextContent('문자/템플릿관리');
+  });
+
+  it('renders 영업자 리스트 with the legacy columns from /admin/staff-members', async () => {
+    vi.stubGlobal('fetch', apiMock({ adminSession: true }));
+    mount('/admin/staff-list/B');
+    expect(await screen.findByRole('heading', { level: 1, name: '영업자 리스트' })).toBeInTheDocument();
+    expect(await screen.findByText('sales01')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: /수수료율/ })).toBeInTheDocument();
+    expect(screen.getByText('10%')).toBeInTheDocument();
+    expect(screen.getByRole('complementary', { name: '관리자 메뉴' })).toHaveTextContent('영업자 리스트');
   });
 
   it('sends guests on /manager to the learner login', async () => {

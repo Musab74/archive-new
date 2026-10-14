@@ -37,7 +37,10 @@ describe('admin menu from grants', () => {
   it('maps paths to the grant their endpoints need', () => {
     expect(grantForPath('/admin/members/user01')).toBe('A1');
     expect(grantForPath('/admin/companies/import')).toBe('A1');
-    expect(grantForPath('/admin/legacy/lecture_reg')).toBe('A3');
+    expect(grantForPath('/admin/enrollments/new')).toBe('A3');
+    expect(grantForPath('/admin/staff-list/B')).toBe('A7');
+    expect(grantForPath('/admin/members/withdrawn')).toBe('A4');
+    expect(grantForPath('/admin/legacy/study_sms')).toBe('C1');
     expect(menuEntryForPath('/admin/courses', ADMIN_MENU, '?ctype=Z')?.item.label).toBe('마이크로닝 컨텐츠 관리');
     expect(menuEntryForPath('/admin/courses/12', ADMIN_MENU, '')?.item.label).toBe('패키지컨텐츠관리');
     expect(grantForPath('/admin/design/tokens')).toBe('G1');

@@ -12,6 +12,11 @@ const GrantGate = lazy(() => import('./GrantGate').then((m) => ({ default: m.Gra
 const AdminLoginPage = lazy(() => import('./pages/AdminLoginPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const LegacyPage = lazy(() => import('./pages/LegacyPage'));
+const StaffListPage = lazy(() => import('./pages/members/StaffListPage'));
+const DepartmentsPage = lazy(() => import('./pages/members/DepartmentsPage'));
+const WithdrawnMembersPage = lazy(() => import('./pages/members/WithdrawnMembersPage'));
+const PrivacyLogPage = lazy(() => import('./pages/members/PrivacyLogPage'));
+const EnrollmentRegisterPage = lazy(() => import('./pages/members/EnrollmentRegisterPage'));
 const MembersPage = lazy(() => import('./pages/members/MembersPage'));
 const MemberDetailPage = lazy(() => import('./pages/members/MemberDetailPage'));
 const CompaniesPage = lazy(() => import('./pages/companies/CompaniesPage'));
@@ -89,7 +94,12 @@ export const adminRouteTree: RouteObject = {
           { index: true, element: el(<DashboardPage />) },
           { path: 'legacy/:slug', element: el(<LegacyPage />) },
           { path: 'members', element: grant('A1', <MembersPage />) },
+          { path: 'members/withdrawn', element: grant('A4', <WithdrawnMembersPage />) },
           { path: 'members/:id', element: grant('A1', <MemberDetailPage />) },
+          { path: 'staff-list/:dept', element: el(<StaffListPage />) },
+          { path: 'departments', element: grant('A5', <DepartmentsPage />) },
+          { path: 'privacy-log', element: grant('A9', <PrivacyLogPage />) },
+          { path: 'enrollments/new', element: grant('A3', <EnrollmentRegisterPage />) },
           { path: 'companies', element: grant('A1', <CompaniesPage />) },
           { path: 'companies/import', element: grant('A1', <CompanyImportPage />) },
           { path: 'companies/:idx', element: grant('A1', <CompanyDetailPage />) },

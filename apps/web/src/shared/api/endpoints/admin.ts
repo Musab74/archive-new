@@ -3,10 +3,10 @@ import { AdminSessionSchema, type AdminSession } from '@ainex/contracts';
 import { API_BASE, api, AppError, refreshAdminAccessToken } from '../client';
 import { adminTokenStore } from '../../auth/adminTokenStore';
 import {
-  AbnormalPageSchema, AdminCategoriesSchema, CompanyCheckSchema, CompanyDetailSchema, CompanyImportResultSchema, CompanyMetaSchema, CompanyRowSchema, CompanyTermsSchema, AdminChapterRowSchema, AdminContentsDetailSchema, AdminCourseDetailSchema, AdminDashboardSchema, AdminFaqDetailSchema, AdminFaqRowSchema, AdminLoginResponseSchema, AdminNoticeDetailSchema, AdminNoticeRowSchema,
+  AbnormalPageSchema, AdminCategoriesSchema, CompanyCheckSchema, DepartmentsSchema, EnrollmentOptionsSchema, EnrollmentResultSchema, MemberPickSchema, PrivacyLogRowSchema, StaffDetailSchema, StaffRowSchema, WithdrawnRowSchema, CompanyDetailSchema, CompanyImportResultSchema, CompanyMetaSchema, CompanyRowSchema, CompanyTermsSchema, AdminChapterRowSchema, AdminContentsDetailSchema, AdminCourseDetailSchema, AdminDashboardSchema, AdminFaqDetailSchema, AdminFaqRowSchema, AdminLoginResponseSchema, AdminNoticeDetailSchema, AdminNoticeRowSchema,
   CheatingRowSchema, ContentsRowSchema, CounselRowSchema, CourseRowSchema, CurationListSchema, DailyMonitorSchema, EmonDiagnosisSchema, EmonPendingSchema, EmonPreviewSchema, EmonSummarySchema, InquiryRowSchema, MemberDetailSchema, MemberRowSchema, OkResultSchema, OkSchema, OverlapMonitorSchema,
   ProgressLogPageSchema, SiteInfoSchema, StaffListSchema, StudyDetailSchema, StudyRowSchema, pageOf,
-  type AbnormalPage, type AdminCategories, type CompanyCheck, type CompanyDetail, type CompanyImportResult, type CompanyMeta, type CompanyRow, type CompanyTerms, type AdminChapterRow, type AdminContentsDetail, type AdminCourseDetail, type AdminDashboard, type AdminFaqDetail, type AdminFaqRow, type AdminLoginResponse, type AdminNoticeDetail, type AdminNoticeRow, type CheatingRow, type ContentsRow, type CounselRow, type CourseRow,
+  type AbnormalPage, type AdminCategories, type CompanyCheck, type Departments, type EnrollmentOptions, type EnrollmentResult, type MemberPick, type PrivacyLogRow, type StaffDetail, type StaffRow, type WithdrawnRow, type CompanyDetail, type CompanyImportResult, type CompanyMeta, type CompanyRow, type CompanyTerms, type AdminChapterRow, type AdminContentsDetail, type AdminCourseDetail, type AdminDashboard, type AdminFaqDetail, type AdminFaqRow, type AdminLoginResponse, type AdminNoticeDetail, type AdminNoticeRow, type CheatingRow, type ContentsRow, type CounselRow, type CourseRow,
   type CurationList, type DailyMonitor, type EmonDiagnosis, type EmonPending, type EmonPreview, type EmonSummary, type InquiryRow, type MemberDetail, type MemberRow, type OkResult, type OverlapMonitor, type ProgressLogPage, type SiteInfo, type StaffList, type StudyDetail, type StudyRow,
 } from '../schemas';
 
@@ -33,6 +33,25 @@ export const adminApi = {
   member: (id: string, signal?: AbortSignal) => api.get<MemberDetail>(`/admin/members/${encodeURIComponent(id)}`, { schema: MemberDetailSchema, signal }),
   patchMember: (id: string, body: Record<string, unknown>) => api.patch<OkResult>(`/admin/members/${encodeURIComponent(id)}`, body, { schema: OkResultSchema }),
   resetPassword: (id: string, password: string) => api.post<OkResult>(`/admin/members/${encodeURIComponent(id)}/password`, { password }, { schema: OkResultSchema }),
+
+  // 회원 관리 — 운영자 리스트 (A6/A7/A8), 카테고리 (A5), 탈퇴회원 (A4), 개인정보 열람내역 (A9), 수강 등록 (A3)
+  staffMembers: (query: Q, signal?: AbortSignal) => api.get<Page<StaffRow>>('/admin/staff-members', { query, schema: pageOf(StaffRowSchema), signal }),
+  staffMember: (idx: number, signal?: AbortSignal) => api.get<StaffDetail>(`/admin/staff-members/${idx}`, { schema: StaffDetailSchema, signal }),
+  createStaff: (body: Record<string, unknown>) => api.post<OkResult>('/admin/staff-members', body, { schema: OkResultSchema }),
+  patchStaff: (idx: number, body: Record<string, unknown>) => api.patch<OkResult>(`/admin/staff-members/${idx}`, body, { schema: OkResultSchema }),
+  deleteStaff: (idx: number) => api.delete<OkResult>(`/admin/staff-members/${idx}`, { schema: OkResultSchema }),
+  resetStaffPassword: (idx: number, password?: string) => api.post<OkResult>(`/admin/staff-members/${idx}/password`, password ? { password } : {}, { schema: OkResultSchema }),
+  departments: (signal?: AbortSignal) => api.get<Departments>('/admin/departments', { schema: DepartmentsSchema, signal }),
+  createDepartment: (body: Record<string, unknown>) => api.post<OkResult>('/admin/departments', body, { schema: OkResultSchema }),
+  patchDepartment: (idx: number, body: Record<string, unknown>) => api.patch<OkResult>(`/admin/departments/${idx}`, body, { schema: OkResultSchema }),
+  deleteDepartment: (idx: number, force: boolean) => api.delete<OkResult>(`/admin/departments/${idx}`, { query: force ? { force: 1 } : {}, schema: OkResultSchema }),
+  reorderDepartments: (dept: string, order: number[]) => api.put<OkResult>('/admin/departments/order', { dept, order }, { schema: OkResultSchema }),
+  withdrawnMembers: (query: Q, signal?: AbortSignal) => api.get<Page<WithdrawnRow>>('/admin/members/withdrawn', { query, schema: pageOf(WithdrawnRowSchema), signal }),
+  restoreMembers: (ids: string[]) => api.post<OkResult>('/admin/members/withdrawn/restore', { ids }, { schema: OkResultSchema }),
+  privacyLog: (query: Q, signal?: AbortSignal) => api.get<Page<PrivacyLogRow>>('/admin/members/privacy-log', { query, schema: pageOf(PrivacyLogRowSchema), signal }),
+  enrollmentOptions: (signal?: AbortSignal) => api.get<EnrollmentOptions>('/admin/enrollments/options', { schema: EnrollmentOptionsSchema, signal }),
+  enrollmentMembers: (q: string, signal?: AbortSignal) => api.get<MemberPick>('/admin/enrollments/members', { query: { q }, schema: MemberPickSchema, signal }),
+  registerEnrollment: (body: Record<string, unknown>) => api.post<EnrollmentResult>('/admin/enrollments', body, { schema: EnrollmentResultSchema }),
 
   // 사업주 관리 (A1)
   companies: (query: Q, signal?: AbortSignal) => api.get<Page<CompanyRow>>('/admin/companies', { query, schema: pageOf(CompanyRowSchema), signal }),
