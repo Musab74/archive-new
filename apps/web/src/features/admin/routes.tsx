@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, type ReactNode } from 'react';
 import { Outlet, type RouteObject } from 'react-router-dom';
 import { Skeleton } from '../../shared/ui/Skeleton';
 import { NotFoundPage } from '../../app/placeholders';
@@ -53,7 +53,16 @@ const el = (node: ReactNode) => <Suspense fallback={fallback}>{node}</Suspense>;
 /** Page gated by a sub-menu grant code (mirrors the API @Grant). */
 const grant = (code: string, node: ReactNode) => el(<GrantGate grant={code}>{node}</GrantGate>);
 
-function AdminRoot() { return <AdminSessionProvider><Outlet /></AdminSessionProvider>; }
+/** Pins the console theme (shared/styles/console.css) while any /admin route is mounted. */
+function useConsoleTheme() {
+  useEffect(() => {
+    const root = document.documentElement;
+    root.setAttribute('data-console', 'admin');
+    return () => root.removeAttribute('data-console');
+  }, []);
+}
+
+function AdminRoot() { useConsoleTheme(); return <AdminSessionProvider><Outlet /></AdminSessionProvider>; }
 
 /** /admin subtree: own session provider, /admin/login outside the guard, everything else behind RequireAdmin + AdminLayout. */
 export const adminRouteTree: RouteObject = {

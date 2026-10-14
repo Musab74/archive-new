@@ -26,7 +26,7 @@ npm run build            # production bundle in apps/web/dist (VITE_API_BASE fro
 The backend (NestJS API) is not part of this repository; the SPA talks to it under `/v1`.
 Design: colours, fonts and layout come from the published DesignConfig (`GET /v1/public/design`);
 `DEFAULT_DESIGN` in `packages/contracts` is the fallback and the current default is the
-`ainex-premium` preset with the `visual-right` (editorial) hero. Tokens, components, motion and responsive rules are
+`ainex-blue` preset (#091540 · #1b2cc1 · #7692ff · #abd2fa) with the `visual-right` (editorial) hero; the admin console always uses this palette. Tokens, components, motion and responsive rules are
 documented in [`design.md`](design.md).
 
 ## CI/CD

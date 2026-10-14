@@ -1,6 +1,7 @@
 import type { FormEvent, ReactNode } from 'react';
 import styles from './admin.module.css';
 import { cx } from '../../utils/format';
+import { Icon } from '../Icon';
 
 export interface FilterBarProps {
   children: ReactNode;
@@ -22,8 +23,8 @@ export function FilterBar({ children, onSubmit, onReset, submitLabel = '검색',
       {children}
       <div className={styles.filterActions}>
         {extra}
-        {onReset ? <button type="button" className={styles.btn} onClick={onReset}>{resetLabel}</button> : null}
-        {onSubmit ? <button type="submit" className={cx(styles.btn, styles.btnPrimary)}>{submitLabel}</button> : null}
+        {onReset ? <button type="button" className={styles.btn} onClick={onReset}><Icon name="reset" size={16} />{resetLabel}</button> : null}
+        {onSubmit ? <button type="submit" className={cx(styles.btn, styles.btnPrimary)}><Icon name="search" size={16} />{submitLabel}</button> : null}
       </div>
     </form>
   );

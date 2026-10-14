@@ -1,32 +1,32 @@
 /* Design tokens. Three layers (see design.md):
    1. Runtime brand tokens — written on :root by DesignProvider from the published DesignConfig (white-label). The static
-      values below = DEFAULT_DESIGN (AINEX Premium preset, packages/contracts/src/design/presets.ts) so the first paint
+      values below = DEFAULT_DESIGN (AINEX Blue preset, packages/contracts/src/design/presets.ts) so the first paint
       without a cached design matches the fallback the app applies.
    2. Derived tokens — colour-mixed from layer 1, never written by DesignProvider, so every preset stays coherent.
    3. System tokens — scale, spacing, elevation, motion and the category support palette; tenant-neutral. */
 :root{
   /* 1 · runtime brand tokens */
-  --c-primary:#3468d5;
-  --c-primary-deep:#0c1930;
-  --c-accent:#18a6c9;
+  --c-primary:#1b2cc1;
+  --c-primary-deep:#091540;
+  --c-accent:#7692ff;
   --c-accent-warm:#c9472f;
-  --c-ink:#142544;
-  --c-text:#334155;
-  --c-muted:#64748b;
-  --c-line:#e2e8f0;
-  --c-line-2:#edf1f6;
-  --c-soft:#f3f6fa;
+  --c-ink:#091540;
+  --c-text:#2b3553;
+  --c-muted:#5d6888;
+  --c-line:#d9e2f2;
+  --c-line-2:#e8eef9;
+  --c-soft:#eef3fd;
   --c-paper:#ffffff;
-  --c-bg:#faf9f6;
-  --c-heading-band:#f3f6fa;
+  --c-bg:#f7f9fe;
+  --c-heading-band:#e6eefc;
   --c-ok:#067647;
   --c-warn:#b54708;
   --c-danger:#b42318;
   --c-band-ink:#ffffff;
-  --c-band-text:#c3cee0;
-  --g-hero:linear-gradient(180deg,#ffffff 0%,#faf9f6 100%);
-  --g-brand:linear-gradient(120deg,#142544,#3468d5 60%,#18a6c9);
-  --g-band-dark:linear-gradient(135deg,#0c1930 0%,#142544 55%,#1b3767 100%);
+  --c-band-text:#c6d4f6;
+  --g-hero:linear-gradient(180deg,#ffffff 0%,#f2f6fe 100%);
+  --g-brand:linear-gradient(120deg,#091540,#1b2cc1 60%,#7692ff);
+  --g-band-dark:linear-gradient(135deg,#060f30 0%,#091540 50%,#16229a 100%);
   --g-band-graphite:linear-gradient(120deg,#23272e,#3a3f47);
   --font-sans:"Pretendard","Noto Sans KR","Malgun Gothic",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --font-heading:"Pretendard","Noto Sans KR","Malgun Gothic",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
@@ -50,7 +50,7 @@
   --c-primary-ink:color-mix(in srgb,var(--c-primary) 82%,var(--c-ink));
   --c-accent-tint:color-mix(in srgb,var(--c-accent) 12%,var(--c-paper));
   --c-accent-tint-line:color-mix(in srgb,var(--c-accent) 32%,var(--c-paper));
-  --c-accent-ink:color-mix(in srgb,var(--c-accent) 55%,var(--c-ink));
+  --c-accent-ink:color-mix(in srgb,var(--c-accent) 45%,var(--c-ink));
   --c-warm-tint:color-mix(in srgb,var(--c-accent-warm) 8%,var(--c-paper));
   --c-warm-tint-line:color-mix(in srgb,var(--c-accent-warm) 30%,var(--c-paper));
   --c-warm-ink:color-mix(in srgb,var(--c-accent-warm) 70%,var(--c-ink));
@@ -76,6 +76,7 @@
   --cat-amber:#b26a00;
   --cat-emerald:#0a8a5f;
   --cat-navy:var(--c-ink);
+  --c-sky:#abd2fa;
   /* rating star (stroke / fill) — tenant-neutral */
   --c-star:#d98a00;
   --c-star-fill:#f2b43a;

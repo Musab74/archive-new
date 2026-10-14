@@ -7,6 +7,7 @@ import { safeNext } from '../../../shared/auth/roles';
 import { AButton, AInput, Callout } from '../../../shared/ui/admin';
 import { FormMessage } from '../../../shared/ui/Form';
 import { adm } from '../strings';
+import { Icon } from '../../../shared/ui/Icon';
 
 /** /admin/login — id, password, 2차 인증(휴대폰 뒤 4자리). */
 export default function AdminLoginPage() {
@@ -40,6 +41,7 @@ export default function AdminLoginPage() {
   return (
     <div className={styles.loginWrap}>
       <form className={styles.loginCard} onSubmit={(e) => void submit(e)} aria-labelledby="admin-login-title">
+        <span className={styles.loginMark} aria-hidden="true"><Icon name="shield" size={24} /></span>
         <span className="eyebrow">{adm.brand}</span>
         <h1 id="admin-login-title">{adm.login.title}</h1>
         <p>{adm.login.lead}</p>
@@ -48,10 +50,10 @@ export default function AdminLoginPage() {
           <label>{adm.login.password}<AInput name="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required /></label>
           <label>{adm.login.secondFactor}<AInput name="secondFactor" inputMode="numeric" maxLength={4} pattern="[0-9]{0,4}" value={secondFactor} onChange={(e) => setSecondFactor(e.target.value.replace(/\D/g, ''))} invalid={needs2fa && !secondFactor} placeholder="0000" /></label>
           <FormMessage>{error}</FormMessage>
-          <AButton type="submit" variant="primary" loading={busy} style={{ height: 42 }}>{adm.login.submit}</AButton>
+          <AButton type="submit" variant="primary" icon="lock" loading={busy} className={styles.loginSubmit}>{adm.login.submit}</AButton>
         </div>
         <Callout className="u-mt-16">{adm.login.readOnlyNote}</Callout>
-        <div className={styles.loginFoot}><Link to="/">{adm.login.toLearner}</Link><span>AINEX Archive</span></div>
+        <div className={styles.loginFoot}><Link to="/"><Icon name="arrow-left" size={15} />{adm.login.toLearner}</Link><span>AINEX Archive</span></div>
       </form>
     </div>
   );

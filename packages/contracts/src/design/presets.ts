@@ -87,6 +87,36 @@ const ainexPremiumTheme: ThemeTokens = {
   bandGraphite: 'linear-gradient(120deg,#23272e,#3a3f47)',
 };
 
+/**
+ * AINEX Blue — the 2026-10 brand palette: deep navy #091540 (ink, dark bands), royal blue #1b2cc1 (actions, active
+ * states), cornflower #7692ff (accent — never under white text: 2.9:1) and sky #abd2fa (light fills, always with navy
+ * text). Cool white surfaces; coral stays only for the 공지 tag.
+ */
+const ainexBlueTheme: ThemeTokens = {
+  primary: '#1b2cc1',
+  primaryDeep: '#091540',
+  accent: '#7692ff',
+  accentWarm: '#c9472f',
+  ink: '#091540',
+  text: '#2b3553',
+  muted: '#5d6888',
+  line: '#d9e2f2',
+  lineSoft: '#e8eef9',
+  surfaceSoft: '#eef3fd',
+  surface: '#ffffff',
+  background: '#f7f9fe',
+  headingBand: '#e6eefc',
+  success: '#067647',
+  warning: '#b54708',
+  danger: '#b42318',
+  bandDarkInk: '#ffffff',
+  bandDarkText: '#c6d4f6',
+  gradientHero: 'linear-gradient(180deg,#ffffff 0%,#f2f6fe 100%)',
+  gradientBrand: 'linear-gradient(120deg,#091540,#1b2cc1 60%,#7692ff)',
+  bandDark: 'linear-gradient(135deg,#060f30 0%,#091540 50%,#16229a 100%)',
+  bandGraphite: 'linear-gradient(120deg,#23272e,#3a3f47)',
+};
+
 const legacyTypography: DesignConfig['typography'] = {
   fontFamily: 'Pretendard',
   headingFont: 'Pretendard',
@@ -173,14 +203,10 @@ export const LEGACY_EDITORIAL_DEFAULT_DESIGN_V2: DesignConfig = editorialDesign(
 /** Editorial Warm default shipped until the AINEX Premium redesign (kept verbatim so the API can recognise and upgrade it). */
 export const LEGACY_EDITORIAL_DEFAULT_DESIGN_V3: DesignConfig = editorialDesign(typography, { sm: 6, md: 12, lg: 20 });
 
-/**
- * Current default: AINEX Premium palette, the editorial hero (`visual-right`) and the redesigned home sequence
- * (hero → intro → content tabs → AI ZONE → learning journey → CTA). Storyboard-only sections stay available but hidden.
- */
-export const DEFAULT_DESIGN: DesignConfig = {
+const premiumDesign = (presetId: string, theme: ThemeTokens): DesignConfig => ({
   schemaVersion: 1,
-  presetId: 'ainex-premium',
-  theme: ainexPremiumTheme,
+  presetId,
+  theme,
   typography,
   branding,
   layout: {
@@ -206,14 +232,24 @@ export const DEFAULT_DESIGN: DesignConfig = {
     ],
   },
   links,
-};
+});
+
+/** AINEX Premium default shipped before the AINEX Blue palette (kept verbatim so the API can recognise and upgrade it). */
+export const LEGACY_PREMIUM_DEFAULT_DESIGN_V4: DesignConfig = premiumDesign('ainex-premium', ainexPremiumTheme);
+
+/**
+ * Current default: AINEX Blue palette, the editorial hero (`visual-right`) and the redesigned home sequence
+ * (hero → intro → content tabs → AI ZONE → learning journey → CTA). Storyboard-only sections stay available but hidden.
+ */
+export const DEFAULT_DESIGN: DesignConfig = premiumDesign('ainex-blue', ainexBlueTheme);
 
 export interface ThemePreset { id: string; name: string; description: string; theme: ThemeTokens }
 
 const variant = (overrides: Partial<ThemeTokens>): ThemeTokens => ({ ...storyboardTheme, ...overrides });
 
 export const THEME_PRESETS: ThemePreset[] = [
-  { id: 'ainex-premium', name: 'AINEX Premium', description: '네이비 잉크 · 프로페셔널 블루 · 시안 포인트 · 웜 화이트 (2026-10 전면 리디자인 기본)', theme: ainexPremiumTheme },
+  { id: 'ainex-blue', name: 'AINEX Blue', description: '딥 네이비 · 로열 블루 · 콘플라워 · 스카이 (2026-10 브랜드 팔레트, 기본)', theme: ainexBlueTheme },
+  { id: 'ainex-premium', name: 'AINEX Premium', description: '네이비 잉크 · 프로페셔널 블루 · 시안 포인트 · 웜 화이트', theme: ainexPremiumTheme },
   { id: 'editorial-warm', name: 'Editorial Warm', description: '웜 오프화이트 페이퍼 · 네이비 잉크 · 코랄 포인트 (이전 기본)', theme: editorialWarmTheme },
   { id: 'corporate-blue', name: 'Corporate Blue', description: '승인 스토리보드 기본 팔레트 (navy / blue / mint)', theme: storyboardTheme },
   { id: 'modern-green', name: 'Modern Green', description: '그린 계열의 차분한 기업 테마', theme: variant({ primary: '#2e8b57', primaryDeep: '#1f5f3c', accent: '#8fd3a6', gradientBrand: 'linear-gradient(120deg,#2e8b57,#2f9a7a 55%,#8fd3a6)', bandDark: 'linear-gradient(130deg,#1f5f3c,#2f9a7a)' }) },
