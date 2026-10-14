@@ -10,6 +10,8 @@ import { tokenStore } from '../shared/auth/tokenStore';
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 const admin = { id: 'admin01', name: '관리자', dept: 'A', deptIdx: 1, deptName: 'LMS개발부', topGrants: ['A', 'B', 'C', 'D', 'E', 'F', 'G'], subGrants: ['A1', 'A2', 'B1', 'B2', 'C1', 'D1', 'E1', 'F1', 'G1'], canWrite: true };
 const dashboard = { today: '2026-10-12', monthStart: '2026-10-01', logins: { today: 7, uniqueUsers: 3 }, activePlayers: { count: 0, freshnessSeconds: 90 }, learnersOver15hThisMonth: 1, activeEnrollments: 2, emon: { pending: 3, pendingStale: 0 }, support: { openInquiries: 0, openCounsel: 0 }, signupsToday: 4 };
+const companies = { items: [{ idx: 2144, companyCode: '7568002646', bizNo: '756-80-02646', companyName: '(A)+기쁨드림방문요양센터', scale: 'C', scaleLabel: '우선지원대상', companyId: 't003', manageCode: 't003', cyberEnabled: false, eduManager: '이명아', eduManagerPhone: '010-9960-1163', eduManagerEmail: '77malee@naver.com', sendSMS: 'Y', sendSMSLabel: '수신허용', salesManager: 't000', salesName: '탑플러스', salesTeam: '탑플러스', regDate: '2026-10-01 09:00:00' }], page: 1, size: 20, total: 1 };
+const companyMeta = { scales: [{ value: 'C', label: '우선지원대상' }, { value: 'A', label: '대규모 1000인 이상' }, { value: 'B', label: '대규모 1000인 미만' }], sendSMS: [{ value: 'Y', label: '수신허용' }, { value: 'N', label: '수신거부' }], yn: [], banks: ['국민은행'], salesManagers: [{ id: 't000', name: '탑플러스', team: '탑플러스', mobile: null, deptIdx: 2, deptName: '영업부' }] };
 const members = { items: [{ idx: 4, id: 'sleep01', name: '휴면', memberType: 'A', companyCode: '1234567890', companyName: '테스트기업', depart: null, position: null, useYN: 'Y', eduManager: false, testId: false, protectId: 'Y', sleep: true, memberOut: false, lastLogin: null, regDate: '2026-10-12 17:49:44', passChange: 'Y', enrollments: 0 }], page: 1, size: 20, total: 1 };
 
 /** Routes fetch by URL so pages render against the real API shapes captured from the local seed. */
@@ -22,6 +24,8 @@ function apiMock(opts: { adminSession: boolean }) {
     if (url.endsWith('/auth/refresh')) return json({ error: { code: 'SESSION_EXPIRED', message: 'x' } }, 401);
     if (url.endsWith('/admin/dashboard')) return json(dashboard);
     if (url.includes('/admin/members')) return json(members);
+    if (url.endsWith('/admin/companies/meta')) return json(companyMeta);
+    if (url.includes('/admin/companies')) return json(companies);
     if (url.endsWith('/public/design')) return json({ error: { code: 'NOT_FOUND', message: 'x' } }, 404);
     return json({ error: { code: 'NOT_FOUND', message: `${method} ${url}` } }, 404);
   });
@@ -63,6 +67,18 @@ describe('admin + manager routes', () => {
     expect(await screen.findByRole('heading', { level: 1, name: '회원 목록' })).toBeInTheDocument();
     expect(await screen.findByText('sleep01')).toBeInTheDocument();
     expect(screen.getByText('휴면', { selector: 'span' })).toBeInTheDocument();
+  });
+
+  it('renders 사업주 관리 with the legacy columns, the sidebar entry and the 신규 등록 action', async () => {
+    vi.stubGlobal('fetch', apiMock({ adminSession: true }));
+    mount('/admin/companies?q=기쁨');
+    expect(await screen.findByRole('heading', { level: 1, name: '사업주 관리' })).toBeInTheDocument();
+    expect(await screen.findByText('(A)+기쁨드림방문요양센터')).toBeInTheDocument();
+    expect(screen.getByText('756-80-02646')).toBeInTheDocument();
+    expect(screen.getAllByText('수신허용').length).toBeGreaterThan(0);
+    expect(screen.getByRole('columnheader', { name: /기업관리코드/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '신규 등록' })).toBeEnabled();
+    expect(screen.getByRole('complementary', { name: '관리자 메뉴' })).toHaveTextContent('사업주 관리');
   });
 
   it('sends guests on /manager to the learner login', async () => {

@@ -394,3 +394,36 @@ export const DesignAuditLineSchema = z.object({ at: z.string(), actor: z.string(
 export type DesignAuditLine = z.infer<typeof DesignAuditLineSchema>;
 export const MediaPageSchema = pageOf(MediaAssetSchema);
 export type MediaPage = z.infer<typeof MediaPageSchema>;
+
+// ---------------------------------------------------------------------------
+// 사업주 관리 (/admin/companies)
+// ---------------------------------------------------------------------------
+export const CompanyRowSchema = z.object({
+  idx: z.number(), companyCode: z.string(), bizNo: z.string(), companyName: z.string(), scale: optStr, scaleLabel: z.string(), companyId: optStr, manageCode: optStr, cyberEnabled: z.boolean(),
+  eduManager: optStr, eduManagerPhone: optStr, eduManagerEmail: optStr, sendSMS: optStr, sendSMSLabel: z.string(), salesManager: optStr, salesName: optStr, salesTeam: optStr, regDate: optStr,
+});
+export type CompanyRow = z.infer<typeof CompanyRowSchema>;
+const Opt = z.object({ value: z.string(), label: z.string() });
+export const CompanyMetaSchema = z.object({ scales: z.array(Opt), sendSMS: z.array(Opt), yn: z.array(Opt), banks: z.array(z.string()), salesManagers: z.array(z.object({ id: z.string(), name: optStr, team: optStr, mobile: optStr, deptIdx: z.number(), deptName: optStr })) });
+export type CompanyMeta = z.infer<typeof CompanyMetaSchema>;
+export const CompanyCheckSchema = z.object({ field: z.string(), value: z.string(), available: z.boolean(), formatError: optStr, conflict: z.object({ idx: z.number(), companyName: optStr, companyCode: optStr }).nullable() });
+export type CompanyCheck = z.infer<typeof CompanyCheckSchema>;
+export const CompanyInfoSchema = z.object({
+  idx: z.number(), companyCode: z.string(), bizNo: z.string(), companyName: z.string(), scale: optStr, scaleLabel: z.string(), companyId: optStr, hrd: optStr, ceo: optStr, uptae: optStr, upjong: optStr,
+  zipcode: optStr, address01: optStr, address02: optStr, tel: optStr, tel2: optStr, csEnabled: z.boolean(), fax: optStr, fax2: optStr, email: optStr, bankName: optStr, bankNumber: optStr,
+  manageCode: optStr, cyberUrl: optStr, cyberEnabled: z.boolean(), eduManager: optStr, eduManagerPhone: optStr, eduManagerEmail: optStr, salesManager: optStr, remark: optStr, sendSMS: optStr, sendSMSLabel: z.string(), regDate: optStr,
+});
+export type CompanyInfo = z.infer<typeof CompanyInfoSchema>;
+export const CompanyDetailSchema = z.object({
+  company: CompanyInfoSchema,
+  sales: z.object({ id: optStr, name: optStr, team: optStr, mobile: optStr, useYN: optStr, deptName: optStr, deptPath: optStr }).nullable(),
+  stats: z.object({ members: z.number(), activeMembers: z.number(), eduManagers: z.number(), enrollments: z.number(), passed: z.number(), ended: z.number(), activeEnrollments: z.number() }),
+  managers: z.array(z.object({ id: z.string(), name: optStr, useYN: optStr, since: optStr })).default([]),
+});
+export type CompanyDetail = z.infer<typeof CompanyDetailSchema>;
+export const CompanyTermsSchema = z.object({ year: z.union([z.number(), z.literal('all')]), companyCode: z.string(), items: z.array(z.object({ lectureCode: z.string(), courseName: z.string(), start: z.string(), end: z.string(), enrolled: z.number(), passed: z.number(), passRate: z.number(), price: z.number(), refund: z.number() })) });
+export type CompanyTerms = z.infer<typeof CompanyTermsSchema>;
+export const CompanyImportRowSchema = z.object({ line: z.number(), action: z.enum(['create', 'update', 'error']), companyCode: z.string(), companyName: z.string(), companyId: z.string(), homePage: z.string(), errors: z.array(z.string()) });
+export const CompanyImportResultSchema = z.object({ mode: z.enum(['dryRun', 'commit']), summary: z.object({ total: z.number(), create: z.number(), update: z.number(), error: z.number() }), rows: z.array(CompanyImportRowSchema), applied: z.object({ created: z.number(), updated: z.number(), skipped: z.number() }).nullable() });
+export type CompanyImportResult = z.infer<typeof CompanyImportResultSchema>;
+export type CompanyImportPlanRow = z.infer<typeof CompanyImportRowSchema>;

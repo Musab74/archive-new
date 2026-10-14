@@ -13,6 +13,9 @@ const AdminLoginPage = lazy(() => import('./pages/AdminLoginPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 const MembersPage = lazy(() => import('./pages/members/MembersPage'));
 const MemberDetailPage = lazy(() => import('./pages/members/MemberDetailPage'));
+const CompaniesPage = lazy(() => import('./pages/companies/CompaniesPage'));
+const CompanyDetailPage = lazy(() => import('./pages/companies/CompanyDetailPage'));
+const CompanyImportPage = lazy(() => import('./pages/companies/CompanyImportPage'));
 const StudiesPage = lazy(() => import('./pages/studies/StudiesPage'));
 const StudyDetailPage = lazy(() => import('./pages/studies/StudyDetailPage'));
 const MonitoringDailyPage = lazy(() => import('./pages/studies/MonitoringPages').then((m) => ({ default: m.MonitoringDailyPage })));
@@ -85,6 +88,9 @@ export const adminRouteTree: RouteObject = {
           { index: true, element: el(<DashboardPage />) },
           { path: 'members', element: grant('A1', <MembersPage />) },
           { path: 'members/:id', element: grant('A1', <MemberDetailPage />) },
+          { path: 'companies', element: grant('A1', <CompaniesPage />) },
+          { path: 'companies/import', element: grant('A1', <CompanyImportPage />) },
+          { path: 'companies/:idx', element: grant('A1', <CompanyDetailPage />) },
           { path: 'studies', element: grant('B1', <StudiesPage />) },
           { path: 'studies/:seq', element: grant('B1', <StudyDetailPage />) },
           { path: 'monitoring/daily', element: grant('B1', <MonitoringDailyPage />) },

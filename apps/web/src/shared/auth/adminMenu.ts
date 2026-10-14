@@ -18,6 +18,7 @@ export const GRANT_LABELS: Record<string, string> = {
 export const ADMIN_MENU: AdminMenuGroup[] = [
   { letter: 'A', label: GRANT_LABELS.A!, icon: 'users', items: [
     { label: tr('회원 목록', 'Members'), to: '/admin/members', grant: 'A1', icon: 'users' },
+    { label: tr('사업주 관리', 'Companies'), to: '/admin/companies', grant: 'A1', icon: 'building' },
   ] },
   { letter: 'B', label: GRANT_LABELS.B!, icon: 'graduation', items: [
     { label: tr('수강 목록', 'Enrollments'), to: '/admin/studies', grant: 'B1', icon: 'book' },

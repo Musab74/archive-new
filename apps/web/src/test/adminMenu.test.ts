@@ -36,6 +36,7 @@ describe('admin menu from grants', () => {
 
   it('maps paths to the grant their endpoints need', () => {
     expect(grantForPath('/admin/members/user01')).toBe('A1');
+    expect(grantForPath('/admin/companies/import')).toBe('A1');
     expect(grantForPath('/admin/design/tokens')).toBe('G1');
     expect(grantForPath('/admin/emon/preview/attend')).toBe('B1');
     expect(grantForPath('/admin')).toBeNull();
