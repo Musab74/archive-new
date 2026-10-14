@@ -53,11 +53,14 @@ describe('admin + manager routes', () => {
     mount('/admin');
     expect(await screen.findByRole('heading', { level: 1, name: '대시보드' })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText('EMON 전송함 →')).toBeInTheDocument());
-    const nav = screen.getByRole('complementary', { name: '관리자 메뉴' });
-    expect(nav).toHaveTextContent('회원관리');
-    expect(nav).toHaveTextContent('웹사이트 디자인');
-    expect(screen.getByText('관리자', { selector: 'b' })).toBeInTheDocument();
-    expect(screen.getByText('자동 로그아웃')).toBeInTheDocument();
+    const top = screen.getByRole('navigation', { name: '주요 메뉴' });
+    expect(top).toHaveTextContent('회원 관리');
+    expect(top).toHaveTextContent('모니터링');
+    expect(top).toHaveTextContent('사이트관리');
+    const side = screen.getByRole('complementary', { name: '관리자 메뉴' });
+    expect(side).toHaveTextContent('사업주 관리'); // first section (회원 관리) is shown on the dashboard
+    expect(screen.getByText(/관리자 \(LMS개발부\)님 안녕하세요/)).toBeInTheDocument();
+    expect(screen.getByText(/자동 로그아웃/)).toBeInTheDocument();
     expect(screen.queryByText('조회 권한만 있는 계정입니다. 변경할 수 없습니다.')).not.toBeInTheDocument();
   });
 

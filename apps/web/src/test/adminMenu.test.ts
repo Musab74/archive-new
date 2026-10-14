@@ -7,7 +7,7 @@ const sales = { dept: 'B', topGrants: ['A', 'B'], subGrants: ['A1', 'B1'] };
 describe('admin menu from grants', () => {
   it('dept A sees the whole catalogue', () => {
     const menu = buildAdminMenu(deptA);
-    expect(menu.map((g) => g.letter)).toEqual(['A', 'B', 'D', 'F', 'G']);
+    expect(menu.map((g) => g.key)).toEqual(['members', 'learning', 'monitoring', 'content', 'community', 'site']);
     expect(menu.reduce((n, g) => n + g.items.length, 0)).toBe(ADMIN_MENU.reduce((n, g) => n + g.items.length, 0));
   });
 
@@ -17,14 +17,14 @@ describe('admin menu from grants', () => {
 
   it('filters by sub-grant code and drops empty groups', () => {
     const menu = buildAdminMenu(sales);
-    expect(menu.map((g) => g.letter)).toEqual(['A', 'B']);
-    expect(menu.find((g) => g.letter === 'B')!.items.map((i) => i.to)).toContain('/admin/emon');
+    expect(menu.map((g) => g.key)).toEqual(['members', 'learning', 'monitoring']);
+    expect(menu.find((g) => g.key === 'monitoring')!.items.map((i) => i.to)).toContain('/admin/emon');
     expect(menu.some((g) => g.letter === 'G')).toBe(false);
   });
 
   it('a top-level letter grants every sub item of that letter', () => {
     const menu = buildAdminMenu({ dept: 'C', topGrants: ['F'], subGrants: [] });
-    expect(menu.map((g) => g.letter)).toEqual(['F']);
+    expect(menu.map((g) => g.key)).toEqual(['community']);
     expect(hasGrant({ dept: 'C', topGrants: ['F'], subGrants: [] }, 'F1')).toBe(true);
     expect(hasGrant({ dept: 'C', topGrants: ['F'], subGrants: [] }, 'A1')).toBe(false);
   });
