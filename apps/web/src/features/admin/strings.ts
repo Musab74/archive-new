@@ -19,8 +19,9 @@ const ko = {
     readOnlyNote: '영업(B) 계정은 조회만 가능합니다.',
     toLearner: '학습자 사이트로',
   },
-  top: { dept: '부서', logout: '로그아웃', countdown: '자동 로그아웃', countdownLong: '자동 로그아웃까지 남은시간', extend: '연장', readOnly: '조회 전용', collapse: '메뉴 접기', expand: '메뉴 펼치기', home: '대시보드', site: '사이트 보기', sections: '주요 메뉴', sideMenu: '하위 메뉴', greeting: (name: string, dept: string) => `${name} (${dept})님 안녕하세요` },
+  top: { dept: '부서', logout: '로그아웃', countdown: '자동 로그아웃', countdownLong: '자동 로그아웃까지 남은시간', extend: '연장', readOnly: '조회 전용', collapse: '메뉴 접기', expand: '메뉴 펼치기', home: '대시보드', site: '사이트 보기', profile: '정보수정', sections: '주요 메뉴', sideMenu: '하위 메뉴', greeting: (name: string, dept: string) => `${name} (${dept})님 안녕하세요` },
   readOnly: '조회 권한만 있는 계정입니다. 변경할 수 없습니다.',
+  legacy: { lead: '아직 새 관리자 콘솔로 옮기지 않은 화면입니다.', note: '이 메뉴는 기존 관리자 페이지(hrd_manager)에서 그대로 사용할 수 있습니다. 새 창으로 열리며 기존 관리자 로그인이 필요합니다. 새 콘솔로 옮겨지면 이 자리에서 바로 열립니다.', open: '기존 관리자 페이지에서 열기', target: '연결 주소', others: '이 섹션의 다른 메뉴' },
   noGrant: { title: '메뉴 권한이 없습니다.', body: '이 메뉴는 부서 권한(DeptStructure)에 포함되어 있지 않습니다. 관리자에게 권한을 요청해 주세요.' },
   common: { save: '저장', saved: '저장되었습니다.', cancel: '취소', delete: '삭제', deleted: '삭제되었습니다.', edit: '수정', create: '등록', created: '등록되었습니다.', search: '검색', reset: '초기화', refresh: '새로고침', close: '닫기', confirm: '확인', back: '목록으로', detail: '상세', apply: '적용', yes: 'Y', no: 'N', all: '전체', none: '—', loading: '불러오는 중…', failed: '요청을 완료하지 못했습니다.', total: (n: number) => `총 ${n.toLocaleString('ko-KR')}건` },
   dashboard: {
@@ -151,8 +152,9 @@ const en: AdmCopy = {
     readOnlyNote: 'Sales (B) accounts are read-only.',
     toLearner: 'Go to learner site',
   },
-  top: { dept: 'Department', logout: 'Sign out', countdown: 'Auto sign-out', countdownLong: 'Auto sign-out in', extend: 'Extend', readOnly: 'Read-only', collapse: 'Collapse menu', expand: 'Expand menu', home: 'Dashboard', site: 'View site', sections: 'Main menu', sideMenu: 'Section menu', greeting: (name: string, dept: string) => `Welcome, ${name} (${dept})` },
+  top: { dept: 'Department', logout: 'Sign out', countdown: 'Auto sign-out', countdownLong: 'Auto sign-out in', extend: 'Extend', readOnly: 'Read-only', collapse: 'Collapse menu', expand: 'Expand menu', home: 'Dashboard', site: 'View site', profile: 'My info', sections: 'Main menu', sideMenu: 'Section menu', greeting: (name: string, dept: string) => `Welcome, ${name} (${dept})` },
   readOnly: 'This account is read-only. Changes are not allowed.',
+  legacy: { lead: 'This screen has not been moved to the new console yet.', note: 'The menu is still served by the previous admin (hrd_manager). It opens in a new window and needs the legacy admin login. Once it is ported it will open right here.', open: 'Open in the legacy admin', target: 'Target address', others: 'Other menus in this section' },
   noGrant: { title: 'No permission for this menu.', body: 'This menu is not included in your department permissions (DeptStructure). Ask an administrator for access.' },
   common: { save: 'Save', saved: 'Saved.', cancel: 'Cancel', delete: 'Delete', deleted: 'Deleted.', edit: 'Edit', create: 'Create', created: 'Created.', search: 'Search', reset: 'Reset', refresh: 'Refresh', close: 'Close', confirm: 'Confirm', back: 'Back to list', detail: 'Details', apply: 'Apply', yes: 'Y', no: 'N', all: 'All', none: '—', loading: 'Loading…', failed: 'The request could not be completed.', total: (n: number) => `${n.toLocaleString('en-US')} total` },
   dashboard: {

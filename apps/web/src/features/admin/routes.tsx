@@ -11,6 +11,7 @@ import { ConsoleLangContext, getAdminLang } from '../../shared/i18n/adminLang';
 const GrantGate = lazy(() => import('./GrantGate').then((m) => ({ default: m.GrantGate })));
 const AdminLoginPage = lazy(() => import('./pages/AdminLoginPage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const LegacyPage = lazy(() => import('./pages/LegacyPage'));
 const MembersPage = lazy(() => import('./pages/members/MembersPage'));
 const MemberDetailPage = lazy(() => import('./pages/members/MemberDetailPage'));
 const CompaniesPage = lazy(() => import('./pages/companies/CompaniesPage'));
@@ -86,6 +87,7 @@ export const adminRouteTree: RouteObject = {
         element: <AdminLayout />,
         children: [
           { index: true, element: el(<DashboardPage />) },
+          { path: 'legacy/:slug', element: el(<LegacyPage />) },
           { path: 'members', element: grant('A1', <MembersPage />) },
           { path: 'members/:id', element: grant('A1', <MemberDetailPage />) },
           { path: 'companies', element: grant('A1', <CompaniesPage />) },

@@ -1,37 +1,38 @@
-/* Admin console theme. The console is the operators' tool, so it always uses the AINEX Blue palette, whatever design
+/* Admin console theme. The console is the operators' tool, so it always uses the purple palette of the previous admin (hrd_manager), whatever design
    the learner site has published. AdminRoot sets data-console="admin" on <html> while /admin is mounted; !important
    wins over the inline tokens DesignProvider writes on :root. Derived tokens (tokens.css layer 2) recompute from these
    because they live on the same element. Design Studio previews set their own inline vars and are unaffected. */
 :root[data-console="admin"]{
-  --c-primary:#1b2cc1 !important;
-  --c-primary-deep:#091540 !important;
-  --c-accent:#7692ff !important;
+  --c-primary:#7565ae !important;
+  --c-primary-deep:#5b4997 !important;
+  --c-accent:#ad9cea !important;
   --c-accent-warm:#c9472f !important;
-  --c-ink:#091540 !important;
-  --c-text:#2b3553 !important;
-  --c-muted:#5d6888 !important;
-  --c-line:#d9e2f2 !important;
-  --c-line-2:#e8eef9 !important;
-  --c-soft:#eef3fd !important;
+  --c-ink:#2d2650 !important;
+  --c-text:#3a3557 !important;
+  --c-muted:#6b6686 !important;
+  --c-line:#dcd7ea !important;
+  --c-line-2:#ebe8f3 !important;
+  --c-soft:#f1eefa !important;
   --c-paper:#ffffff !important;
-  --c-bg:#f4f7fd !important;
-  --c-heading-band:#e6eefc !important;
+  --c-bg:#f7f7f7 !important;
+  --c-heading-band:#ebe8f3 !important;
   --c-band-ink:#ffffff !important;
-  --c-band-text:#c6d4f6 !important;
-  --g-band-dark:linear-gradient(135deg,#060f30 0%,#091540 50%,#16229a 100%) !important;
+  --c-band-text:#e4ddf7 !important;
+  --g-band-dark:linear-gradient(135deg,#3f327a 0%,#5b4997 50%,#7565ae 100%) !important;
   --font-sans:"Pretendard","Noto Sans KR","Malgun Gothic",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif !important;
   --r-sm:8px !important;
   --r-md:12px !important;
   --r-lg:18px !important;
   /* console-only */
-  --console-side:#091540;
-  --console-side-2:#0e1d55;
-  --console-side-text:#b9c6e8;
-  --console-side-muted:#7f8db5;
-  --console-active:#1b2cc1;
-  --console-sky:#abd2fa;
-  --console-side-w:264px;
-  --console-side-w-collapsed:76px;
-  --console-top-h:68px;
+  --console-side:#7565ae;        /* old .Header */
+  --console-side-2:#5b4997;      /* old .Header .logo */
+  --console-side-soft:#ad9cea;   /* old .Content .subMenu */
+  --console-side-text:rgba(255,255,255,.85);
+  --console-side-muted:rgba(255,255,255,.6);
+  --console-active:#5b4997;
+  --console-sky:#ffffff;
+  --console-side-w:200px;
+  --console-top-h:90px;          /* 40px info row + 50px sections row */
+  --console-sections-h:50px;
 }
 :root[data-console="admin"] body{background:var(--c-bg);font-size:15px}

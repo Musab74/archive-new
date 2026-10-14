@@ -13,16 +13,17 @@ import { LangSwitch } from './LangSwitch';
 const DESIGN_LABELS: Record<string, string> = { '': adm.design.nav.overview, presets: adm.design.nav.presets, tokens: adm.design.nav.tokens, typography: adm.design.nav.typography, branding: adm.design.nav.branding, media: adm.design.nav.media, layout: adm.design.nav.layout, links: adm.design.nav.links, preview: adm.design.nav.preview, versions: adm.design.nav.versions, audit: adm.design.nav.audit };
 
 /** Breadcrumb from the menu catalogue: 대시보드 › 섹션 › 메뉴 › (하위). */
-export function crumbsFor(pathname: string, menu: AdminMenuGroup[] = ADMIN_MENU): { label: string; to?: string }[] {
+export function crumbsFor(pathname: string, menu: AdminMenuGroup[] = ADMIN_MENU, search = ''): { label: string; to?: string }[] {
   const out: { label: string; to?: string }[] = [{ label: adm.top.home, to: '/admin' }];
   if (pathname === '/admin' || pathname === '/admin/') return out;
-  const best = menuEntryForPath(pathname, menu);
+  const best = menuEntryForPath(pathname, menu, search);
   if (!best) { out.push({ label: pathname.replace(/^\/admin\/?/, '') || adm.top.home }); return out; }
   out.push({ label: best.group.label });
   out.push({ label: best.item.label, to: best.item.to });
-  const rest = pathname.slice(best.item.to.length).replace(/^\//, '');
+  const base = best.item.to.split('?')[0]!;
+  const rest = pathname.slice(base.length).replace(/^\//, '');
   if (rest) {
-    if (best.item.to === '/admin/design') out.push({ label: DESIGN_LABELS[rest.split('/')[0] ?? ''] ?? rest });
+    if (base === '/admin/design') out.push({ label: DESIGN_LABELS[rest.split('/')[0] ?? ''] ?? rest });
     else out.push({ label: decodeURIComponent(rest) });
   }
   return out;
@@ -40,18 +41,18 @@ export function formatToday(d: Date, lang: 'ko' | 'en' = getAdminLang()): string
 }
 
 /**
- * Admin console laid out like the previous PHP admin (hrd_manager): header with greeting · date · auto sign-out,
- * a row of TOP sections (회원 관리 · 수강 관리 · 모니터링 · …), and the active section's menus in the LEFT column.
- * Clicking a section opens its first menu; the left column follows the current page.
+ * Admin console with the previous PHP admin's chrome: purple header (logo box · "이름 (부서)님 안녕하세요" · 날짜 ·
+ * 자동 로그아웃 · 로그아웃/정보수정), the TOP sections row, and the active section's menus stacked in the LEFT column.
  */
 export default function AdminShell() {
   const { admin, canWrite, secondsLeft, logout, extend } = useAdminSession();
   const location = useLocation();
   const navigate = useNavigate();
   const menu = useMemo(() => buildAdminMenu(admin), [admin]);
-  const crumbs = useMemo(() => crumbsFor(location.pathname), [location.pathname]);
+  const entry = useMemo(() => menuEntryForPath(location.pathname, menu, location.search), [location.pathname, location.search, menu]);
+  const crumbs = useMemo(() => crumbsFor(location.pathname, ADMIN_MENU, location.search), [location.pathname, location.search]);
   const isDashboard = location.pathname === '/admin' || location.pathname === '/admin/';
-  const active = useMemo(() => menuEntryForPath(location.pathname, menu)?.group ?? menu[0] ?? null, [location.pathname, menu]);
+  const active = entry?.group ?? menu[0] ?? null;
   const today = useMemo(() => formatToday(new Date()), []);
 
   useEffect(() => { document.title = `${crumbs[crumbs.length - 1]?.label ?? ''} · ${adm.brand}`; }, [crumbs]);
@@ -62,53 +63,58 @@ export default function AdminShell() {
   return (
     <div className={styles.shell}>
       <header className={styles.header}>
-        <div className={styles.headRow}>
-          <Link to="/admin" className={styles.brand} title={adm.brand}>
-            <span className={styles.brandMark} aria-hidden="true">A</span>
-            <span className={styles.brandText}><b>AINEX ARCHIVE</b><small>{tr('관리자 콘솔', 'Admin console')}</small></span>
-          </Link>
-          {admin ? (
-            <div className={styles.greeting}>
-              <span className={styles.greetName}><b>{adm.top.greeting(admin.name, deptLabel)}</b>{!canWrite ? <span className={styles.roTag}>{adm.top.readOnly}</span> : null}</span>
-              <span className={styles.sep} aria-hidden="true" />
-              <span className={styles.today}><Icon name="calendar" size={15} />{today}</span>
-              <span className={styles.sep} aria-hidden="true" />
-              <span className={cx(styles.countdown, warn && styles.countdownWarn)} title={adm.top.countdown} aria-live={warn ? 'polite' : undefined}>
-                <Icon name="timer" size={15} /><span className={styles.cdLabel}>{adm.top.countdownLong}</span><b>{formatCountdown(secondsLeft)}</b>
-                <button type="button" onClick={() => void extend()}>{adm.top.extend}</button>
-              </span>
+        <Link to="/admin" className={styles.logo} title={adm.brand}>
+          <span className={styles.brandMark} aria-hidden="true">A</span>
+          <span className={styles.brandText}><b>AINEX ARCHIVE</b><small>{tr('관리자', 'Admin')}</small></span>
+        </Link>
+        <div className={styles.headRight}>
+          <div className={styles.topSide}>
+            {admin ? (
+              <ul className={styles.adminInfo}>
+                <li><b>{adm.top.greeting(admin.name, deptLabel)}</b>{!canWrite ? <span className={styles.roTag}>{adm.top.readOnly}</span> : null}</li>
+                <li>{today}</li>
+                <li className={cx(styles.countdown, warn && styles.countdownWarn)} title={adm.top.countdown} aria-live={warn ? 'polite' : undefined}>
+                  <span className={styles.cdLabel}>{adm.top.countdownLong} : </span><b>{formatCountdown(secondsLeft)}</b>
+                  <button type="button" onClick={() => void extend()}>{adm.top.extend}</button>
+                </li>
+              </ul>
+            ) : null}
+            <div className={styles.topBtns}>
+              <LangSwitch className={styles.topLang} />
+              <a href="/" target="_blank" rel="noopener noreferrer" className={styles.topBtn}><Icon name="arrow-up-right" size={13} />{adm.top.site}<span className="sr-only">{tr(' (새 창)', ' (opens in a new window)')}</span></a>
+              <button type="button" className={cx(styles.topBtn, styles.topBtnSolid)} onClick={() => { void logout('user'); navigate('/admin/login'); }}>{adm.top.logout}</button>
+              <Link to="/admin/legacy/my_info" className={cx(styles.topBtn, styles.topBtnSolid)}>{adm.top.profile}</Link>
             </div>
-          ) : null}
-          <div className={styles.topRight}>
-            <LangSwitch className={styles.topLang} />
-            <a href="/" target="_blank" rel="noopener noreferrer" className={styles.siteLink}><Icon name="arrow-up-right" size={16} /><span>{adm.top.site}</span><span className="sr-only">{tr(' (새 창)', ' (opens in a new window)')}</span></a>
-            <button type="button" className={styles.logout} onClick={() => { void logout('user'); navigate('/admin/login'); }} title={adm.top.logout}><Icon name="logout" size={17} /><span>{adm.top.logout}</span></button>
           </div>
+          <nav className={styles.sections} aria-label={adm.top.sections}>
+            <NavLink to="/admin" end className={styles.section}><Icon name="dashboard" size={16} /><span>{adm.top.home}</span></NavLink>
+            {menu.map((g) => {
+              const current = !isDashboard && active?.key === g.key;
+              return (
+                <Link key={g.key} to={g.items[0]!.to} className={styles.section} aria-current={current ? 'page' : undefined} title={g.label}>
+                  <span>{g.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
         </div>
-        <nav className={styles.sections} aria-label={adm.top.sections}>
-          <NavLink to="/admin" end className={styles.section}><Icon name="dashboard" size={17} /><span>{adm.top.home}</span></NavLink>
-          {menu.map((g) => {
-            const current = !isDashboard && active?.key === g.key;
-            return (
-              <Link key={g.key} to={g.items[0]!.to} className={styles.section} aria-current={current ? 'page' : undefined} title={g.label}>
-                <Icon name={g.icon ?? 'file'} size={17} /><span>{g.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
       </header>
       {!canWrite ? <div className={styles.readOnlyBar} role="status"><Icon name="lock" size={15} />{adm.readOnly}</div> : null}
       <div className={styles.body}>
         <aside className={styles.side} aria-label={tr('관리자 메뉴', 'Admin menu')}>
           {active ? (
             <>
-              <div className={styles.sideHead}><Icon name={active.icon ?? 'file'} size={20} /><b>{active.label}</b></div>
+              <h2 className={styles.sideHead}><Icon name={active.icon ?? 'file'} size={20} />{active.label}</h2>
               <nav className={styles.sideNav} aria-label={adm.top.sideMenu}>
-                {active.items.map((it) => (
-                  <NavLink key={it.to} to={it.to} className={styles.item} title={it.label} end={it.to === '/admin/design' ? false : undefined}>
-                    <Icon name={it.icon ?? active.icon ?? 'file'} size={18} /><span className={styles.label}>{it.label}</span><Icon name="chevron-right" size={15} className={styles.itemChev} />
-                  </NavLink>
-                ))}
+                {active.items.map((it) => {
+                  const current = entry?.item.to === it.to;
+                  return (
+                    <Link key={it.to} to={it.to} className={styles.item} aria-current={current ? 'page' : undefined} title={it.legacy ? tr('기존 관리자 화면으로 연결', 'Opens the legacy admin screen') : it.label}>
+                      <span className={styles.label}>{it.label}</span>
+                      {it.legacy ? <Icon name="external" size={13} className={styles.legacyMark} aria-hidden="true" /> : null}
+                    </Link>
+                  );
+                })}
               </nav>
             </>
           ) : null}

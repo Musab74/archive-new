@@ -55,6 +55,8 @@ describe('admin + manager routes', () => {
     await waitFor(() => expect(screen.getByText('EMON 전송함 →')).toBeInTheDocument());
     const top = screen.getByRole('navigation', { name: '주요 메뉴' });
     expect(top).toHaveTextContent('회원 관리');
+    expect(top).toHaveTextContent('독려 관리');
+    expect(top).toHaveTextContent('Ruby 관리');
     expect(top).toHaveTextContent('모니터링');
     expect(top).toHaveTextContent('사이트관리');
     const side = screen.getByRole('complementary', { name: '관리자 메뉴' });
@@ -82,6 +84,16 @@ describe('admin + manager routes', () => {
     expect(screen.getByRole('columnheader', { name: /기업관리코드/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '신규 등록' })).toBeEnabled();
     expect(screen.getByRole('complementary', { name: '관리자 메뉴' })).toHaveTextContent('사업주 관리');
+  });
+
+  it('keeps every old menu: a not-yet-ported entry opens a legacy page that links to the PHP admin', async () => {
+    vi.stubGlobal('fetch', apiMock({ adminSession: true }));
+    mount('/admin/legacy/lecture_reg');
+    expect(await screen.findByRole('heading', { level: 1, name: '수강 등록' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /hrd_manager\/lecture_reg\.php/ })).toHaveAttribute('href', 'https://hrdeedu.co.kr/hrd_manager/lecture_reg.php');
+    const side = screen.getByRole('complementary', { name: '관리자 메뉴' });
+    expect(side).toHaveTextContent('탈퇴회원 관리');
+    expect(side).toHaveTextContent('개인정보 열람내역');
   });
 
   it('sends guests on /manager to the learner login', async () => {

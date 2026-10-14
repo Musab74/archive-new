@@ -1,6 +1,6 @@
 import { forwardRef, useId, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ADMIN_MENU } from '../../auth/adminMenu';
+import { menuEntryForPath } from '../../auth/adminMenu';
 import styles from './admin.module.css';
 import { AppSelect, type AppSelectProps } from '../AppSelect';
 import { Icon, type IconName } from '../Icon';
@@ -13,9 +13,8 @@ export interface Crumb { label: string; to?: string }
 /** Icon of the menu entry that owns `pathname` (longest matching `to`), so page titles match the sidebar. */
 function menuIconFor(pathname: string): IconName | undefined {
   if (pathname === '/admin' || pathname === '/admin/') return 'dashboard';
-  let best: { to: string; icon?: IconName } | null = null;
-  for (const g of ADMIN_MENU) for (const it of g.items) if ((pathname === it.to || pathname.startsWith(`${it.to}/`)) && (!best || it.to.length > best.to.length)) best = { to: it.to, icon: it.icon ?? g.icon };
-  return best?.icon;
+  const e = menuEntryForPath(pathname);
+  return e ? (e.item.icon ?? e.group.icon) : undefined;
 }
 
 /** Page frame: breadcrumb, optional icon + title, lead, actions on the right. */
