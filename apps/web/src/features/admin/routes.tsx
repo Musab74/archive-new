@@ -17,6 +17,46 @@ const DepartmentsPage = lazy(() => import('./pages/members/DepartmentsPage'));
 const WithdrawnMembersPage = lazy(() => import('./pages/members/WithdrawnMembersPage'));
 const PrivacyLogPage = lazy(() => import('./pages/members/PrivacyLogPage'));
 const EnrollmentRegisterPage = lazy(() => import('./pages/members/EnrollmentRegisterPage'));
+const AbilityQuestionsPage = lazy(() => import('./pages/content-archive/AbilityQuestionsPage'));
+const AbilityResultsPage = lazy(() => import('./pages/content-archive/AbilityResultsPage'));
+const SatisfactionPage = lazy(() => import('./pages/content-archive/SatisfactionPage'));
+const ContentKeywordsPage = lazy(() => import('./pages/content-archive/ContentKeywordsPage'));
+const CourseLikesPage = lazy(() => import('./pages/content-archive/CourseLikesPage'));
+const CourseViewsPage = lazy(() => import('./pages/content-archive/CourseViewsPage'));
+const LiveCoursesPage = lazy(() => import('./pages/content-archive/LiveCoursesPage'));
+const LiveClassPage = lazy(() => import('./pages/content-archive/LiveClassPage'));
+const ReviewsPage = lazy(() => import('./pages/site-cms/ReviewsPage'));
+const ArchivingPage = lazy(() => import('./pages/site-cms/ArchivingPage'));
+const EdudataPage = lazy(() => import('./pages/site-cms/EdudataPage'));
+const LectureEventsPage = lazy(() => import('./pages/site-cms/LectureEventsPage'));
+const PopupsPage = lazy(() => import('./pages/site-cms/PopupsPage'));
+const BackupsPage = lazy(() => import('./pages/site-cms/BackupsPage'));
+const VisitStatsPage = lazy(() => import('./pages/site-cms/VisitStatsPage'));
+const MyInfoPage = lazy(() => import('./pages/site-cms/MyInfoPage'));
+const StudyNudgePage = lazy(() => import('./pages/nudge/StudyNudgePage'));
+const SmsReservationsPage = lazy(() => import('./pages/nudge/SmsReservationsPage'));
+const AlarmLogPage = lazy(() => import('./pages/nudge/AlarmLogPage'));
+const ManagerMailLogPage = lazy(() => import('./pages/nudge/MailLogPages').then((m) => ({ default: m.ManagerMailLogPage })));
+const LearnerMailLogPage = lazy(() => import('./pages/nudge/MailLogPages').then((m) => ({ default: m.LearnerMailLogPage })));
+const TemplatesPage = lazy(() => import('./pages/nudge/TemplatesPage'));
+const RubyFaqPage = lazy(() => import('./pages/ruby-ops/RubyFaqPage'));
+const RubyKbPage = lazy(() => import('./pages/ruby-ops/RubyKbPage'));
+const RubyPromptsPage = lazy(() => import('./pages/ruby-ops/RubyPromptsPage'));
+const RubyRuntimePage = lazy(() => import('./pages/ruby-ops/RubyRuntimePage'));
+const RubyTicketsPage = lazy(() => import('./pages/ruby-ops/RubyTicketsPage'));
+const RubyEmbeddingsPage = lazy(() => import('./pages/ruby-ops/RubyEmbeddingsPage'));
+const IpMonitoringPage = lazy(() => import('./pages/ruby-ops/IpMonitoringPage'));
+const EnrollmentImportPage = lazy(() => import('./pages/ruby-ops/EnrollmentImportPage'));
+const StudyHistoryPage = lazy(() => import('./pages/learning/StudyHistoryPage'));
+const ClosingsPage = lazy(() => import('./pages/learning/ClosingsPage'));
+const IpMonitorPage = lazy(() => import('./pages/learning/IpMonitorPage'));
+const IdentityChecksPage = lazy(() => import('./pages/learning/IdentityChecksPage'));
+const NegativeTrainingPage = lazy(() => import('./pages/learning/NegativeTrainingPage'));
+const AiAnalysisPage = lazy(() => import('./pages/learning/AiAnalysisPage'));
+const CompletionDataPage = lazy(() => import('./pages/learning/CompletionDataPage'));
+const SubjectCertificatesPage = lazy(() => import('./pages/learning/SubjectCertificatesPage'));
+const CertificateTestPage = lazy(() => import('./pages/learning/CertificateTestPage'));
+const CertificatePrintPage = lazy(() => import('./pages/learning/CertificatePrintPage'));
 const MembersPage = lazy(() => import('./pages/members/MembersPage'));
 const MemberDetailPage = lazy(() => import('./pages/members/MemberDetailPage'));
 const CompaniesPage = lazy(() => import('./pages/companies/CompaniesPage'));
@@ -100,6 +140,46 @@ export const adminRouteTree: RouteObject = {
           { path: 'departments', element: grant('A5', <DepartmentsPage />) },
           { path: 'privacy-log', element: grant('A9', <PrivacyLogPage />) },
           { path: 'enrollments/new', element: grant('A3', <EnrollmentRegisterPage />) },
+          { path: 'archive-questions', element: el(<AbilityQuestionsPage />) },
+          { path: 'ability-results', element: el(<AbilityResultsPage />) },
+          { path: 'satisfaction-results', element: el(<SatisfactionPage />) },
+          { path: 'content-keywords', element: el(<ContentKeywordsPage />) },
+          { path: 'course-likes', element: el(<CourseLikesPage />) },
+          { path: 'course-views', element: el(<CourseViewsPage />) },
+          { path: 'live-courses', element: el(<LiveCoursesPage />) },
+          { path: 'live-class', element: el(<LiveClassPage />) },
+          { path: 'reviews', element: grant('F4', <ReviewsPage />) },
+          { path: 'archiving', element: grant('F5', <ArchivingPage />) },
+          { path: 'edudata', element: grant('F7', <EdudataPage />) },
+          { path: 'lecture-events', element: grant('F7', <LectureEventsPage />) },
+          { path: 'popups', element: grant('G2', <PopupsPage />) },
+          { path: 'backups', element: grant('G3', <BackupsPage />) },
+          { path: 'visit-stats', element: grant('G3', <VisitStatsPage />) },
+          { path: 'my-info', element: el(<MyInfoPage />) },
+          { path: 'nudge', element: grant('C1', <StudyNudgePage />) },
+          { path: 'nudge/reservations', element: grant('C1', <SmsReservationsPage />) },
+          { path: 'nudge/alarm-log', element: grant('C2', <AlarmLogPage />) },
+          { path: 'nudge/manager-mail-log', element: grant('C3', <ManagerMailLogPage />) },
+          { path: 'nudge/mail-log', element: grant('C4', <LearnerMailLogPage />) },
+          { path: 'nudge/templates', element: grant('C5', <TemplatesPage />) },
+          { path: 'ruby/faq', element: grant('F2', <RubyFaqPage />) },
+          { path: 'ruby/kb', element: grant('F2', <RubyKbPage />) },
+          { path: 'ruby/prompts', element: grant('F2', <RubyPromptsPage />) },
+          { path: 'ruby/runtime', element: grant('F2', <RubyRuntimePage />) },
+          { path: 'ruby/tickets', element: grant('F2', <RubyTicketsPage />) },
+          { path: 'ruby/embeddings', element: grant('F2', <RubyEmbeddingsPage />) },
+          { path: 'monitoring/ip', element: grant('B1', <IpMonitoringPage />) },
+          { path: 'enrollments/import', element: grant('A3', <EnrollmentImportPage />) },
+          { path: 'learning/history', element: grant('B5', <StudyHistoryPage />) },
+          { path: 'learning/closings', element: grant('B6', <ClosingsPage />) },
+          { path: 'learning/ip-monitor', element: grant('B1', <IpMonitorPage />) },
+          { path: 'learning/identity-checks', element: grant('B2', <IdentityChecksPage />) },
+          { path: 'learning/negative-training', element: grant('B4', <NegativeTrainingPage />) },
+          { path: 'learning/ai-analysis', element: grant('B9', <AiAnalysisPage />) },
+          { path: 'learning/completion-data', element: grant('B7', <CompletionDataPage />) },
+          { path: 'learning/subject-certificates', element: grant('B8', <SubjectCertificatesPage />) },
+          { path: 'learning/certificate-test', element: grant('B8', <CertificateTestPage />) },
+          { path: 'learning/certificates/print', element: el(<CertificatePrintPage />) },
           { path: 'companies', element: grant('A1', <CompaniesPage />) },
           { path: 'companies/import', element: grant('A1', <CompanyImportPage />) },
           { path: 'companies/:idx', element: grant('A1', <CompanyDetailPage />) },

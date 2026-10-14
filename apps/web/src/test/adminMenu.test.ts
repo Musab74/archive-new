@@ -40,7 +40,8 @@ describe('admin menu from grants', () => {
     expect(grantForPath('/admin/enrollments/new')).toBe('A3');
     expect(grantForPath('/admin/staff-list/B')).toBe('A7');
     expect(grantForPath('/admin/members/withdrawn')).toBe('A4');
-    expect(grantForPath('/admin/legacy/study_sms')).toBe('C1');
+    expect(grantForPath('/admin/nudge/reservations')).toBe('C1');
+    expect(ADMIN_MENU.flatMap((g) => g.items).filter((i) => i.legacy)).toEqual([]); // every old menu opens a rebuilt screen
     expect(menuEntryForPath('/admin/courses', ADMIN_MENU, '?ctype=Z')?.item.label).toBe('마이크로닝 컨텐츠 관리');
     expect(menuEntryForPath('/admin/courses/12', ADMIN_MENU, '')?.item.label).toBe('패키지컨텐츠관리');
     expect(grantForPath('/admin/design/tokens')).toBe('G1');

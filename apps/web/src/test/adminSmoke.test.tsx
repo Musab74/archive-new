@@ -88,14 +88,14 @@ describe('admin + manager routes', () => {
     expect(screen.getByRole('complementary', { name: '관리자 메뉴' })).toHaveTextContent('사업주 관리');
   });
 
-  it('keeps every old menu: a not-yet-ported entry opens a legacy page that links to the PHP admin', async () => {
+  it('every old menu opens a rebuilt screen: 독려 관리 › 문자/템플릿관리 renders inside the console', async () => {
     vi.stubGlobal('fetch', apiMock({ adminSession: true }));
-    mount('/admin/legacy/study_sms');
-    expect(await screen.findByRole('heading', { level: 1, name: '학습참여독려' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /hrd_manager\/study_sms\.php/ })).toHaveAttribute('href', 'https://hrdeedu.co.kr/hrd_manager/study_sms.php');
+    mount('/admin/nudge/templates');
+    expect(await screen.findByRole('heading', { level: 1, name: /문자\/템플릿/ })).toBeInTheDocument();
     const side = screen.getByRole('complementary', { name: '관리자 메뉴' });
     expect(side).toHaveTextContent('예약문자발송');
-    expect(side).toHaveTextContent('문자/템플릿관리');
+    expect(side).toHaveTextContent('메일발송내역(훈련생)');
+    expect(screen.queryByText(/hrd_manager\//)).not.toBeInTheDocument();
   });
 
   it('renders 영업자 리스트 with the legacy columns from /admin/staff-members', async () => {

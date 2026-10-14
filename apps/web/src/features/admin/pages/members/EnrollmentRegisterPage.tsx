@@ -86,7 +86,7 @@ export default function EnrollmentRegisterPage() {
           <Card title={tr('최근 등록된 수강 (Study 최신 10건)', 'Latest 10 enrollments')} aside={<Link to="/admin/studies" style={{ fontSize: 12 }}>{tr('학습관리 전체 보기 →', 'Open 학습관리 →')}</Link>}>
             <DataTable columns={recentCols} rows={recent.data?.items} rowKey={(r) => r.studySeq} loading={recent.isPending} error={recent.error} onRetry={() => void recent.refetch()} dense />
           </Card>
-          <Callout>{tr('엑셀 일괄 수강 등록(lecture_reg_excel_upload)은 회원 생성까지 포함하는 별도 화면으로 다음 단계에서 옮깁니다.', 'Bulk Excel registration (which also creates members) is a separate screen and comes in the next step.')}</Callout>
+          <Callout>{tr('여러 명을 한 번에 등록하려면 ', 'To register many learners at once use ')}<Link to="/admin/enrollments/import">{tr('엑셀 일괄 수강등록', 'Bulk enrolment (Excel)')}</Link>{tr(' 화면을 사용하세요 (회원 생성 포함).', ' (it also creates missing member accounts).')}</Callout>
         </div>
       </div>
     </AdminPage>

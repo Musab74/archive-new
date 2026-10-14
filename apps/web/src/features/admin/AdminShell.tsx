@@ -83,7 +83,7 @@ export default function AdminShell() {
               <LangSwitch className={styles.topLang} />
               <a href="/" target="_blank" rel="noopener noreferrer" className={styles.topBtn}><Icon name="arrow-up-right" size={13} />{adm.top.site}<span className="sr-only">{tr(' (새 창)', ' (opens in a new window)')}</span></a>
               <button type="button" className={cx(styles.topBtn, styles.topBtnSolid)} onClick={() => { void logout('user'); navigate('/admin/login'); }}>{adm.top.logout}</button>
-              <Link to="/admin/legacy/my_info" className={cx(styles.topBtn, styles.topBtnSolid)}>{adm.top.profile}</Link>
+              <Link to="/admin/my-info" className={cx(styles.topBtn, styles.topBtnSolid)}>{adm.top.profile}</Link>
             </div>
           </div>
           <nav className={styles.sections} aria-label={adm.top.sections}>
