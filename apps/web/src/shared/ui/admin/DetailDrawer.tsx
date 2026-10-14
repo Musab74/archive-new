@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import styles from './admin.module.css';
 import { cx } from '../../utils/format';
+import { useT } from '../../i18n/adminLang';
 import { useFocusTrap } from '../../utils/useFocusTrap';
 import { fadeVariants } from '../../motion/variants';
 import { IconButton } from '../IconButton';
@@ -23,6 +24,7 @@ const slide = { hidden: { x: '100%' }, show: { x: 0, transition: { duration: 0.2
 export function DetailDrawer({ open, onClose, title, subtitle, children, footer, wide }: DetailDrawerProps) {
   const ref = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  const t = useT();
   const reduced = useReducedMotion();
   const close = useCallback(() => onClose(), [onClose]);
   useFocusTrap(ref, open, close);
@@ -35,7 +37,7 @@ export function DetailDrawer({ open, onClose, title, subtitle, children, footer,
           <motion.div ref={ref} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className={cx(styles.drawer, wide && styles.drawerWide)} variants={reduced ? fadeVariants : slide} initial="hidden" animate="show" exit="exit">
             <div className={styles.drawerHead}>
               <div><h2 id={titleId}>{title}</h2>{subtitle ? <small>{subtitle}</small> : null}</div>
-              <IconButton icon="close" label="닫기" size="sm" onClick={close} />
+              <IconButton icon="close" label={t('닫기', 'Close')} size="sm" onClick={close} />
             </div>
             <div className={styles.drawerBody}>{children}</div>
             {footer ? <div className={styles.drawerFoot}>{footer}</div> : null}

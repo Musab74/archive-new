@@ -6,6 +6,7 @@ import { AppSelect, type AppSelectProps } from '../AppSelect';
 import { Icon, type IconName } from '../Icon';
 import { IconTile, type IconTone } from '../IconTile';
 import { cx } from '../../utils/format';
+import { useT } from '../../i18n/adminLang';
 
 export interface Crumb { label: string; to?: string }
 
@@ -20,13 +21,14 @@ function menuIconFor(pathname: string): IconName | undefined {
 /** Page frame: breadcrumb, optional icon + title, lead, actions on the right. */
 export function AdminPage({ title, lead, crumbs, actions, children, className, icon }: { title: ReactNode; lead?: ReactNode; crumbs?: Crumb[]; actions?: ReactNode; children?: ReactNode; className?: string; icon?: IconName }) {
   const { pathname } = useLocation();
+  const t = useT();
   const glyph = icon ?? menuIconFor(pathname);
   return (
     <div className={cx(styles.page, className)}>
       <div className={styles.pageHead}>
         <div>
           {crumbs?.length ? (
-            <nav className={styles.crumb} aria-label="현재 위치">
+            <nav className={styles.crumb} aria-label={t('현재 위치', 'Breadcrumb')}>
               {crumbs.map((c, i) => <span key={`${c.label}${i}`}>{i > 0 ? <span aria-hidden="true"> › </span> : null}{c.to && i < crumbs.length - 1 ? <Link to={c.to}>{c.label}</Link> : <b aria-current={i === crumbs.length - 1 ? 'page' : undefined}>{c.label}</b>}</span>)}
             </nav>
           ) : null}
@@ -77,9 +79,10 @@ export interface AdminButtonProps extends ButtonHTMLAttributes<HTMLButtonElement
 /** Admin button (40 / 34 / 30 px) with an optional leading icon. `to` renders a router link. */
 export const AButton = forwardRef<HTMLButtonElement, AdminButtonProps>(function AButton({ variant = 'default', size = 'md', loading, className, type, children, disabled, to, icon, ...rest }, ref) {
   const cls = cx(styles.btn, variant === 'primary' && styles.btnPrimary, variant === 'danger' && styles.btnDanger, variant === 'ghost' && styles.btnGhost, variant === 'link' && styles.btnLink, size === 'sm' && styles.btnSm, size === 'xs' && styles.btnXs, className);
+  const t = useT();
   const glyph = icon ? <Icon name={loading ? 'loader' : icon} size={size === 'md' ? 17 : 15} /> : null;
   if (to) return <Link to={to} className={cls}>{glyph}{children}</Link>;
-  return <button ref={ref} type={type ?? 'button'} className={cls} disabled={disabled || loading} aria-busy={loading || undefined} {...rest}>{glyph}{loading ? '처리 중…' : children}</button>;
+  return <button ref={ref} type={type ?? 'button'} className={cls} disabled={disabled || loading} aria-busy={loading || undefined} {...rest}>{glyph}{loading ? t('처리 중…', 'Working…') : children}</button>;
 });
 
 export interface AInputProps extends InputHTMLAttributes<HTMLInputElement> { invalid?: boolean }

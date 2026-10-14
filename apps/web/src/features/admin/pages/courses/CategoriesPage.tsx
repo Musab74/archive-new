@@ -4,6 +4,7 @@ import type { AdminCategories } from '../../../../shared/api/schemas';
 import { AdminPage, Card, DataTable, YnBadge, type Column } from '../../../../shared/ui/admin';
 import { StateBlock } from '../../../../shared/ui/StateBlock';
 import { adm } from '../../strings';
+import { tr } from '../../../../shared/i18n/adminLang';
 
 type Keyword = AdminCategories['keywords'][number];
 const c = adm.courses.categories.cols;
@@ -24,7 +25,7 @@ export default function CategoriesPage() {
       {q.isError ? <StateBlock code="LIST_ERROR" center onRetry={() => void q.refetch()} /> : (
         <div style={{ display: 'grid', gridTemplateColumns: '360px minmax(0,1fr)', gap: 12, alignItems: 'start' }}>
           <Card title={`${adm.courses.categories.tree} (${d?.categories.length ?? 0})`}>
-            {d && d.tree.length === 0 ? <p className="muted" style={{ fontSize: 13, margin: 0 }}>등록된 분류가 없습니다.</p> : null}
+            {d && d.tree.length === 0 ? <p className="muted" style={{ fontSize: 13, margin: 0 }}>{tr('등록된 분류가 없습니다.', 'No categories.')}</p> : null}
             <ul style={{ fontSize: 13, display: 'flex', flexDirection: 'column', gap: 6 }}>
               {(d?.tree ?? []).map((t) => (
                 <li key={t.idx}>
@@ -34,7 +35,7 @@ export default function CategoriesPage() {
               ))}
             </ul>
           </Card>
-          <Card title={`${adm.courses.categories.keywords} (${d?.keywords.length ?? 0})`}><DataTable columns={kwCols} rows={d?.keywords} rowKey={(r) => r.idx} loading={q.isPending} dense size={30} emptyTitle="등록된 키워드가 없습니다." emptyBody=" " /></Card>
+          <Card title={`${adm.courses.categories.keywords} (${d?.keywords.length ?? 0})`}><DataTable columns={kwCols} rows={d?.keywords} rowKey={(r) => r.idx} loading={q.isPending} dense size={30} emptyTitle={tr('등록된 키워드가 없습니다.', 'No keywords.')} emptyBody=" " /></Card>
         </div>
       )}
     </AdminPage>

@@ -1,6 +1,7 @@
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import styles from './admin.module.css';
 import { cx } from '../../utils/format';
+import { useT } from '../../i18n/adminLang';
 import { Modal } from '../Modal';
 
 export interface ConfirmDialogProps {
@@ -21,7 +22,8 @@ export interface ConfirmDialogProps {
 }
 
 /** Confirmation modal with an optional reason field (audit note). */
-export function ConfirmDialog({ open, title, body, confirmLabel = '확인', cancelLabel = '취소', tone = 'warn', reason, reasonRequired, reasonLabel = '사유', reasonPlaceholder = '처리 사유를 입력하세요', loading, onConfirm, onCancel }: ConfirmDialogProps) {
+export function ConfirmDialog({ open, title, body, confirmLabel, cancelLabel, tone = 'warn', reason, reasonRequired, reasonLabel, reasonPlaceholder, loading, onConfirm, onCancel }: ConfirmDialogProps) {
+  const t = useT();
   const [text, setText] = useState('');
   const id = useId();
   useEffect(() => { if (open) setText(''); }, [open]);
@@ -29,14 +31,14 @@ export function ConfirmDialog({ open, title, body, confirmLabel = '확인', canc
   return (
     <Modal open={open} onClose={onCancel} title={title} symbol={tone === 'info' ? 'info' : 'alert'} symbolTone={tone === 'info' ? 'info' : 'warn'}
       actions={<>
-        <button type="button" className={styles.btn} onClick={onCancel} disabled={loading}>{cancelLabel}</button>
-        <button type="button" className={cx(styles.btn, tone === 'danger' ? styles.btnDanger : styles.btnPrimary)} onClick={() => onConfirm(text.trim())} disabled={disabled} aria-busy={loading || undefined}>{loading ? '처리 중…' : confirmLabel}</button>
+        <button type="button" className={styles.btn} onClick={onCancel} disabled={loading}>{cancelLabel ?? t('취소', 'Cancel')}</button>
+        <button type="button" className={cx(styles.btn, tone === 'danger' ? styles.btnDanger : styles.btnPrimary)} onClick={() => onConfirm(text.trim())} disabled={disabled} aria-busy={loading || undefined}>{loading ? t('처리 중…', 'Working…') : confirmLabel ?? t('확인', 'Confirm')}</button>
       </>}>
       {body}
       {reason ? (
         <div className={cx(styles.field, 'u-mt-16')}>
-          <label htmlFor={id}>{reasonLabel}{reasonRequired ? ' *' : ''}</label>
-          <textarea id={id} className={cx(styles.input, styles.textarea)} value={text} onChange={(e) => setText(e.target.value)} placeholder={reasonPlaceholder} rows={3} maxLength={500} />
+          <label htmlFor={id}>{reasonLabel ?? t('사유', 'Reason')}{reasonRequired ? ' *' : ''}</label>
+          <textarea id={id} className={cx(styles.input, styles.textarea)} value={text} onChange={(e) => setText(e.target.value)} placeholder={reasonPlaceholder ?? t('처리 사유를 입력하세요', 'Enter a reason')} rows={3} maxLength={500} />
         </div>
       ) : null}
     </Modal>

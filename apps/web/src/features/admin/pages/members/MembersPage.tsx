@@ -6,6 +6,7 @@ import type { MemberRow } from '../../../../shared/api/schemas';
 import { useSearchState } from '../../../../shared/utils/useSearchState';
 import { AdminPage, AInput, ASelect, DataTable, FilterBar, FilterField, StatusBadge, YnBadge, type Column } from '../../../../shared/ui/admin';
 import { adm } from '../../strings';
+import { tr } from '../../../../shared/i18n/adminLang';
 
 const DEFAULTS = { q: '', useYN: '', eduManager: '', companyCode: '', page: 1 };
 const SIZE = 20;
@@ -25,8 +26,8 @@ export default function MembersPage() {
     { key: 'depart', header: c.depart, render: (r) => [r.depart, r.position].filter(Boolean).join(' · ') },
     { key: 'memberType', header: c.memberType, align: 'center' },
     { key: 'useYN', header: c.useYN, align: 'center', render: (r) => <YnBadge value={r.useYN} /> },
-    { key: 'eduManager', header: c.eduManager, align: 'center', render: (r) => (r.eduManager ? <StatusBadge tone="info">담당자</StatusBadge> : '') },
-    { key: 'flags', header: c.flags, render: (r) => <span style={{ display: 'inline-flex', gap: 4 }}>{r.sleep ? <StatusBadge tone="warn">휴면</StatusBadge> : null}{r.memberOut ? <StatusBadge tone="danger">탈퇴</StatusBadge> : null}{r.testId ? <StatusBadge>테스트</StatusBadge> : null}{r.passChange === 'N' ? <StatusBadge tone="info">비번변경 필요</StatusBadge> : null}</span> },
+    { key: 'eduManager', header: c.eduManager, align: 'center', render: (r) => (r.eduManager ? <StatusBadge tone="info">{tr('담당자', 'Manager')}</StatusBadge> : '') },
+    { key: 'flags', header: c.flags, render: (r) => <span style={{ display: 'inline-flex', gap: 4 }}>{r.sleep ? <StatusBadge tone="warn">{tr('휴면', 'Dormant')}</StatusBadge> : null}{r.memberOut ? <StatusBadge tone="danger">{tr('탈퇴', 'Withdrawn')}</StatusBadge> : null}{r.testId ? <StatusBadge>{tr('테스트', 'Test')}</StatusBadge> : null}{r.passChange === 'N' ? <StatusBadge tone="info">{tr('비번변경 필요', 'Password change due')}</StatusBadge> : null}</span> },
     { key: 'enrollments', header: c.enrollments, align: 'right', sortable: true },
     { key: 'lastLogin', header: c.lastLogin, nowrap: true, sortable: true, render: (r) => r.lastLogin ?? '—' },
     { key: 'regDate', header: c.regDate, nowrap: true, sortable: true, render: (r) => r.regDate ?? '—' },

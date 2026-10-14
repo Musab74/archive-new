@@ -11,6 +11,7 @@ import { useAdminMutation } from '../../useAdminMutation';
 import { useDesignStudio } from '../DesignStudioContext';
 import { fmtBytes, useMediaLibrary } from '../MediaPicker';
 import { adm } from '../../strings';
+import { tr } from '../../../../shared/i18n/adminLang';
 
 const ACCEPT = 'image/png,image/jpeg,image/webp,image/svg+xml,image/x-icon,image/vnd.microsoft.icon,.ico,.svg';
 
@@ -37,11 +38,11 @@ function MediaCard({ a, usage, canWrite, onDelete }: { a: MediaAsset; usage: str
         <b title={a.originalName}>{a.originalName}</b>
         <span>{a.width && a.height ? `${a.width}×${a.height} · ` : ''}{fmtBytes(a.size)} · {a.mimeType.replace('image/', '')}</span>
         <span>{a.createdBy} · {a.createdAt.replace('T', ' ').slice(0, 16)}</span>
-        {usage.length ? <span style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>{usage.map((u) => <StatusBadge key={u} tone={u.startsWith('게시') ? 'ok' : 'info'}>{u}</StatusBadge>)}</span> : null}
+        {usage.length ? <span style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>{usage.map((u) => <StatusBadge key={u} tone={u.startsWith(tr('게시', 'Live')) ? 'ok' : 'info'}>{u}</StatusBadge>)}</span> : null}
         <label style={{ display: 'flex', gap: 4, alignItems: 'center' }}><span className="sr-only">{adm.design.media.alt}</span><AInput value={alt} onChange={(e) => setAlt(e.target.value)} placeholder={adm.design.media.alt} maxLength={120} disabled={!canWrite} style={{ height: 28, fontSize: 12 }} /><AButton size="xs" onClick={() => save.mutate(alt)} disabled={!canWrite || alt === a.alt} loading={save.isPending}>{adm.common.save}</AButton></label>
       </div>
       <div className={styles.mediaActions}>
-        <AButton size="xs" onClick={() => { void navigator.clipboard?.writeText(a.url); }}>URL 복사</AButton>
+        <AButton size="xs" onClick={() => { void navigator.clipboard?.writeText(a.url); }}>{tr('URL 복사', 'Copy URL')}</AButton>
         <AButton size="xs" variant="danger" onClick={onDelete} disabled={!canWrite || usage.length > 0} title={usage.length ? adm.design.media.inUse : undefined}>{adm.common.delete}</AButton>
       </div>
     </div>
@@ -75,12 +76,12 @@ export default function MediaPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <Card title={adm.design.media.title} aside={<span className="muted" style={{ fontSize: 12 }}>{adm.common.total(q.data?.total ?? 0)}</span>}>
         <div className={cx(styles.drop, over && styles.over)} role="button" tabIndex={canWrite ? 0 : -1} aria-disabled={!canWrite} onClick={() => canWrite && inputRef.current?.click()} onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && canWrite) inputRef.current?.click(); }} onDragOver={(e) => { e.preventDefault(); if (canWrite) setOver(true); }} onDragLeave={() => setOver(false)} onDrop={onDrop}>
-          <b>{uploading ? `업로드 중… (${uploading})` : adm.design.media.drop}</b><br /><span>{adm.design.media.hint}</span>
+          <b>{uploading ? tr(`업로드 중… (${uploading})`, `Uploading… (${uploading})`) : adm.design.media.drop}</b><br /><span>{adm.design.media.hint}</span>
           <input ref={inputRef} type="file" accept={ACCEPT} multiple hidden onChange={(e) => { if (e.target.files) void upload(e.target.files); e.target.value = ''; }} />
         </div>
         {!canWrite ? <Callout tone="warn" className="u-mt-8">{adm.readOnly}</Callout> : null}
       </Card>
-      {q.isError ? <Callout tone="warn">목록을 불러오지 못했습니다.</Callout> : items.length === 0 && !q.isPending ? <Callout>업로드된 이미지가 없습니다.</Callout> : (
+      {q.isError ? <Callout tone="warn">{tr('목록을 불러오지 못했습니다.', 'Could not load the list.')}</Callout> : items.length === 0 && !q.isPending ? <Callout>{tr('업로드된 이미지가 없습니다.', 'No images uploaded yet.')}</Callout> : (
         <div className={styles.mediaGrid}>
           {items.map((a) => <MediaCard key={a.id} a={a} usage={usageOf(a.id, draft?.branding ?? null, live?.config.branding ?? null)} canWrite={canWrite} onDelete={() => setDel(a)} />)}
         </div>

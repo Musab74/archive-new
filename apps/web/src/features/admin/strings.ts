@@ -1,6 +1,11 @@
-/** Admin console copy (관리자). */
-export const adm = {
+import { getAdminLang } from '../../shared/i18n/adminLang';
+import { contentType } from '../../shared/strings/ko';
+
+/** Admin console copy (관리자) — Korean source. */
+const ko = {
   brand: 'AINEX ARCHIVE · 관리자',
+  /** Course ctype codes (X/Y/Z/W/A) → name. */
+  ctypes: contentType,
   login: {
     title: '관리자 로그인',
     lead: '운영자 계정으로 로그인합니다. 2차 인증은 등록된 휴대폰 번호 뒤 4자리입니다.',
@@ -91,3 +96,115 @@ export const adm = {
     publish: { title: '디자인 게시', body: '초안을 검증한 뒤 새 버전으로 게시합니다. 방문자는 약 1분 내에 새 디자인을 보게 됩니다.', description: '변경 설명 (버전 이력에 표시)', blocked: '대비 오류가 있어 게시할 수 없습니다. 색상 화면에서 수정해 주세요.', warnings: '경고는 게시를 막지 않습니다.', done: (n: number) => `버전 ${n}(으)로 게시되었습니다.`, unsaved: '저장하지 않은 변경은 게시에 포함되지 않습니다. 먼저 초안을 저장해 주세요.' },
   },
 };
+
+export type AdmCopy = typeof ko;
+
+/** English console copy — same shape as `ko` (the compiler enforces every key). */
+const en: AdmCopy = {
+  brand: 'AINEX ARCHIVE · Admin',
+  ctypes: { X: 'E-learning', Y: 'Micro-learning', Z: 'Short-form', W: 'Non-refundable', A: 'Package' } as Record<string, string>,
+  login: {
+    title: 'Admin sign-in',
+    lead: 'Sign in with your operator account. The second factor is the last 4 digits of your registered mobile number.',
+    id: 'User ID', password: 'Password', secondFactor: 'Second factor (last 4 digits of mobile)', submit: 'Sign in',
+    errors: {
+      TWO_FACTOR_REQUIRED: 'Enter the second factor (last 4 digits of your mobile number).',
+      TWO_FACTOR_MISMATCH: 'The second factor does not match.',
+      INVALID_CREDENTIALS: 'Check your user ID or password.',
+      FORBIDDEN: 'This account has no admin permission.',
+    } as Record<string, string>,
+    readOnlyNote: 'Sales (B) accounts are read-only.',
+    toLearner: 'Go to learner site',
+  },
+  top: { dept: 'Department', logout: 'Sign out', countdown: 'Auto sign-out', extend: 'Extend', readOnly: 'Read-only', collapse: 'Collapse menu', expand: 'Expand menu', home: 'Dashboard', site: 'View site' },
+  readOnly: 'This account is read-only. Changes are not allowed.',
+  noGrant: { title: 'No permission for this menu.', body: 'This menu is not included in your department permissions (DeptStructure). Ask an administrator for access.' },
+  common: { save: 'Save', saved: 'Saved.', cancel: 'Cancel', delete: 'Delete', deleted: 'Deleted.', edit: 'Edit', create: 'Create', created: 'Created.', search: 'Search', reset: 'Reset', refresh: 'Refresh', close: 'Close', confirm: 'Confirm', back: 'Back to list', detail: 'Details', apply: 'Apply', yes: 'Y', no: 'N', all: 'All', none: '—', loading: 'Loading…', failed: 'The request could not be completed.', total: (n: number) => `${n.toLocaleString('en-US')} total` },
+  dashboard: {
+    title: 'Dashboard', lead: 'Operations summary for today. If a tile fails to load, only that value is hidden.',
+    logins: 'Logins today', uniqueUsers: 'Members online', activePlayers: 'Learning now', over15h: '15 h reached this month', activeEnrollments: 'Active enrollments', emonPending: 'EMON unsent', emonStale: 'Unsent 2 h+', openInquiries: 'Open business inquiries', openCounsel: 'Open 1:1 questions', signups: 'Sign-ups today',
+    freshness: (s: number) => `Heartbeat within the last ${s}s`,
+  },
+  members: {
+    title: 'Members', lead: 'Search by user ID, name or business number. Contact details are decrypted only on the detail page.',
+    q: 'Keyword', useYN: 'Status', eduManager: 'Training manager', companyCode: 'Company code',
+    cols: { id: 'User ID', name: 'Name', company: 'Company', depart: 'Dept · title', memberType: 'Type', useYN: 'Active', eduManager: 'Manager', enrollments: 'Courses', lastLogin: 'Last login', regDate: 'Joined', flags: 'Status' },
+    detail: { title: 'Member details', profile: 'Profile', contact: 'Contact (decrypted)', enrollments: 'Enrollments', logins: 'Last 20 logins', identity: 'Identity checks', companies: 'Managed companies', edit: 'Edit details', resetPw: 'Reset password', resetPwBody: 'Sets a temporary password. The learner must change it at the next login.', newPw: 'Temporary password (8–64 chars)', resetDone: 'Password reset. A change is required at the next login.' },
+  },
+  studies: {
+    title: 'Enrollments', lead: 'Search by Study row. Study time = sum of Progress; completion = against 15 hours (54,000 s).',
+    filters: { companyCode: 'Company code', lectureCode: 'Course code', id: 'User ID', q: 'User ID · name', passOk: 'Passed', studyEnd: 'Closed', from: 'Period from', to: 'Period to' },
+    cols: { seq: 'Seq', id: 'User ID', name: 'Name', company: 'Company', course: 'Course', period: 'Period', time: 'Study time', percent: 'Progress', passOk: 'Passed', studyEnd: 'Closed', pre: 'Pre', post: 'Post', last: 'Last study', active: 'Status' },
+    detail: { title: 'Enrollment details', info: 'Overview', chapters: 'Progress by chapter', daily: 'Daily study time (8 h credited)', overlap: 'Overlapping study in the same minute', identity: 'Identity check history', corrections: 'Study time corrections', log: 'ProgressLog (cursor)', loadMore: 'Load more', noMore: 'No more logs.', logCols: { idx: 'idx', chapter: 'Chapter', title: 'Title', progress: 'Progress', studyTime: 'Total (s)', total: 'Overall', position: 'Position (s)', ip: 'IP', at: 'Recorded at', trigger: 'T' } },
+  },
+  monitoring: {
+    daily: { title: 'Daily study time monitor', lead: 'Up to 8 hours (28,800 s) per day are credited. status: over = more than 8 h, cap = exactly 8 h.', date: 'Date', status: 'Status', statuses: [{ value: 'all', label: 'All' }, { value: 'ok', label: 'Normal' }, { value: 'cap', label: 'Reached 8 h' }, { value: 'over', label: 'Over 8 h' }, { value: 'ge8', label: '8 h or more' }], stats: { learners: 'Learners', rows: 'Rows', total: 'Total study time', over: 'Over', cap: 'Reached' } },
+    overlap: { title: 'Overlap monitor', lead: 'Learners with 2+ different contents each gaining 30 s+ in the same minute. Up to 31 days.', from: 'From', to: 'To', cols: { id: 'User ID', name: 'Name', company: 'Company', seq: 'Study Seq', minutes: 'Overlap min', first: 'First', last: 'Last' } },
+    abnormal: { title: 'Anomaly log', lead: 'Anomalies flagged by batch checks and their handling status.', code: 'Code', status: 'Status', legend: 'Count by code', cols: { date: 'Detected', category: 'Category', code: 'Code', severity: 'Severity', id: 'User ID', name: 'Name', seq: 'Seq', lecture: 'Course', metric: 'Metric', status: 'Status', note: 'Handling note', source: 'Source' } },
+  },
+  courses: {
+    title: 'Courses', lead: 'Course list (incl. packages). ctype: X e-learning · Y micro-learning · Z short-form · W non-refundable · A package.',
+    filters: { q: 'Code · title · HRD code', ctype: 'Type', useYN: 'Visible', packageYN: 'Package' },
+    cols: { idx: 'idx', code: 'Code', name: 'Course title', ctype: 'Type', useYN: 'Visible', hrd: 'HRD code', category: 'Category', time: 'Hours', chapters: 'Chapters', enrollments: 'Enrolled', views: 'Views', regDate: 'Created' },
+    edit: { title: 'Edit course', basic: 'Basics', text: 'Intro · audience · goals', meta: 'Category · keywords', readonly: 'Read-only (URL, price and terms are managed elsewhere)', terms: 'Terms', name: 'Course title', useYN: 'Visible', category1: 'Category 1', category2: 'Category 2', keyword: (n: number) => `Keyword ${n}`, intro: 'Introduction', eduTarget: 'Audience', eduGoal: 'Learning goals', contentsTime: 'Hours', chapters: 'View chapters', hideWarn: 'Setting UseYN=N hides the course on the site immediately (enrolled learners can keep studying).' },
+    chapters: { title: 'Chapters', lead: 'Chapter → Contents order.', cols: { seq: 'Seq', type: 'Type', order: 'Order', contentsIdx: 'Contents', title: 'Chapter title', min: 'Length', details: 'Pages', deleted: 'Deleted', regDate: 'Created' } },
+    contents: { title: 'Base contents', lead: 'Find contents by title or number.', q: 'Title · idx', gubun: 'Kind', cols: { idx: 'idx', gubun: 'Kind', title: 'Title', min: 'Length', usedIn: 'Used in', size: 'Size', regDate: 'Created' }, detail: { title: 'Content details', info: 'Overview', details: 'Pages (ContentsDetail)', preview: 'Preview', usedIn: 'Used in courses', edit: 'Edit title · length', titleField: 'Title', timeField: 'Length (min)', timeWarn: 'A length change applies to study from now on.', noVideo: 'There is no URL to preview.', selectRow: 'Select a row to preview its URL.' } },
+    categories: { title: 'Categories · keywords', lead: 'Course category tree (CourseCategory) and keywords (ContentsKeyword). Read-only.', tree: 'Category tree', keywords: 'Keywords', cols: { idx: 'idx', name: 'Name', order: 'Order', useYN: 'Active', category: 'Category', keyword: 'Keyword', job: 'Job' } },
+    lists: { title: 'Home curation', lead: 'Edit the course order of the home lists (PICK / TOP10 / NEW / HRDe). Saving replaces the whole order.', add: 'Add course', addPlaceholder: 'Enter a course code (e.g. D00001)', up: 'Move up', down: 'Move down', remove: 'Remove', save: 'Save order', saved: (n: number) => `Saved the order of ${n} courses.`, cols: { order: 'Order', code: 'Code', name: 'Course title', ctype: 'Type', visible: 'Course visible', regDate: 'Created' }, dirty: 'You have unsaved changes.' },
+  },
+  community: {
+    notices: { title: 'Notices', lead: 'Pinned notices are shown first. Attachments are uploaded on the legacy site.', q: 'Title', useYN: 'Visible', new: 'New notice', cols: { idx: 'idx', title: 'Title', pinned: 'Pinned', useYN: 'Visible', views: 'Views', regDate: 'Created', file: 'File' }, form: { title: 'Title', content: 'Body', useYN: 'Visible', pinned: 'Pin to top' }, deleteBody: 'Deletes the notice (Del=Y). The row is kept but hidden on the site.' },
+    faqs: { title: 'FAQ', lead: 'Manage category, order and visibility.', q: 'Title', category: 'Category', new: 'New FAQ', cols: { idx: 'idx', order: 'Order', category: 'Category', title: 'Question', useYN: 'Visible', regDate: 'Created' }, form: { category: 'Category', title: 'Question', content: 'Answer', useYN: 'Visible', order: 'Order' }, deleteBody: 'Deletes the FAQ (Del=Y).' },
+    inquiries: { title: 'Business inquiries', lead: 'Training inquiries (Inquiry) from the website. Answering a pending (A) inquiry marks it done (B).', status: 'Status', q: 'Company · name', statuses: [{ value: '', label: 'All' }, { value: 'A', label: 'Pending' }, { value: 'B', label: 'Done' }], cols: { idx: 'idx', company: 'Company', name: 'Contact', phone: 'Phone', email: 'Email', personnel: 'Headcount', type: 'Type', regDate: 'Received', status: 'Status' }, answer: 'Answer', answerPlaceholder: 'Write your answer', answered: 'Answer saved.', question: 'Inquiry', prevAnswer: 'Previous answer' },
+    counsel: { title: '1:1 questions', lead: '1:1 questions (Counsel) from learners. Answer e-mails and texts are sent by the legacy site.', status: 'Status', q: 'User ID · name · title', category: 'Category', cols: { idx: 'idx', id: 'User ID', name: 'Name', category: 'Category', title: 'Title', regDate: 'Received', status: 'Status', answered: 'Answered' } },
+    cheating: { title: 'Misconduct reports', lead: 'Received reports (read-only).', cols: { idx: 'idx', name: 'Reporter', category: 'Category', title: 'Title', contact: 'Contact', regDate: 'Received', status: 'Status', answered: 'Handled' } },
+  },
+  site: {
+    info: { title: 'Site information', lead: 'Values used in the footer and help-desk notices (latest SiteInfomation row).', fields: { CompanyName: 'Company name', Ceo: 'CEO', CompanyNumber: 'Business reg. no.', SalesReportNumber: 'Mail-order sales reg.', Phone: 'Main phone', Fax: 'Fax', Email: 'Email', PersonalInformationManager: 'Privacy officer', Address: 'Address', Copyright: 'Copyright notice', KakaoURL: 'Kakao channel URL' } as Record<string, string>, none: 'There is no site information row.' },
+    staff: { title: 'Operators · permissions', lead: 'Operator accounts and department structure (menu permissions). Passwords are not included.', departments: 'Department structure', staff: 'Operators', cols: { id: 'User ID', name: 'Name', dept: 'Department', team: 'Team', mobile: 'Mobile', email: 'Email', lastLogin: 'Last login', ip: 'IP', useYN: 'Active', top: 'Top menu', sub: 'Sub menu', order: 'Order' } },
+  },
+  emon: {
+    title: 'EMON outbox monitor', lead: 'Checks the HRD-Net remote-training monitoring outbox for backlog. This screen is read-only and never sends anything.',
+    cols: { table: 'Table', label: 'Kind', total: 'Total', sent: 'Sent', pending: 'Unsent', stale: 'Unsent 2 h+', last: 'Last added', window: 'Window', error: 'Error' },
+    drill: 'View unsent', pending: { title: 'Unsent rows', lead: 'SEQs missing from the RESULT table (source columns).' },
+    diagnosis: { title: 'Learner EMON diagnosis', lead: 'Compares the send status and computed values for one learner × course (emon_master_diagnosis, read-only).', id: 'User ID', course: 'Course code', run: 'Diagnose', verdict: 'Verdict', mismatches: 'Mismatches', none: 'No mismatches (GO)', studies: 'Study rows', attend: 'Enrollment (attend)', computed: 'Computed', sections: { score: 'Scores (score)', cse: 'Satisfaction (cse)', contents: 'Content history', terminal: 'Device (UserCertOTP)', identity: 'Member · login history', course: 'Course history', class: 'Term history' } },
+    preview: { title: 'Send preview', lead: 'Builds the dataList the PHP sender would send next. Nothing is sent or written.', jobs: [{ value: 'attend', label: 'attend (enrollment)' }, { value: 'score', label: 'score (scores)' }, { value: 'cse', label: 'cse (satisfaction)' }, { value: 'contents', label: 'contents (content)' }], n: 'Rows', run: 'Preview', skipped: 'Skipped rows' },
+    never: 'This screen never sends EMON data.',
+  },
+  design: {
+    title: 'Website design', lead: 'Edit a draft, preview it, then publish. The public site does not change until you publish.',
+    nav: { overview: 'Overview', presets: 'Theme presets', tokens: 'Colours', typography: 'Typography', branding: 'Branding', media: 'Media', layout: 'Layout', links: 'Links', preview: 'Preview', versions: 'Versions', audit: 'Audit log' },
+    actions: { save: 'Save draft', saved: 'Draft saved.', publish: 'Publish', reload: 'Load latest', discard: 'Discard changes', preview: 'Preview' },
+    dirty: 'You have unsaved changes.',
+    conflict: 'Another admin saved — load the latest draft and edit again.',
+    invalid: 'Some settings are invalid. Check the highlighted fields.',
+    writeDisabled: 'Design Studio writes are disabled (FEATURE_DESIGN_STUDIO).',
+    overview: { active: 'Live version', draft: 'Draft status', issues: 'Checks', noIssues: 'No contrast issues', errors: (n: number) => `${n} error${n === 1 ? '' : 's'}`, warnings: (n: number) => `${n} warning${n === 1 ? '' : 's'}`, updatedBy: 'Last edited', baseVersion: 'Base version', publishedAt: 'Published at', quick: 'Shortcuts' },
+    presets: { apply: 'Apply this theme', applied: (n: string) => `Applied the ${n} theme to the draft.`, current: 'Current', custom: 'Custom (edited from a preset)' },
+    tokens: { groups: { brand: 'Brand', text: 'Text', surface: 'Surfaces · lines', status: 'Status', band: 'Dark band', gradient: 'Gradient' }, reset: 'Reset to preset', hex: 'HEX', issues: 'Contrast check', noIssues: 'All contrast requirements are met.' },
+    typography: { fontFamily: 'Body font', headingFont: 'Heading font', baseFontSize: 'Base font size', headingScale: 'Heading scale', lineHeight: 'Line height', letterSpacing: 'Letter spacing', weights: 'Weights', specimen: 'Specimen' },
+    branding: { siteName: 'Site name', tagline: 'Tagline', logo: 'Logo', favicon: 'Favicon', hero: 'Hero image', logoAlt: 'Logo alt text', pick: 'Choose image', clear: 'Clear', none: 'None' },
+    media: { title: 'Media library', drop: 'Drag an image here or click to upload', hint: 'png · jpg · webp · svg · ico, up to 5 MB', alt: 'Alt text', uploaded: 'Uploaded.', altSaved: 'Alt text saved.', deleted: 'Deleted.', inUse: 'Images in use cannot be deleted. Replace them first.', usage: { draftLogo: 'Draft · logo', draftFavicon: 'Draft · favicon', draftHero: 'Draft · hero', liveLogo: 'Live · logo', liveFavicon: 'Live · favicon', liveHero: 'Live · hero' }, deleteBody: 'Deletes the image from the library.' },
+    layout: { header: 'Header', hero: 'Hero', footer: 'Footer', card: 'Cards', radius: 'Corners', container: 'Content width', sections: 'Home sections (visibility · order)', show: 'Show', up: 'Move up', down: 'Move down' },
+    links: { axisUrl: 'AXIS certification URL', liveClassUrl: 'Live class URL', kakaoUrl: 'Kakao channel URL', hint: 'Leave empty to hide the link. Must start with https://.' },
+    preview: { viewport: 'Viewport', page: 'Page', refresh: 'Renew token', note: 'Preview links are valid for 1 hour and visible to admins only. Draft edits show up immediately (same origin).', open: 'Open in new window' },
+    versions: { restore: 'Restore this version', restoreBody: 'Re-publishes the selected version as a new version. The current draft is discarded.', restored: (n: number) => `Published as version ${n}.`, diff: 'Diff vs current draft', noDiff: 'Same as the current draft.', snapshot: 'Snapshot', cols: { n: 'Version', by: 'Published by', at: 'Published at', desc: 'Description', checksum: 'Checksum' }, diffCols: { path: 'Token', version: 'Selected version', draft: 'Current draft' } },
+    audit: { cols: { at: 'Time', actor: 'Admin', action: 'Action', meta: 'Details' } },
+    publish: { title: 'Publish design', body: 'Validates the draft and publishes it as a new version. Visitors see the new design within about a minute.', description: 'Change note (shown in version history)', blocked: 'Contrast errors block publishing. Fix them on the Colours screen.', warnings: 'Warnings do not block publishing.', done: (n: number) => `Published as version ${n}.`, unsaved: 'Unsaved changes are not included in the publish. Save the draft first.' },
+  },
+};
+
+/** Admin console copy in the selected language (fixed per page load — see shared/i18n/adminLang). */
+export const adm: AdmCopy = getAdminLang() === 'en' ? en : ko;
+
+/**
+ * Study time for display. The API sends a Korean `formatted` string ('15시간 0분'); in English it is rebuilt from the
+ * seconds ('15 h 0 min') so tables don't mix languages.
+ */
+export function studyTime(seconds: number, formatted?: string | null): string {
+  if (getAdminLang() === 'ko' && formatted) return formatted;
+  const total = Math.max(0, Math.round(seconds / 60));
+  const h = Math.floor(total / 60); const m = total % 60;
+  if (getAdminLang() === 'ko') return h ? (m ? `${h}시간 ${m}분` : `${h}시간`) : `${m}분`;
+  return h ? (m ? `${h} h ${m} min` : `${h} h`) : `${m} min`;
+}

@@ -5,13 +5,13 @@ import { adminApi } from '../../../../shared/api/endpoints/admin';
 import type { CourseRow } from '../../../../shared/api/schemas';
 import { useSearchState } from '../../../../shared/utils/useSearchState';
 import { AdminPage, AInput, ASelect, DataTable, FilterBar, FilterField, StatusBadge, YnBadge, type Column } from '../../../../shared/ui/admin';
-import { contentType } from '../../../../shared/strings/ko';
 import { adm } from '../../strings';
+import { tr } from '../../../../shared/i18n/adminLang';
 
 const DEFAULTS = { q: '', ctype: '', useYN: '', packageYN: '', page: 1 };
 const SIZE = 20;
 const YN = [{ value: '', label: adm.common.all }, { value: 'Y', label: 'Y' }, { value: 'N', label: 'N' }];
-const CTYPES = [{ value: '', label: adm.common.all }, ...Object.entries(contentType).map(([value, label]) => ({ value, label: `${value} · ${label}` }))];
+const CTYPES = [{ value: '', label: adm.common.all }, ...Object.entries(adm.ctypes).map(([value, label]) => ({ value, label: `${value} · ${label}` }))];
 const c = adm.courses.cols;
 
 export default function CoursesPage() {
@@ -23,9 +23,9 @@ export default function CoursesPage() {
   const columns: Column<CourseRow>[] = [
     { key: 'idx', header: c.idx, align: 'right', sortable: true },
     { key: 'lectureCode', header: c.code, sortable: true, nowrap: true, render: (r) => <b className="mono">{r.lectureCode}</b> },
-    { key: 'name', header: c.name, sortable: true, render: (r) => <span>{r.name}{r.isPackage ? <StatusBadge tone="info"> 패키지 {r.packageCodes.length}</StatusBadge> : null}</span> },
-    { key: 'ctype', header: c.ctype, align: 'center', render: (r) => <span title={contentType[r.ctype ?? ''] ?? ''}>{r.ctype}</span> },
-    { key: 'useYN', header: c.useYN, align: 'center', render: (r) => <YnBadge value={r.useYN} yes="노출" no="숨김" /> },
+    { key: 'name', header: c.name, sortable: true, render: (r) => <span>{r.name}{r.isPackage ? <StatusBadge tone="info"> {tr('패키지', 'Package')} {r.packageCodes.length}</StatusBadge> : null}</span> },
+    { key: 'ctype', header: c.ctype, align: 'center', render: (r) => <span title={adm.ctypes[r.ctype ?? ''] ?? ''}>{r.ctype}</span> },
+    { key: 'useYN', header: c.useYN, align: 'center', render: (r) => <YnBadge value={r.useYN} yes={tr('노출', 'Visible')} no={tr('숨김', 'Hidden')} /> },
     { key: 'hrdCode', header: c.hrd, render: (r) => r.hrdCode ?? '' },
     { key: 'category1', header: c.category, render: (r) => [r.category1, r.category2].filter(Boolean).join(' › ') },
     { key: 'contentsTime', header: c.time, align: 'right', render: (r) => r.contentsTime ?? '' },

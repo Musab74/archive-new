@@ -185,7 +185,32 @@ Never animate assessment, player or other task-critical flows.
 - **Kit** (`shared/ui/admin`): `AdminPage` shows the page's menu icon automatically (or `icon`), `Card icon`,
   `Kpi icon/iconTone` (tinted `IconTile`, warn tiles get a red edge), `AButton icon`, `Callout` icons, filter bar
   검색/초기화 icons, `DataTable` sort/pager icons and empty/error state icons, token-only badges and tabs.
-- **Login:** navy → royal-blue gradient with a faint grid, white card, shield mark.
+- **Login:** navy → royal-blue gradient with a faint grid, white card, shield mark, language switch top-right.
+- **Filter bar:** a responsive grid of equal tracks (`minmax(184px, 1fr)`, one column on phones); `FilterField width`
+  is only a hint now (≥ 220 → spans two tracks, or pass `wide`). 초기화 / 검색 sit right-aligned on their own row under a
+  hairline, so the field rows never wrap around the buttons.
+- **Dates:** `DateField` (`shared/ui/admin`) replaces native `type="date"` in the console (its format and picker
+  follow the browser locale, e.g. mm/dd/yyyy). Type `YYYY-MM-DD` (dashes are inserted, `2026.10.14` pastes fine) or
+  pick from the calendar popover (arrows, PageUp/PageDown ±month, Shift ±year, Home/End, Enter, Escape; 오늘 / 지우기).
+  `onChange` only ever receives a complete valid date or `''`; `min` / `max` disable days; invalid text reverts on blur.
+
+### 11.1 Language (한국어 / EN)
+
+- Only the admin console is bilingual; the learner site and the manager console stay Korean.
+- The 한국어 | EN switch (top bar and login card, `features/admin/LangSwitch.tsx`) stores `admin.lang` in
+  localStorage and **reloads** the page, so module-level copy (column headers, option lists, menu) is rebuilt in the
+  new language with no stale strings. `<html lang>` follows the choice while `/admin` is mounted.
+- `shared/i18n/adminLang.ts`:
+  - `tr('한국어', 'English')` is for admin-only modules (`features/admin/**`, `shared/auth/adminMenu.ts`).
+  - `adm` (`features/admin/strings.ts`) is the typed KO/EN dictionary; the English object must have every key.
+  - Shared UI (the admin kit, `StateBlock`, `AppSelect`, `Modal`) uses `useT()` / `useUiLang()`, which read
+    `ConsoleLangContext`. Only `AdminRoot` provides that context, so the same component stays Korean on the learner
+    site and in the manager console.
+- **Server data stays as sent.** Names, companies, course titles, notes and server error messages are not translated.
+  Values the console formats itself are rebuilt in English: study time (`studyTime()`), monitor status labels, and
+  course type names (`adm.ctypes`).
+- **Intentionally Korean:** the miniature site in theme preview cards and the Korean typeface specimen in Typography.
+  Both show public-site content.
 
 ## 12. Rules
 

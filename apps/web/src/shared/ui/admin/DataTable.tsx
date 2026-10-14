@@ -2,6 +2,7 @@ import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
 import styles from './admin.module.css';
 import { Icon } from '../Icon';
 import { cx } from '../../utils/format';
+import { useT } from '../../i18n/adminLang';
 import { isAppError } from '../../api/client';
 import { nextSort, pageCount, pageSlice, pageWindow, sortRows, type SortState } from './tableSort';
 
@@ -50,7 +51,8 @@ export interface DataTableProps<T> {
  * Admin data table: sortable headers (aria-sort), server or client pagination, keyboard-focusable clickable rows,
  * loading / error / empty states inside the table frame.
  */
-export function DataTable<T>({ columns, rows, rowKey, loading, error, onRetry, emptyTitle = '표시할 항목이 없습니다.', emptyBody, sort, onSortChange, page, size, total, onPageChange, onRowClick, selectedKey, dense, caption, footer, className, skeletonRows = 5 }: DataTableProps<T>) {
+export function DataTable<T>({ columns, rows, rowKey, loading, error, onRetry, emptyTitle, emptyBody, sort, onSortChange, page, size, total, onPageChange, onRowClick, selectedKey, dense, caption, footer, className, skeletonRows = 5 }: DataTableProps<T>) {
+  const t = useT();
   const [localSort, setLocalSort] = useState<SortState | null>(null);
   const [localPage, setLocalPage] = useState(1);
   const controlledSort = onSortChange !== undefined;
@@ -82,7 +84,7 @@ export function DataTable<T>({ columns, rows, rowKey, loading, error, onRetry, e
   };
 
   const colCount = columns.length;
-  const errMessage = error ? (isAppError(error) ? error.message : '목록을 불러오지 못했습니다.') : null;
+  const errMessage = error ? (isAppError(error) ? error.message : t('목록을 불러오지 못했습니다.', 'The list could not be loaded.')) : null;
   const isEmpty = !loading && !error && rows && rows.length === 0;
 
   return (
@@ -112,10 +114,10 @@ export function DataTable<T>({ columns, rows, rowKey, loading, error, onRetry, e
             <tr key={`sk${i}`} className={styles.skeletonRow} aria-hidden="true">{columns.map((c) => <td key={c.key}><span className={styles.skeletonBar} style={{ width: `${40 + ((i * 17 + c.key.length * 7) % 50)}%` }} /></td>)}</tr>
           )) : null}
           {errMessage ? (
-            <tr><td colSpan={colCount}><div className={styles.tableState} role="alert"><span className={cx(styles.stateIcon, styles.stateIconWarn)} aria-hidden="true"><Icon name="alert" size={22} /></span><b>목록 조회 실패</b>{errMessage}{onRetry ? <div className="u-mt-8"><button type="button" className={cx(styles.btn, styles.btnSm)} onClick={onRetry}>다시 불러오기</button></div> : null}</div></td></tr>
+            <tr><td colSpan={colCount}><div className={styles.tableState} role="alert"><span className={cx(styles.stateIcon, styles.stateIconWarn)} aria-hidden="true"><Icon name="alert" size={22} /></span><b>{t('목록 조회 실패', 'Could not load the list')}</b>{errMessage}{onRetry ? <div className="u-mt-8"><button type="button" className={cx(styles.btn, styles.btnSm)} onClick={onRetry}>{t('다시 불러오기', 'Retry')}</button></div> : null}</div></td></tr>
           ) : null}
           {isEmpty ? (
-            <tr><td colSpan={colCount}><div className={styles.tableState}><span className={styles.stateIcon} aria-hidden="true"><Icon name="inbox" size={22} /></span><b>{emptyTitle}</b>{emptyBody ?? '조건을 바꾸거나 잠시 후 다시 확인해 주세요.'}</div></td></tr>
+            <tr><td colSpan={colCount}><div className={styles.tableState}><span className={styles.stateIcon} aria-hidden="true"><Icon name="inbox" size={22} /></span><b>{emptyTitle ?? t('표시할 항목이 없습니다.', 'Nothing to show.')}</b>{emptyBody ?? t('조건을 바꾸거나 잠시 후 다시 확인해 주세요.', 'Change the filters or check again shortly.')}</div></td></tr>
           ) : null}
           {!errMessage && visible.map((row, i) => {
             const key = rowKey(row, i);
@@ -134,12 +136,12 @@ export function DataTable<T>({ columns, rows, rowKey, loading, error, onRetry, e
       </table>
       {(showPager || footer || (rows && rows.length > 0 && size)) ? (
         <div className={styles.tableFoot}>
-          <span>{footer ?? (size ? `총 ${totalCount.toLocaleString('ko-KR')}건 · ${currentPage}/${pages} 페이지` : null)}</span>
+          <span>{footer ?? (size ? t(`총 ${totalCount.toLocaleString('ko-KR')}건 · ${currentPage}/${pages} 페이지`, `${totalCount.toLocaleString('en-US')} total · page ${currentPage} of ${pages}`) : null)}</span>
           {showPager ? (
-            <nav className={styles.pager} aria-label="페이지">
-              <button type="button" onClick={() => goPage(currentPage - 1)} disabled={currentPage <= 1} aria-label="이전"><Icon name="chevron-left" size={16} /></button>
+            <nav className={styles.pager} aria-label={t('페이지', 'Pagination')}>
+              <button type="button" onClick={() => goPage(currentPage - 1)} disabled={currentPage <= 1} aria-label={t('이전', 'Previous')}><Icon name="chevron-left" size={16} /></button>
               {pageWindow(currentPage, pages).map((p, i) => p === '…' ? <span key={`e${i}`} aria-hidden="true">…</span> : <button key={p} type="button" aria-current={p === currentPage ? 'page' : undefined} onClick={() => goPage(p)}>{p}</button>)}
-              <button type="button" onClick={() => goPage(currentPage + 1)} disabled={currentPage >= pages} aria-label="다음"><Icon name="chevron-right" size={16} /></button>
+              <button type="button" onClick={() => goPage(currentPage + 1)} disabled={currentPage >= pages} aria-label={t('다음', 'Next')}><Icon name="chevron-right" size={16} /></button>
             </nav>
           ) : null}
         </div>

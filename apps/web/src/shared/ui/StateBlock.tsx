@@ -5,6 +5,8 @@ import { cx } from '../utils/format';
 import { Button } from './Button';
 import { Icon, type IconName } from './Icon';
 import { states, type StateActionKind, type StateCode } from '../strings/ko';
+import { useUiLang } from '../i18n/adminLang';
+import { statesEn } from '../i18n/statesEn';
 
 export interface StateBlockProps {
   code: StateCode;
@@ -32,11 +34,11 @@ export interface StateBlockProps {
 const symbolFor: Partial<Record<StateCode, IconName>> = { LOGIN: 'lock', GUEST: 'user', ACCOUNT: 'user', AUTH: 'lock', AUTH_ERROR: 'alert', DUPLICATE_LOGIN: 'alert', CONCURRENT: 'alert', ENDED: 'clock', BEFORE: 'calendar', NOT_FOUND: 'info', EMPTY: 'search', LIST_ERROR: 'alert', ACCESS_ERROR: 'alert', NO_ACCESS: 'lock', UNAVAILABLE: 'info', SESSION_EXPIRED: 'clock', IDLE_LOGOUT: 'clock' };
 
 /**
- * Storyboard state card: code → Korean kicker/title/body/actions from strings/ko.ts.
+ * Storyboard state card: code → Korean kicker/title/body/actions from strings/ko.ts (English inside an EN admin console).
  * Actions route to login (with ?next=), home, catalog, support, retry (onRetry), back, my, auth.
  */
 export function StateBlock({ code, title, body, kicker, onRetry, extraActions, actions, hideActions, center, page, returnTo, className, symbol }: StateBlockProps) {
-  const copy = states[code];
+  const copy = (useUiLang() === 'en' ? statesEn : states)[code];
   const navigate = useNavigate();
   const location = useLocation();
   const next = returnTo ?? `${location.pathname}${location.search}`;

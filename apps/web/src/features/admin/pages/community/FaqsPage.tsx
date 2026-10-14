@@ -6,6 +6,7 @@ import { useSearchState } from '../../../../shared/utils/useSearchState';
 import { AButton, ACheckbox, AdminPage, AInput, ATextarea, ConfirmDialog, DataTable, DetailDrawer, FieldRow, FilterBar, FilterField, YnBadge, type Column } from '../../../../shared/ui/admin';
 import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
+import { tr } from '../../../../shared/i18n/adminLang';
 import { adm } from '../../strings';
 
 const DEFAULTS = { q: '', category: '', page: 1 };
@@ -35,7 +36,7 @@ export default function FaqsPage() {
     { key: 'idx', header: f.cols.idx, align: 'right', sortable: true },
     { key: 'category', header: f.cols.category, sortable: true, render: (r) => r.category ?? '' },
     { key: 'title', header: f.cols.title, sortable: true, render: (r) => <b>{r.title}</b> },
-    { key: 'useYN', header: f.cols.useYN, align: 'center', render: (r) => <YnBadge value={r.useYN} yes="노출" no="숨김" /> },
+    { key: 'useYN', header: f.cols.useYN, align: 'center', render: (r) => <YnBadge value={r.useYN} yes={tr('노출', 'Visible')} no={tr('숨김', 'Hidden')} /> },
     { key: 'regDate', header: f.cols.regDate, nowrap: true, sortable: true, render: (r) => r.regDate ?? '' },
     { key: '_act', header: '', width: 120, render: (r) => <span style={{ display: 'inline-flex', gap: 4 }}><AButton size="xs" onClick={(e) => { e.stopPropagation(); setEditing(r.idx); }}>{adm.common.edit}</AButton><AButton size="xs" variant="danger" disabled={!canWrite} title={readOnlyTitle} onClick={(e) => { e.stopPropagation(); setDel(r); }}>{adm.common.delete}</AButton></span> },
   ];
@@ -54,7 +55,7 @@ export default function FaqsPage() {
           <FieldRow label={f.form.title} htmlFor="ff-title" required><AInput id="ff-title" value={draft.Title} onChange={(e) => setDraft({ ...draft, Title: e.target.value })} maxLength={200} disabled={!canWrite} /></FieldRow>
           <FieldRow label={f.form.content} htmlFor="ff-content"><ATextarea id="ff-content" value={draft.Content} onChange={(e) => setDraft({ ...draft, Content: e.target.value })} rows={12} maxLength={100000} disabled={!canWrite} /></FieldRow>
           <FieldRow label={f.form.order} htmlFor="ff-order"><AInput id="ff-order" type="number" min={0} value={draft.OrderByNum} onChange={(e) => setDraft({ ...draft, OrderByNum: e.target.value })} style={{ width: 120 }} disabled={!canWrite} /></FieldRow>
-          <FieldRow label="옵션"><ACheckbox label={f.form.useYN} checked={draft.UseYN} onChange={(e) => setDraft({ ...draft, UseYN: e.target.checked })} disabled={!canWrite} /></FieldRow>
+          <FieldRow label={tr('옵션', 'Options')}><ACheckbox label={f.form.useYN} checked={draft.UseYN} onChange={(e) => setDraft({ ...draft, UseYN: e.target.checked })} disabled={!canWrite} /></FieldRow>
         </div>
       </DetailDrawer>
       <ConfirmDialog open={!!del} title={`${adm.common.delete} · ${del?.title ?? ''}`} body={f.deleteBody} tone="danger" confirmLabel={adm.common.delete} loading={remove.isPending} onCancel={() => setDel(null)} onConfirm={() => del && remove.mutate(del.idx)} />

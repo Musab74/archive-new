@@ -5,9 +5,10 @@ import { designApi } from '../../../../shared/api/endpoints/design';
 import { AButton, ASelect, Callout, Card, TabStrip } from '../../../../shared/ui/admin';
 import { useDesignStudio } from '../DesignStudioContext';
 import { adm } from '../../strings';
+import { tr } from '../../../../shared/i18n/adminLang';
 
-const VIEWPORTS = [{ key: '1440', label: '데스크톱 1440' }, { key: '1024', label: '태블릿 1024' }, { key: '768', label: '태블릿 768' }, { key: '390', label: '모바일 390' }];
-const PAGES = [{ value: '/', label: '메인 /' }, { value: '/catalog', label: '콘텐츠 탐색 /catalog' }, { value: '/ai-zone', label: 'AI ZONE /ai-zone' }];
+const VIEWPORTS = [{ key: '1440', label: tr('데스크톱 1440', 'Desktop 1440') }, { key: '1024', label: tr('태블릿 1024', 'Tablet 1024') }, { key: '768', label: tr('태블릿 768', 'Tablet 768') }, { key: '390', label: tr('모바일 390', 'Mobile 390') }];
+const PAGES = [{ value: '/', label: tr('메인 /', 'Home /') }, { value: '/catalog', label: tr('콘텐츠 탐색 /catalog', 'Browse content /catalog') }, { value: '/ai-zone', label: 'AI ZONE /ai-zone' }];
 
 /** Public site origin that renders the preview (same origin → postMessage live updates work). */
 export function previewOrigin(): string {
@@ -52,9 +53,9 @@ export default function PreviewPage() {
             {url ? <AButton size="sm" onClick={() => window.open(url, '_blank', 'noopener')}>{adm.design.preview.open} ↗</AButton> : null}
           </span>
         </div>
-        <p className="muted" style={{ fontSize: 12, margin: '8px 0 0' }}>{adm.design.preview.note}{origin !== window.location.origin ? ` (미리보기 출처 ${origin} — 다른 출처라 초안 즉시 반영은 비활성화)` : ''}</p>
+        <p className="muted" style={{ fontSize: 12, margin: '8px 0 0' }}>{adm.design.preview.note}{origin !== window.location.origin ? tr(` (미리보기 출처 ${origin} — 다른 출처라 초안 즉시 반영은 비활성화)`, ` (preview origin ${origin} — cross-origin, so live draft updates are disabled)`) : ''}</p>
       </Card>
-      {token.isError ? <Callout tone="warn">미리보기 토큰을 발급하지 못했습니다.</Callout> : null}
+      {token.isError ? <Callout tone="warn">{tr('미리보기 토큰을 발급하지 못했습니다.', 'Could not issue a preview token.')}</Callout> : null}
       <div className={styles.previewFrame}>
         <div className={styles.device} style={{ width: width + 20, maxWidth: '100%' }}>
           {url ? <iframe ref={iframeRef} key={url} title={`${adm.design.nav.preview} ${vp}`} src={url} style={{ height: width < 500 ? 844 : 760 }} onLoad={() => { setReady(true); push(); }} /> : <div style={{ height: 400 }} />}

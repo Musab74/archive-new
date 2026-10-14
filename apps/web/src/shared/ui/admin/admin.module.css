@@ -87,16 +87,45 @@
 .btnLink:hover:not(:disabled){text-decoration:underline;text-underline-offset:3px;background:none}
 
 /* ---- filter bar */
-.filter{display:flex;flex-wrap:wrap;gap:12px 14px;align-items:flex-end;padding:16px 18px;border:1px solid var(--c-line-2);border-radius:var(--r-md);background:var(--c-paper);box-shadow:var(--shadow-xs);margin:0 0 16px}
-.filter .field{min-width:150px}
-.filterActions{display:flex;gap:8px;margin-left:auto}
+/* Filter bar: equal-width field grid (wide fields span two tracks), actions right-aligned on their own row. */
+.filter{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,184px),1fr));gap:14px 16px;align-items:end;padding:18px 20px 16px;border:1px solid var(--c-line-2);border-radius:var(--r-md);background:var(--c-paper);box-shadow:var(--shadow-xs);margin:0 0 16px}
+.filter .field{min-width:0}
+.filter .field > span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.filter .fieldWide{grid-column:span 2}
+.filterActions{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;padding-top:14px;border-top:1px solid var(--c-line-2)}
+
+/* Date field: typed YYYY-MM-DD + calendar popover. */
+.dateField{position:relative;min-width:0}
+.dateField .input{padding-right:44px;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.dateBtn{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:32px;height:32px;display:grid;place-items:center;border:0;border-radius:7px;background:transparent;color:var(--c-muted);cursor:pointer;transition:background-color var(--dur-fast),color var(--dur-fast)}
+.dateBtn:hover,.dateBtn[aria-expanded="true"]{background:var(--c-soft);color:var(--c-primary)}
+.dateBtn:focus-visible{outline:2px solid var(--c-primary);outline-offset:1px}
+.dateBtn:disabled{cursor:not-allowed;opacity:.5}
+.datePop{position:absolute;top:calc(100% + 6px);left:0;z-index:40;width:300px;max-width:calc(100vw - 24px);padding:12px 12px 10px;border:1px solid var(--c-line);border-radius:var(--r-md);background:var(--c-paper);box-shadow:var(--shadow-pop);font-weight:var(--fw-regular)}
+.datePopEnd{left:auto;right:0}
+.calHead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 6px}
+.calHead b{font-size:15px;color:var(--c-ink);font-weight:var(--fw-bold)}
+.calNav{width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--c-line);border-radius:8px;background:var(--c-paper);color:var(--c-text);cursor:pointer;transition:border-color var(--dur-fast),color var(--dur-fast)}
+.calNav:hover{border-color:var(--c-primary);color:var(--c-primary)}
+.calGrid{width:100%;border-collapse:collapse;table-layout:fixed}
+.calGrid th{padding:6px 0;font-size:12px;font-weight:var(--fw-semibold);color:var(--c-muted);text-align:center}
+.calGrid th:first-child{color:var(--c-danger)}
+.calGrid td{padding:1px;text-align:center}
+.calDay{width:100%;height:36px;border:0;border-radius:8px;background:transparent;color:var(--c-ink);font-size:13.5px;font-variant-numeric:tabular-nums;cursor:pointer;transition:background-color var(--dur-fast),color var(--dur-fast)}
+.calDay:hover{background:var(--c-soft);color:var(--c-primary)}
+.calDay[data-outside="true"]{color:var(--c-subtle)}
+.calDay[aria-current="date"]{box-shadow:inset 0 0 0 1.5px var(--c-primary);color:var(--c-primary);font-weight:var(--fw-bold)}
+.calDay[aria-pressed="true"]{background:var(--c-primary);color:#fff;font-weight:var(--fw-bold)}
+.calDay:disabled{background:transparent;color:var(--c-subtle);opacity:.45;cursor:not-allowed}
+.calDay:focus-visible{outline:2px solid var(--c-primary);outline-offset:1px}
+.calFoot{display:flex;justify-content:space-between;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--c-line-2)}
 
 /* ---- table */
 .tableWrap{border:1px solid var(--c-line-2);border-radius:var(--r-md);background:var(--c-paper);overflow:auto;min-width:0;box-shadow:var(--shadow-xs)}
 .table{width:100%;border-collapse:collapse;font-size:14.5px;min-width:640px}
 .table caption{text-align:left;font-size:13px;color:var(--c-muted);padding:10px 14px;caption-side:top}
 .table th{position:sticky;top:0;z-index:1;background:color-mix(in srgb,var(--c-soft) 80%,var(--c-paper));text-align:left;font-size:13px;font-weight:var(--fw-bold);color:var(--c-muted);padding:12px 14px;border-bottom:1px solid var(--c-line);white-space:nowrap;letter-spacing:0}
-.table td{padding:13px 14px;border-bottom:1px solid var(--c-line-2);vertical-align:middle;color:var(--c-text);overflow-wrap:anywhere}
+.table td{padding:13px 14px;border-bottom:1px solid var(--c-line-2);vertical-align:middle;color:var(--c-text);word-break:keep-all;overflow-wrap:break-word}
 .table tbody tr:last-child td{border-bottom:0}
 .table tbody tr{transition:background-color var(--dur-fast)}
 .table tbody tr:hover td{background:color-mix(in srgb,var(--c-primary) 4%,var(--c-paper))}
@@ -175,4 +204,4 @@
 
 @media (max-width:1100px){.grid4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:900px){.page{padding:22px 20px 44px}.grid2,.grid3,.grid4{grid-template-columns:1fr 1fr}.dl2{grid-template-columns:150px minmax(0,1fr)}}
-@media (max-width:600px){.page{padding:16px var(--gutter) 32px}.pageHead h1{font-size:22px}.grid2,.grid3,.grid4{grid-template-columns:1fr}.dl{grid-template-columns:1fr}.dl dt{border-bottom:0;padding-bottom:4px}.fieldRow{grid-template-columns:1fr;gap:6px}.drawer{width:100%}.filter .field{min-width:0;flex:1 1 140px}.filterActions{width:100%}.filterActions > *{flex:1}}
+@media (max-width:600px){.page{padding:16px var(--gutter) 32px}.pageHead h1{font-size:22px}.grid2,.grid3,.grid4{grid-template-columns:1fr}.dl{grid-template-columns:1fr}.dl dt{border-bottom:0;padding-bottom:4px}.fieldRow{grid-template-columns:1fr;gap:6px}.drawer{width:100%}.filter{padding:14px}.filter .fieldWide{grid-column:auto}.filterActions > *{flex:1}}

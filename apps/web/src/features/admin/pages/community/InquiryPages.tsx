@@ -6,10 +6,11 @@ import { useSearchState } from '../../../../shared/utils/useSearchState';
 import { AButton, AdminPage, AInput, ASelect, ATextarea, DataTable, DescList, DetailDrawer, FilterBar, FilterField, StatusBadge, type Column } from '../../../../shared/ui/admin';
 import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
+import { tr } from '../../../../shared/i18n/adminLang';
 import { adm } from '../../strings';
 
 const SIZE = 20;
-const statusBadge = (s: string | null | undefined, answered?: boolean) => <StatusBadge tone={s === 'B' || answered ? 'ok' : 'warn'} dot>{s === 'B' || answered ? '완료' : '대기'}</StatusBadge>;
+const statusBadge = (s: string | null | undefined, answered?: boolean) => <StatusBadge tone={s === 'B' || answered ? 'ok' : 'warn'} dot>{s === 'B' || answered ? tr('완료', 'Done') : tr('대기', 'Pending')}</StatusBadge>;
 
 // ---------------------------------------------------------------- /admin/inquiries
 export function InquiriesPage() {
@@ -45,9 +46,9 @@ export function InquiriesPage() {
         footer={<><AButton onClick={() => setSel(null)}>{adm.common.close}</AButton><AButton variant="primary" disabled={!canWrite || !answer.trim()} title={readOnlyTitle} loading={save.isPending} onClick={() => sel && save.mutate({ idx: sel.idx, text: answer.trim() })}>{t.answer} {adm.common.save}</AButton></>}>
         {sel ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <DescList cols={2} items={[['회사', sel.companyName], ['담당자', sel.name], ['연락처', sel.phone], ['이메일', sel.email], ['인원', String(sel.personnel ?? '')], ['유형', sel.serviceType], ['개인정보 동의', sel.agreeYN], ['상태', statusBadge(sel.status)]]} />
+            <DescList cols={2} items={[[tr('회사', 'Company'), sel.companyName], [tr('담당자', 'Contact'), sel.name], [tr('연락처', 'Phone'), sel.phone], [tr('이메일', 'Email'), sel.email], [tr('인원', 'Headcount'), String(sel.personnel ?? '')], [tr('유형', 'Type'), sel.serviceType], [tr('개인정보 동의', 'Privacy consent'), sel.agreeYN], [tr('상태', 'Status'), statusBadge(sel.status)]]} />
             <div><h3 style={{ fontSize: 13, margin: '0 0 6px' }}>{t.question}</h3><div style={{ whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.7, padding: 12, background: 'var(--c-soft)', borderRadius: 6 }}>{sel.contents ?? ''}</div></div>
-            {sel.answer.contents ? <p className="muted" style={{ fontSize: 12, margin: 0 }}>{t.prevAnswer}: {sel.answer.name ?? ''} · {sel.answer.regDate ?? ''}{sel.answer.mdfDate ? ` (수정 ${sel.answer.mdfDate})` : ''}</p> : null}
+            {sel.answer.contents ? <p className="muted" style={{ fontSize: 12, margin: 0 }}>{t.prevAnswer}: {sel.answer.name ?? ''} · {sel.answer.regDate ?? ''}{sel.answer.mdfDate ? tr(` (수정 ${sel.answer.mdfDate})`, ` (edited ${sel.answer.mdfDate})`) : ''}</p> : null}
             <div><label htmlFor="iq-answer" style={{ fontSize: 13, fontWeight: 700, display: 'block', marginBottom: 6 }}>{t.answer}</label><ATextarea id="iq-answer" rows={8} value={answer} onChange={(e) => setAnswer(e.target.value)} placeholder={t.answerPlaceholder} maxLength={20000} disabled={!canWrite} /></div>
           </div>
         ) : null}
@@ -89,7 +90,7 @@ export function CounselPage() {
         footer={<><AButton onClick={() => setSel(null)}>{adm.common.close}</AButton><AButton variant="primary" disabled={!canWrite || !answer.trim()} title={readOnlyTitle} loading={save.isPending} onClick={() => sel && save.mutate({ idx: sel.idx, text: answer.trim() })}>{adm.community.inquiries.answer} {adm.common.save}</AButton></>}>
         {sel ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <DescList cols={2} items={[['아이디', sel.id], ['이름', sel.name], ['휴대폰', sel.mobile], ['이메일', sel.email], ['분류', sel.category], ['관련 수강', [sel.lectureCode, sel.studySeq ? `Seq ${sel.studySeq}` : null, sel.contentsIdx ? `Contents ${sel.contentsIdx}` : null].filter(Boolean).join(' · ')], ['첨부', sel.file ? sel.file.name ?? sel.file.file : null], ['학습자 첨부', sel.studentFile ? sel.studentFile.name ?? sel.studentFile.file : null]]} />
+            <DescList cols={2} items={[[tr('아이디', 'User ID'), sel.id], [tr('이름', 'Name'), sel.name], [tr('휴대폰', 'Mobile'), sel.mobile], [tr('이메일', 'Email'), sel.email], [tr('분류', 'Category'), sel.category], [tr('관련 수강', 'Related enrollment'), [sel.lectureCode, sel.studySeq ? `Seq ${sel.studySeq}` : null, sel.contentsIdx ? `Contents ${sel.contentsIdx}` : null].filter(Boolean).join(' · ')], [tr('첨부', 'Attachment'), sel.file ? sel.file.name ?? sel.file.file : null], [tr('학습자 첨부', 'Learner attachment'), sel.studentFile ? sel.studentFile.name ?? sel.studentFile.file : null]]} />
             <div><h3 style={{ fontSize: 13, margin: '0 0 6px' }}>{sel.title}</h3><div style={{ whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.7, padding: 12, background: 'var(--c-soft)', borderRadius: 6 }}>{sel.contents ?? ''}</div></div>
             {sel.answer.contents ? <p className="muted" style={{ fontSize: 12, margin: 0 }}>{adm.community.inquiries.prevAnswer}: {sel.answer.name ?? ''} · {sel.answer.regDate ?? ''}</p> : null}
             <div><label htmlFor="cs-answer" style={{ fontSize: 13, fontWeight: 700, display: 'block', marginBottom: 6 }}>{adm.community.inquiries.answer}</label><ATextarea id="cs-answer" rows={8} value={answer} onChange={(e) => setAnswer(e.target.value)} placeholder={adm.community.inquiries.answerPlaceholder} maxLength={20000} disabled={!canWrite} /></div>
@@ -125,7 +126,7 @@ export function CheatingPage() {
       </FilterBar>
       <DataTable columns={columns} rows={list.data?.items} rowKey={(r) => r.idx} loading={list.isPending || list.isFetching} error={list.error} onRetry={() => void list.refetch()} page={p.page} size={SIZE} total={list.data?.total} onPageChange={(x) => setP({ page: x })} onRowClick={setSel} selectedKey={sel?.idx} dense />
       <DetailDrawer open={!!sel} onClose={() => setSel(null)} title={`${t.title} · #${sel?.idx ?? ''}`} subtitle={sel?.regDate ?? ''}>
-        {sel ? <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}><DescList items={[['제보자', sel.name], ['분류', sel.category], ['연락처', [sel.mobile, sel.email].filter(Boolean).join(' · ')], ['상태', sel.status], ['처리', [sel.answeredBy, sel.answeredAt].filter(Boolean).join(' · ')]]} /><div><h3 style={{ fontSize: 13, margin: '0 0 6px' }}>{sel.title}</h3><div style={{ whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.7, padding: 12, background: 'var(--c-soft)', borderRadius: 6 }}>{sel.contents ?? ''}</div></div></div> : null}
+        {sel ? <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}><DescList items={[[tr('제보자', 'Reporter'), sel.name], [tr('분류', 'Category'), sel.category], [tr('연락처', 'Contact'), [sel.mobile, sel.email].filter(Boolean).join(' · ')], [tr('상태', 'Status'), sel.status], [tr('처리', 'Handled'), [sel.answeredBy, sel.answeredAt].filter(Boolean).join(' · ')]]} /><div><h3 style={{ fontSize: 13, margin: '0 0 6px' }}>{sel.title}</h3><div style={{ whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.7, padding: 12, background: 'var(--c-soft)', borderRadius: 6 }}>{sel.contents ?? ''}</div></div></div> : null}
       </DetailDrawer>
     </AdminPage>
   );

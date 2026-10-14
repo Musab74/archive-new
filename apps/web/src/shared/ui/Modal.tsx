@@ -10,6 +10,7 @@ import { IconButton } from './IconButton';
 import { Icon, type IconName } from './Icon';
 import { Button } from './Button';
 import { common } from '../strings/ko';
+import { useT } from '../i18n/adminLang';
 
 export interface ModalProps {
   open: boolean;
@@ -34,6 +35,7 @@ export interface ModalProps {
 export function Modal({ open, onClose, title, kicker, children, actions, size = 'md', sheet, responsive = true, dismissible = true, symbol, symbolTone = 'info', labelledBy }: ModalProps) {
   const ref = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  const t = useT();
   const isMobile = useIsMobile();
   const reduced = useReducedMotion();
   const asSheet = sheet ?? (responsive && isMobile);
@@ -51,7 +53,7 @@ export function Modal({ open, onClose, title, kicker, children, actions, size = 
             {(kicker || dismissible) ? (
               <div className={styles.head}>
                 <span>{kicker}</span>
-                {dismissible ? <IconButton icon="close" label={common.close} size="sm" onClick={onClose} /> : null}
+                {dismissible ? <IconButton icon="close" label={t(common.close, 'Close')} size="sm" onClick={onClose} /> : null}
               </div>
             ) : null}
             {symbol ? <div className={cx(styles.symbol, symbolTone === 'warn' && styles.symbolWarn, symbolTone === 'ok' && styles.symbolOk)} aria-hidden="true"><Icon name={symbol} size={27} /></div> : null}

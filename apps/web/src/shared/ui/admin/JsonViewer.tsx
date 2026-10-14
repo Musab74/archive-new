@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import styles from './admin.module.css';
+import { useT } from '../../i18n/adminLang';
 
 function Value({ value, depth }: { value: unknown; depth: number }) {
   if (value === null) return <span className={styles.jsonNull}>null</span>;
@@ -31,13 +32,14 @@ function Value({ value, depth }: { value: unknown; depth: number }) {
 
 /** Collapsible JSON tree with a copy button. */
 export function JsonViewer({ value, label = 'JSON', maxHeight }: { value: unknown; label?: string; maxHeight?: number }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try { await navigator.clipboard.writeText(JSON.stringify(value, null, 2)); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* clipboard blocked */ }
   };
   return (
     <div className={styles.json} role="region" aria-label={label} style={maxHeight ? { maxHeight } : undefined}>
-      <button type="button" className={styles.jsonCopy} onClick={() => void copy()}>{copied ? '복사됨' : '복사'}</button>
+      <button type="button" className={styles.jsonCopy} onClick={() => void copy()}>{copied ? t('복사됨', 'Copied') : t('복사', 'Copy')}</button>
       <Value value={value} depth={0} />
     </div>
   );
