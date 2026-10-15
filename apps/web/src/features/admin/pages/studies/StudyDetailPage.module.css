@@ -1,0 +1,2 @@
+/* 사전 / 사후 역량진단 boxes on the 수강 정보 tab. */
+.assessBox{border:1px solid var(--c-line-2);border-radius:var(--r-md);padding:14px 12px;text-align:center;background:var(--c-soft)}

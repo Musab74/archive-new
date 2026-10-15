@@ -67,6 +67,9 @@ function apiMock(who = adminA) {
     return json({ error: { code: 'NOT_FOUND', message: `${method} ${url}` } }, 404);
   });
 }
+/** 사업주 상세 sections are tabs (기본 정보 · 회차별 수강 · 수강생 정보 · 수강 내역). */
+const openTab = async (name: RegExp) => fireEvent.click(await screen.findByRole('tab', { name }, { timeout: 8000 }));
+
 const mount = (path: string, state?: unknown) => {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const memory = createMemoryRouter(router.routes, { initialEntries: [state ? { pathname: path, state } : path] });
@@ -81,12 +84,15 @@ describe('사업주 상세 (company_read.php) parity', () => {
   it('수강 정보 / 수강생 정보 / 수강 내역 show the PHP columns from the companies API (no B5/A2 endpoints)', { timeout: 20000 }, async () => {
     vi.stubGlobal('fetch', apiMock());
     mount('/admin/companies/1', { listSearch: '?q=테스트&page=2' });
-    expect(await screen.findByRole('heading', { level: 1, name: /사업주 상세/ }, { timeout: 8000 })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1 }, { timeout: 8000 })).toBeInTheDocument();
+    await openTab(/회차별 수강/);
     expect(await screen.findByText('2026-10-01 ~ 2026-12-31')).toBeInTheDocument();
+    await openTab(/수강생 정보/);
     for (const h of ['생년월일', '성별', '이메일', '휴대폰', '부서', '직위', '최종로그인', '가입일', '계정 사용유무']) expect(screen.getAllByRole('columnheader', { name: new RegExp(h) }).length).toBeGreaterThan(0);
     expect(await screen.findByText('1991-****-03')).toBeInTheDocument();
     expect(screen.getByText('*******@example.com')).toBeInTheDocument();
     expect(screen.getByText('010-****-3333')).toBeInTheDocument();
+    await openTab(/수강 내역/);
     expect(await screen.findByText(/첨삭완료 : 2027-01-02까지/)).toBeInTheDocument();
     expect(screen.getAllByText('평가 없음')).toHaveLength(2);
     expect(screen.getByText('과제 없음')).toBeInTheDocument();
@@ -104,6 +110,7 @@ describe('사업주 상세 (company_read.php) parity', () => {
   it('진도율 opens the ProgressInfo drawer (학습 내역 → 차시 진도 로그); 과정명 opens CourseInfo', { timeout: 20000 }, async () => {
     vi.stubGlobal('fetch', apiMock());
     mount('/admin/companies/1');
+    await openTab(/수강 내역/);
     fireEvent.click(await screen.findByRole('button', { name: '진도율 50% 상세' }));
     const drawer = await screen.findByRole('dialog', { name: '학습내역 상세 정보' });
     expect(await within(drawer).findByText('하위과정', { exact: false })).toBeInTheDocument();
@@ -122,6 +129,7 @@ describe('사업주 상세 (company_read.php) parity', () => {
     vi.stubGlobal('fetch', apiMock());
     const created = vi.fn(() => 'blob:x'); vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: created, revokeObjectURL: vi.fn() }));
     mount('/admin/companies/1');
+    await openTab(/수강생 정보/);
     const exportBtn = await screen.findByRole('button', { name: '검색항목 엑셀 출력' });
     await waitFor(() => expect(exportBtn).toBeEnabled());
     fireEvent.click(exportBtn);
@@ -237,6 +245,7 @@ describe('사업주 상세 fix-ups (verifier findings)', () => {
   it('아이디/이름 open MemberInfo in a drawer from the companies API — an A1-only account is not sent to /admin/members (A2)', { timeout: 20000 }, async () => {
     vi.stubGlobal('fetch', apiMock(a1Only));
     mount('/admin/companies/1');
+    await openTab(/수강생 정보/);
     fireEvent.click(await screen.findByRole('button', { name: 'user01 수강생 상세 정보' }));
     const drawer = await screen.findByRole('dialog', { name: '수강생 상세 정보' });
     expect(await within(drawer).findByText('10.0.0.1')).toBeInTheDocument();
@@ -250,6 +259,7 @@ describe('사업주 상세 fix-ups (verifier findings)', () => {
     expect(calls.find((c) => c.method === 'POST' && c.url.includes('/admin/companies/1/member-info/user01/reveal'))?.body).toEqual({ field: 'Mobile', gubun: '학습자 관리', reason: '사업주 문의 확인' });
     fireEvent.click(within(drawer).getAllByRole('button', { name: '닫기' }).at(-1)!);
     // 수강 내역 이름/ID opens the same drawer
+    await openTab(/수강 내역/);
     fireEvent.click(await screen.findByRole('button', { name: '홍길동 (user01) 수강생 상세 정보' }));
     expect(await screen.findByRole('dialog', { name: '수강생 상세 정보' })).toBeInTheDocument();
     expect(screen.queryAllByRole('link').some((a) => (a.getAttribute('href') ?? '').startsWith('/admin/members/'))).toBe(false);
@@ -260,6 +270,7 @@ describe('사업주 상세 fix-ups (verifier findings)', () => {
     vi.stubGlobal('fetch', apiMock(a1Only));
     vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: vi.fn(() => 'blob:x'), revokeObjectURL: vi.fn() }));
     mount('/admin/companies/1');
+    await openTab(/수강 내역/);
     fireEvent.click(await screen.findByRole('button', { name: '진도율 50% 상세' }));
     const drawer = await screen.findByRole('dialog', { name: '학습내역 상세 정보' });
     expect(await within(drawer).findByText('테스트기업(수강)')).toBeInTheDocument();
@@ -275,6 +286,7 @@ describe('사업주 상세 fix-ups (verifier findings)', () => {
   it('?year=all&order=asc (the CompanyInfo popup redirect) loads every term oldest first; the order can be switched', { timeout: 20000 }, async () => {
     vi.stubGlobal('fetch', apiMock());
     mount('/admin/companies/1?year=all&order=asc');
+    await openTab(/회차별 수강/);
     expect(await screen.findByText('2026-10-01 ~ 2026-12-31')).toBeInTheDocument();
     expect(calls.some((c) => c.url.includes('/admin/companies/1/terms?') && c.url.includes('year=all') && c.url.includes('order=asc'))).toBe(true);
     const sort = screen.getByRole('combobox', { name: '회차 정렬' });

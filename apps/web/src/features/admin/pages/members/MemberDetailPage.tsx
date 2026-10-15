@@ -48,7 +48,7 @@ const enrollCols = (total: number, memberId: string, memberName: string, onProgr
     : <Link to={`/admin/studies/${r.studySeq}`} title={`${r.formatted} · ${tr('저장값', 'stored')} ${r.storedProgress}%`}>{r.percent}%</Link>) },
   { key: 'log', header: tr('진도 로그', 'Progress log'), align: 'center', render: (r) => (onProgress
     ? <AButton size="xs" onClick={() => onProgress(r.studySeq)}>{tr('보기', 'View')}</AButton>
-    : <AButton size="xs" to={`/admin/studies/${r.studySeq}#learning`}>{tr('보기', 'View')}</AButton>) },
+    : <AButton size="xs" to={`/admin/studies/${r.studySeq}?tab=learning`}>{tr('보기', 'View')}</AButton>) },
   { key: 'passOk', header: tr('수료여부', 'Completion'), align: 'center', render: (r) => (r.passOkRaw === 'Y' ? <StatusBadge tone="ok">{tr('수료', 'Completed')}</StatusBadge> : r.passOkRaw === 'N' ? <StatusBadge tone="warn">{tr('미수료', 'Not completed')}</StatusBadge> : '') },
   { key: 'studyEnd', header: tr('수강마감', 'Closed'), align: 'center', render: (r) => (r.studyEnd ? <><StatusBadge tone="info">{tr('마감완료', 'Closed')}</StatusBadge>{r.studyEndInPeriod ? <><br /><small style={{ color: 'var(--warn, #c77700)' }}>{tr('기간중', 'In period')}</small></> : null}</> : <StatusBadge tone="warn">{tr('미마감', 'Open')}</StatusBadge>) },
   { key: 'tutor', header: tr('교·강사', 'Tutor'), render: (r) => r.tutorName ?? '' },

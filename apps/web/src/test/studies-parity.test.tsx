@@ -109,7 +109,8 @@ describe('학습관리 / 일자별 학습시간 parity pages', () => {
     mount(<StudyDetailPage />, '/admin/studies/7', '/admin/studies/:seq');
     expect(await screen.findByText('수강 정보')).toBeInTheDocument();
     expect(screen.getByText('15시간 16분 40초 (100%)')).toBeInTheDocument();
-    expect(screen.getByText('수강시간 충족')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /학습 내역/ })); // the 학습 내역 table is its own tab
+    expect(await screen.findByText('수강시간 충족')).toBeInTheDocument();
     for (const h of ['과정구분', '과정코드', '차시', '학습시작일', '학습종료일']) expect(screen.getAllByRole('columnheader', { name: h }).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByText('리더십'));
     expect(await screen.findByText(/빨간색 1행은 같은 분에 다른 차시도/)).toBeInTheDocument();

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { adminApi } from '../../../../shared/api/endpoints/admin';
-import { AButton, ACheckbox, AdminPage, ASelect, Bar, Callout, Card, ConfirmDialog, DataTable, DescList, DetailDrawer, Kpi, StatusBadge, YnBadge, type Column } from '../../../../shared/ui/admin';
+import { AButton, ACheckbox, ASelect, Bar, Callout, ConfirmDialog, DataTable, DetailDrawer, DetailHeader, DetailPage, DetailTab, DetailTabs, InfoTable, MenuAction, SectionPanel, StatusBadge, YnBadge, type Column } from '../../../../shared/ui/admin';
 import { useAdminSession } from '../../../../shared/auth/useAdminSession';
 import { hasGrant } from '../../../../shared/auth/adminMenu';
 import { StateBlock } from '../../../../shared/ui/StateBlock';
@@ -143,60 +143,91 @@ export default function CompanyDetailPage() {
     onError: (err) => { if (isAppError(err) && err.code === 'CONFLICT' && (err.details as { requiresForce?: boolean } | undefined)?.requiresForce) { const x = err.details as { members: number; studies: number }; setBlocked({ members: x.members, studies: x.studies }); return; } toast(isAppError(err) ? err.message : adm.common.failed, { tone: 'danger' }); },
   });
 
-  const title = `${s.title}${co ? ` · ${co.companyName}` : ''}`;
   const unitP = tr('명', ''); const unitC = tr('건', '');
-  const buttons = (
+  const pct = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : undefined);
+  const body = q.isError ? <StateBlock code={(q.error as { status?: number }).status === 404 ? 'NOT_FOUND' : 'LIST_ERROR'} center onRetry={() => void q.refetch()} />
+    : q.isPending || !d || !co ? <><Skeleton height={140} /><Skeleton lines={10} /></> : (
     <>
-      <AButton onClick={() => setEditOpen(true)} disabled={!canWrite || !d} title={readOnlyTitle}>{s.edit}</AButton>
-      <AButton variant="danger" onClick={() => { setBlocked(null); setForce(false); setDelOpen(true); }} disabled={!canWrite || !d} title={readOnlyTitle}>{s.delete}</AButton>
-      <AButton to={listUrl}>{tr('목록', 'List')}</AButton>
+      <DetailHeader
+        icon="building"
+        title={co.companyName}
+        subtitle={<><span className="mono">{co.bizNo}</span>{co.companyId ? <> · ID <span className="mono">{co.companyId}</span></> : null}{co.manageCode ? <> · {tr('기업관리코드', 'Mgmt code')} <span className="mono">{co.manageCode}</span></> : null}</>}
+        badges={<>
+          {co.scaleLabel ? <StatusBadge tone="info">{co.scaleLabel}</StatusBadge> : null}
+          <StatusBadge tone={co.sendSMS === 'N' ? 'warn' : 'ok'}>{tr('독려문자', 'Nudge SMS')} {co.sendSMSLabel}</StatusBadge>
+          {co.cyberEnabled ? <StatusBadge tone="neutral">{tr('사이버교육센터 사용', 'Cyber centre on')}</StatusBadge> : null}
+        </>}
+        facts={[
+          { label: s.kpi.members, value: `${formatNumber(d.stats.members)}${unitP}`, hint: tr(`사용 ${formatNumber(d.stats.activeMembers)}명`, `${formatNumber(d.stats.activeMembers)} active`) },
+          { label: s.kpi.eduManagers, value: `${formatNumber(d.stats.eduManagers)}${unitP}` },
+          { label: s.kpi.enrollments, value: `${formatNumber(d.stats.enrollments)}${unitC}`, hint: tr(`진행 ${formatNumber(d.stats.activeEnrollments)}건`, `${formatNumber(d.stats.activeEnrollments)} active`) },
+          { label: s.kpi.passed, value: `${formatNumber(d.stats.passed)}${unitC}`, hint: pct(d.stats.passed, d.stats.enrollments), tone: 'ok' },
+          { label: tr('영업담당자', 'Sales rep'), value: d.sales ? d.sales.name ?? d.sales.id : null, hint: d.sales?.team ?? undefined },
+          { label: tr('등록일', 'Registered'), value: co.regDate ? String(co.regDate).slice(0, 10) : null },
+        ]}
+        back={{ to: listUrl, label: tr('목록', 'List') }}
+        actions={<AButton variant="primary" icon="edit" onClick={() => setEditOpen(true)} disabled={!canWrite} title={readOnlyTitle}>{s.edit}</AButton>}
+        dangerActions={<MenuAction danger onClick={() => { setBlocked(null); setForce(false); setDelOpen(true); }} disabled={!canWrite} title={readOnlyTitle}>{s.delete}</MenuAction>}
+      />
+
+      <DetailTabs>
+        <DetailTab id="info" label={tr('기본 정보', 'Details')} icon="info">
+          <InfoTable groups={[
+            { title: s.basic, rows: [
+              { label: tr('회사명', 'Company'), value: co.companyName }, { label: tr('회사 규모', 'Size'), value: co.scaleLabel },
+              { label: tr('사업자 번호', 'Business no.'), value: <span className="mono">{co.bizNo}</span> }, { label: tr('사업주 ID', 'Company ID'), value: co.companyId ? <span className="mono">{co.companyId}</span> : null },
+              { label: tr('HRD 번호', 'HRD number'), value: co.hrd }, { label: tr('대표자명', 'CEO'), value: co.ceo },
+              { label: tr('업태 / 업종', 'Type / industry'), value: [co.uptae, co.upjong].filter(Boolean).join(' / ') }, { label: tr('등록일', 'Registered'), value: co.regDate },
+            ] },
+            { title: s.contact, rows: [
+              { label: tr('대표 전화번호', 'Main phone'), value: co.tel }, { label: tr('고객센터 전화번호', 'Help-desk phone'), value: <span>{co.tel2 ?? '—'} <YnBadge value={co.csEnabled} yes={USE.yes} no={USE.no} /></span> },
+              { label: tr('대표 팩스번호', 'Main fax'), value: co.fax }, { label: tr('고객센터 팩스번호', 'Help-desk fax'), value: co.fax2 },
+              { label: tr('이메일', 'E-mail'), value: co.email }, { label: tr('계좌정보', 'Bank account'), value: [co.bankName, co.bankNumber].filter(Boolean).join(' ') },
+              { label: tr('주소', 'Address'), value: [co.zipcode ? `[${co.zipcode}]` : '', co.address01, co.address02].filter(Boolean).join(' '), wide: true },
+            ] },
+            { title: s.manager, rows: [
+              { label: tr('교육담당자', 'Manager'), value: [co.eduManager, co.eduManagerPhone, co.eduManagerEmail].filter(Boolean).join(' / '), wide: true },
+              { label: s.managersAccounts, value: d.managers.length ? <span style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 14px' }}>{d.managers.map((m) => <span key={m.id}><MemberInfoLink onClick={() => setMemberId(m.id)}>{m.name ?? m.id}</MemberInfoLink> <span className="muted">({m.id}{m.useYN === 'N' ? tr(' · 미사용', ' · inactive') : ''})</span></span>)}</span> : null, wide: true },
+            ] },
+            { title: s.ops, rows: [
+              { label: tr('기업관리코드', 'Management code'), value: co.manageCode ? <span className="mono">{co.manageCode}</span> : null }, { label: tr('독려문자 수신', 'Nudge SMS'), value: <StatusBadge tone={co.sendSMS === 'N' ? 'warn' : 'ok'}>{co.sendSMSLabel}</StatusBadge> },
+              { label: tr('사이버교육센터', 'Cyber training centre'), value: <span>{co.cyberUrl ?? '—'} <YnBadge value={co.cyberEnabled} yes={USE.yes} no={USE.no} /></span>, wide: true },
+              { label: tr('메모', 'Memo'), value: co.remark, wide: true },
+            ] },
+            { title: s.sales, rows: d.sales ? [
+              { label: tr('영업담당자', 'Sales rep'), value: `${d.sales.name ?? ''} (${d.sales.id ?? ''})${d.sales.useYN === 'N' ? tr(' · 미사용 계정', ' · inactive account') : ''}` }, { label: tr('소속', 'Team'), value: d.sales.team },
+              { label: tr('휴대폰', 'Mobile'), value: d.sales.mobile }, { label: s.salesPath, value: d.sales.deptPath || d.sales.deptName },
+            ] : [{ label: tr('영업담당자', 'Sales rep'), value: <span className="muted">{tr('영업담당자 정보가 없습니다.', 'No sales rep on record.')}</span>, wide: true }] },
+          ]} />
+        </DetailTab>
+
+        <DetailTab id="terms" label={tr('회차별 수강', 'Training terms')} icon="calendar" count={terms.data?.items.length ?? null}>
+          <SectionPanel title={tr('수강 정보', 'Training terms')} count={terms.data?.items.length ?? null}
+            toolbar={<><span className="muted" style={{ fontSize: 13 }}>{s.termsYear}</span><div style={{ width: 130 }}><ASelect aria-label={s.termsYear} value={year} onChange={(e) => setYear(e.target.value)} options={yearOptions} /></div><div style={{ width: 150 }}><ASelect aria-label={tr('회차 정렬', 'Term order')} value={order} onChange={(e) => setOrder(e.target.value === 'asc' ? 'asc' : 'desc')} options={ORDERS} /></div></>}>
+            <DataTable columns={termCols} rows={terms.data?.items} rowKey={(r) => `${r.lectureCode}:${r.start}:${r.end}`} loading={terms.isPending || terms.isFetching} error={terms.error} onRetry={() => void terms.refetch()} emptyTitle={s.termsEmpty} dense />
+          </SectionPanel>
+        </DetailTab>
+
+        <DetailTab id="members" label={s.members} icon="users" count={members.data?.total ?? d.stats.members}>
+          <SectionPanel title={s.members} count={members.data?.total ?? d.stats.members}
+            note={tr('아이디나 이름을 누르면 수강생 상세 정보가 열립니다.', 'Click an ID or name for the learner details.')}
+            toolbar={<AButton size="sm" icon="download" onClick={() => void exportMembers()} loading={exporting} disabled={!members.data || members.data.total === 0}>{tr('검색항목 엑셀 출력', 'Export to Excel')}</AButton>}>
+            <DataTable columns={memberCols} rows={members.data?.items} rowKey={(r) => r.idx} loading={members.isPending || members.isFetching} error={members.error} onRetry={() => void members.refetch()} page={mPage} size={SUB_SIZE} total={members.data?.total} onPageChange={setMPage} emptyTitle={tr('수강생 정보가 없습니다.', 'No members.')} dense />
+          </SectionPanel>
+        </DetailTab>
+
+        <DetailTab id="studies" label={s.studies} icon="book" count={studies.data?.total ?? null}>
+          <SectionPanel title={s.studies} count={studies.data?.total ?? null}
+            note={tr('과정명은 과정 정보, 진도율은 차시별 진도와 로그를 엽니다.', 'Course opens the course info; progress opens the per-chapter record and log.')}>
+            <DataTable columns={studyCols} rows={studies.data?.items} rowKey={(r) => r.studySeq} loading={studies.isPending || studies.isFetching} error={studies.error} onRetry={() => void studies.refetch()} page={sPage} size={SUB_SIZE} total={studies.data?.total} onPageChange={setSPage} emptyTitle={tr('수강 내역이 없습니다.', 'No enrollments.')} dense />
+          </SectionPanel>
+        </DetailTab>
+      </DetailTabs>
     </>
   );
   return (
-    <AdminPage title={title} crumbs={[{ label: adm.top.home, to: '/admin' }, { label: adm.companies.title, to: listUrl }, { label: co?.companyName ?? idxParam }]} actions={buttons}>
-      {q.isError ? <StateBlock code={(q.error as { status?: number }).status === 404 ? 'NOT_FOUND' : 'LIST_ERROR'} center onRetry={() => void q.refetch()} /> : q.isPending || !d || !co ? <Skeleton lines={10} /> : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
-            <Kpi label={s.kpi.members} value={d.stats.members} unit={unitP} tone="navy" />
-            <Kpi label={s.kpi.activeMembers} value={d.stats.activeMembers} unit={unitP} />
-            <Kpi label={s.kpi.eduManagers} value={d.stats.eduManagers} unit={unitP} />
-            <Kpi label={s.kpi.enrollments} value={d.stats.enrollments} unit={unitC} />
-            <Kpi label={s.kpi.passed} value={d.stats.passed} unit={unitC} tone="ok" hint={d.stats.enrollments ? `${Math.round((d.stats.passed / d.stats.enrollments) * 100)}%` : undefined} />
-            <Kpi label={s.kpi.active} value={d.stats.activeEnrollments} unit={unitC} />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 12 }}>
-            <Card title={s.basic}>
-              <DescList items={[[tr('회사 규모', 'Size'), co.scaleLabel], [tr('회사명', 'Company'), co.companyName], [tr('사업자 번호', 'Business no.'), <span key="b" className="mono">{co.bizNo}</span>], [tr('사업주 ID', 'Company ID'), <span key="i" className="mono">{co.companyId}</span>], [tr('HRD 번호', 'HRD number'), co.hrd], [tr('대표자명', 'CEO'), co.ceo], [tr('업태 / 업종', 'Type / industry'), [co.uptae, co.upjong].filter(Boolean).join(' / ')], [tr('등록일', 'Registered'), co.regDate]]} />
-            </Card>
-            <Card title={s.contact}>
-              <DescList items={[[tr('대표 전화번호', 'Main phone'), co.tel], [tr('고객센터 전화번호', 'Help-desk phone'), <span key="t2">{co.tel2 ?? '—'} <YnBadge value={co.csEnabled} yes={USE.yes} no={USE.no} /></span>], [tr('대표 팩스번호', 'Main fax'), co.fax], [tr('고객센터 팩스번호', 'Help-desk fax'), co.fax2], [tr('이메일', 'E-mail'), co.email], [tr('주소', 'Address'), [`[${co.zipcode ?? ''}]`, co.address01, co.address02].filter(Boolean).join(' ')], [tr('계좌정보', 'Bank account'), [co.bankName, co.bankNumber].filter(Boolean).join(' ')]]} />
-            </Card>
-            <Card title={s.manager}>
-              <DescList items={[[tr('교육담당자', 'Manager'), [co.eduManager, co.eduManagerPhone, co.eduManagerEmail].map((x) => x ?? '').join(' / ')], [s.managersAccounts, d.managers.length ? <ul key="m" style={{ margin: 0, paddingLeft: 16 }}>{d.managers.map((m) => <li key={m.id}><MemberInfoLink onClick={() => setMemberId(m.id)}>{m.name ?? m.id}</MemberInfoLink> <span className="muted">({m.id}{m.useYN === 'N' ? tr(' · 미사용', ' · inactive') : ''})</span></li>)}</ul> : null]]} />
-            </Card>
-            <Card title={s.ops}>
-              <DescList items={[[tr('기업관리코드', 'Management code'), <span key="h" className="mono">{co.manageCode}</span>], [tr('사이버교육센터', 'Cyber training centre'), <span key="c">{co.cyberUrl ?? '—'} <YnBadge value={co.cyberEnabled} yes={USE.yes} no={USE.no} /></span>], [tr('독려문자 수신', 'Nudge SMS'), <StatusBadge key="s" tone={co.sendSMS === 'N' ? 'warn' : 'ok'}>{co.sendSMSLabel}</StatusBadge>], [tr('메모', 'Memo'), co.remark]]} />
-            </Card>
-            <Card title={s.sales}>
-              {d.sales ? <DescList items={[[tr('영업담당자', 'Sales rep'), `${d.sales.name ?? ''} (${d.sales.id ?? ''})${d.sales.useYN === 'N' ? tr(' · 미사용 계정', ' · inactive account') : ''}`], [tr('소속', 'Team'), d.sales.team], [tr('휴대폰', 'Mobile'), d.sales.mobile], [s.salesPath, d.sales.deptPath || d.sales.deptName]]} /> : <Callout tone="warn">{tr('영업담당자 정보가 없습니다.', 'No sales rep on record.')}</Callout>}
-            </Card>
-          </div>
-
-          <Card title={tr('수강 정보', 'Training terms')} aside={<div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12 }}><span>{s.termsYear}</span><div style={{ width: 130 }}><ASelect aria-label={s.termsYear} value={year} onChange={(e) => setYear(e.target.value)} options={yearOptions} /></div><div style={{ width: 140 }}><ASelect aria-label={tr('회차 정렬', 'Term order')} value={order} onChange={(e) => setOrder(e.target.value === 'asc' ? 'asc' : 'desc')} options={ORDERS} /></div></div>}>
-            <DataTable columns={termCols} rows={terms.data?.items} rowKey={(r) => `${r.lectureCode}:${r.start}:${r.end}`} loading={terms.isPending || terms.isFetching} error={terms.error} onRetry={() => void terms.refetch()} emptyTitle={s.termsEmpty} dense />
-          </Card>
-
-          <Card title={`${s.members} (${formatNumber(members.data?.total ?? d.stats.members)})`}
-            aside={<AButton onClick={() => void exportMembers()} loading={exporting} disabled={!members.data || members.data.total === 0}>{tr('검색항목 엑셀 출력', 'Export to Excel')}</AButton>}>
-            <DataTable columns={memberCols} rows={members.data?.items} rowKey={(r) => r.idx} loading={members.isPending || members.isFetching} error={members.error} onRetry={() => void members.refetch()} page={mPage} size={SUB_SIZE} total={members.data?.total} onPageChange={setMPage} emptyTitle={tr('수강생 정보가 없습니다.', 'No members.')} dense />
-          </Card>
-
-          <Card title={`${s.studies} (${formatNumber(studies.data?.total ?? 0)})`}>
-            <DataTable columns={studyCols} rows={studies.data?.items} rowKey={(r) => r.studySeq} loading={studies.isPending || studies.isFetching} error={studies.error} onRetry={() => void studies.refetch()} page={sPage} size={SUB_SIZE} total={studies.data?.total} onPageChange={setSPage} emptyTitle={tr('수강 내역이 없습니다.', 'No enrollments.')} dense />
-          </Card>
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>{buttons}</div>
-        </div>
-      )}
+    <DetailPage>
+      {body}
 
       <ProgressDrawer companyIdx={idx} seq={progressSeq} onClose={() => setProgressSeq(null)} canOpenStudy={hasGrant(admin, 'B5')} />
       <CompanyMemberInfoDrawer companyIdx={idx} id={memberId} onClose={() => setMemberId(null)} onCompany={(c) => void openCompany(c)} />
@@ -212,6 +243,6 @@ export default function CompanyDetailPage() {
       <ConfirmDialog open={delOpen} title={s.delete} tone="danger" confirmLabel={blocked ? s.forceDelete : s.delete} loading={del.isPending} onCancel={() => setDelOpen(false)} onConfirm={() => del.mutate(!!blocked && force)}
         body={<div><p>{tr('현재 사업주를 삭제하시겠습니까?', 'Delete this company?')}</p><p className="muted">{s.deleteBody}</p>{co ? <p className="u-mt-8"><b>{co.companyName}</b> <span className="mono">{co.bizNo}</span></p> : null}
           {blocked ? <div className="u-mt-16"><Callout tone="warn">{s.deleteBlocked(blocked.members, blocked.studies)}</Callout><div className="u-mt-8"><ACheckbox label={s.forceDelete} checked={force} onChange={(e) => setForce(e.target.checked)} /></div></div> : null}</div>} />
-    </AdminPage>
+    </DetailPage>
   );
 }

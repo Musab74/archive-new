@@ -1,5 +1,5 @@
 import { Children, isValidElement, useEffect, useId, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import styles from './detail.module.css';
 import { cx } from '../../utils/format';
 import { Icon, type IconName } from '../Icon';
@@ -95,10 +95,11 @@ export function DetailTabs({ children, param = 'tab', label }: { children: React
   const t = useT();
   const base = useId();
   const [sp, setSp] = useSearchParams();
+  const location = useLocation();
   const tabs = useMemo(() => Children.toArray(children).filter((c): c is ReactElement<DetailTabProps> => isValidElement(c) && !(c.props as DetailTabProps).hidden).map((c) => c.props as DetailTabProps), [children]);
   const wanted = sp.get(param);
   const active = tabs.find((x) => x.id === wanted) ?? tabs[0];
-  const select = (id: string) => { const next = new URLSearchParams(sp); if (id === tabs[0]?.id) next.delete(param); else next.set(param, id); setSp(next, { replace: true }); };
+  const select = (id: string) => { const next = new URLSearchParams(sp); if (id === tabs[0]?.id) next.delete(param); else next.set(param, id); setSp(next, { replace: true, state: location.state }); }; // keep the state: 목록 buttons read the list's search from it
   const onKey = (e: React.KeyboardEvent, i: number) => {
     const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
     if (!d) return;

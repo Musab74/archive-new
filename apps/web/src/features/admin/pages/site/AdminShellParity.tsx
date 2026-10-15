@@ -21,12 +21,14 @@ export type SideMenu = { kind: 'main' } | { kind: 'group'; group: AdminMenuGroup
 /**
  * Left column the PHP admin shows for a location: 메인 (no links) on main.php, 정보 변경 on my_info.php, otherwise the section of
  * the page among the sections the staff member can see (include_submenu.php), with the 사이트관리 Ruby links appended.
- * A page outside the visible menu falls back to the first visible section (previous AdminShell behaviour).
+ * A page whose link is hidden still shows its own section when that section is visible; otherwise the first visible section.
  */
 export function sideMenuFor(pathname: string, search: string, menu: AdminMenuGroup[], src: Parameters<typeof phpSideExtras>[0]): SideMenu | null {
   if (pathname === '/admin' || pathname === '/admin/') return { kind: 'main' };
   if (pathname === '/admin/my-info' || pathname.startsWith('/admin/my-info/')) return { kind: 'group', group: MY_INFO_GROUP, items: MY_INFO_GROUP.items };
-  const group = menuEntryForPath(pathname, menu, search)?.group ?? menu[0] ?? null;
+  // The page's own section even when its link is hidden for this account (a direct URL the API still allows), then the first one.
+  const sectionKey = menuEntryForPath(pathname, ADMIN_MENU, search)?.group.key;
+  const group = menuEntryForPath(pathname, menu, search)?.group ?? menu.find((g) => g.key === sectionKey) ?? menu[0] ?? null;
   return group ? { kind: 'group', group, items: [...group.items, ...phpSideExtras(src, group)] } : null;
 }
 

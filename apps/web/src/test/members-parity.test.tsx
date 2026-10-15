@@ -86,7 +86,7 @@ describe('수강생 관리 parity', () => {
     expect(screen.getByText('미마감')).toBeInTheDocument();
     // 진도 로그: each 수강 내역 row links to the enrollment page's 학습 내역 block; 학습내역 엑셀 is a real export (no PHP link)
     const logLink = screen.getByRole('link', { name: '보기' });
-    expect(logLink.getAttribute('href')).toMatch(/^\/admin\/studies\/\d+#learning$/);
+    expect(logLink.getAttribute('href')).toMatch(/^\/admin\/studies\/\d+\?tab=learning$/);
     expect(screen.getByRole('button', { name: '학습내역 엑셀 출력' })).toBeEnabled();
     expect(document.body.innerHTML).not.toContain('hrd_manager/');
 
