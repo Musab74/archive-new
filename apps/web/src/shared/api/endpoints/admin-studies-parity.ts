@@ -97,6 +97,8 @@ export const adminStudiesParityApi = {
   manageOptions: (signal?: AbortSignal) => api.get<StudyManageOptions>('/admin/studies/manage/options', { schema: StudyManageOptionsSchema, signal }),
   downloadManageCsv: (query: Q) => downloadAdminFile('/admin/studies/manage/export', query, 'study_manage.csv'),
   downloadProgressLogCsv: (seqs: number[]) => downloadAdminFile('/admin/studies/progress-log/export', { seqs: seqs.join('|') }, 'progress_log.csv'),
+  /** study_progress_excel.php — one member's per-course 진도율 / 수강시간 / 학습시작일 / 학습종료일. */
+  downloadProgressExcel: (id: string) => downloadAdminFile('/admin/studies/progress-excel', { id }, 'study_progress.csv'),
   batchTargets: (query: Q, signal?: AbortSignal) => api.get<BatchTargets>('/admin/studies/batch/targets', { query, schema: BatchTargetsSchema, signal }),
   deleteStudies: (seqs: number[]) => api.post<DeleteResult>('/admin/studies/delete', { seqs }, { schema: DeleteResultSchema }),
   changeLectureTerm: (seqs: number[], period: string) => api.post<BatchResult>('/admin/studies/batch/lecture-term', { seqs, period }, { schema: BatchResultSchema }),

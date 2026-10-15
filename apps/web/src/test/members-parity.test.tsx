@@ -63,6 +63,11 @@ describe('수강생 관리 parity', () => {
     expect(screen.getByText('질문있어요')).toBeInTheDocument();
     expect(screen.getByText('50%')).toBeInTheDocument();
     expect(screen.getByText('미마감')).toBeInTheDocument();
+    // 진도 로그: each 수강 내역 row links to the enrollment page's 학습 내역 block; 학습내역 엑셀 is a real export (no PHP link)
+    const logLink = screen.getByRole('link', { name: '보기' });
+    expect(logLink.getAttribute('href')).toMatch(/^\/admin\/studies\/\d+#learning$/);
+    expect(screen.getByRole('button', { name: '학습내역 엑셀 출력' })).toBeEnabled();
+    expect(document.body.innerHTML).not.toContain('hrd_manager/');
     for (const b of ['정보 수정', '비밀번호 초기화', '회원 탈퇴처리', '회원 미사용처리', '회원 데이터 삭제']) expect(screen.getByRole('button', { name: b })).toBeEnabled();
     expect(screen.getByRole('button', { name: '회원으로 로그인' })).toBeDisabled();
 

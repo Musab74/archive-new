@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { adminApi } from '../../../../shared/api/endpoints/admin';
 import { adminMembersParityApi, type MemberEditForm, type MemberParityDetail } from '../../../../shared/api/endpoints/admin-members-parity';
+import { adminStudiesParityApi } from '../../../../shared/api/endpoints/admin-studies-parity';
 import { AButton, AdminPage, AInput, ASelect, ATextarea, Callout, Card, ConfirmDialog, DataTable, DescList, FieldRow, StatusBadge, type Column } from '../../../../shared/ui/admin';
 import { Modal } from '../../../../shared/ui/Modal';
 import { StateBlock } from '../../../../shared/ui/StateBlock';
@@ -33,6 +34,7 @@ const enrollCols = (total: number, memberId: string, memberName: string): Column
   { key: 'name', header: <>{tr('이름', 'Name')}<br />ID</>, render: (r) => <>{r.memberName ?? memberName}<br /><small className="muted">{memberId}</small></> },
   { key: 'course', header: <>{tr('과정명', 'Course')}<br />{tr('수강기간', 'Period')}</>, render: (r) => <><small style={{ color: r.packageYN === 'Y' ? 'var(--info, #1e6bd6)' : 'var(--muted, #888)' }}>[{r.packageYN === 'Y' ? tr('패키지', 'Package') : tr('단과', 'Single')}]</small> <b title={r.lectureCode}>{r.courseName}</b><br /><small>{r.period.start} ~ {r.period.end}</small></> },
   { key: 'percent', header: tr('진도율', 'Progress'), align: 'center', render: (r) => <Link to={`/admin/studies/${r.studySeq}`} title={`${r.formatted} · ${tr('저장값', 'stored')} ${r.storedProgress}%`}>{r.percent}%</Link> },
+  { key: 'log', header: tr('진도 로그', 'Progress log'), align: 'center', render: (r) => <AButton size="xs" to={`/admin/studies/${r.studySeq}#learning`}>{tr('보기', 'View')}</AButton> },
   { key: 'passOk', header: tr('수료여부', 'Completion'), align: 'center', render: (r) => (r.passOkRaw === 'Y' ? <StatusBadge tone="ok">{tr('수료', 'Completed')}</StatusBadge> : r.passOkRaw === 'N' ? <StatusBadge tone="warn">{tr('미수료', 'Not completed')}</StatusBadge> : '') },
   { key: 'studyEnd', header: tr('수강마감', 'Closed'), align: 'center', render: (r) => (r.studyEnd ? <><StatusBadge tone="info">{tr('마감완료', 'Closed')}</StatusBadge>{r.studyEndInPeriod ? <><br /><small style={{ color: 'var(--warn, #c77700)' }}>{tr('기간중', 'In period')}</small></> : null}</> : <StatusBadge tone="warn">{tr('미마감', 'Open')}</StatusBadge>) },
   { key: 'tutor', header: tr('교·강사', 'Tutor'), render: (r) => r.tutorName ?? '' },
@@ -78,6 +80,8 @@ export default function MemberDetailPage() {
   const savePhone = useAdminMutation({ fn: (v: { idx: number | null; Category: string; Name: string; Contents: string; Status: string }) => { const { idx, ...b } = v; return idx ? adminMembersParityApi.updateCounselPhone(id, idx, b) : adminMembersParityApi.createCounselPhone(id, b); }, success: tr('처리되었습니다.', 'Saved.'), invalidate, onSuccess: () => setPhone(null) });
   const removePhone = useAdminMutation({ fn: (idx: number) => adminMembersParityApi.removeCounselPhone(id, idx), success: tr('처리되었습니다.', 'Deleted.'), invalidate, onSuccess: () => setPhone(null) });
   const [csvBusy, setCsvBusy] = useState(false);
+  const [xlsBusy, setXlsBusy] = useState(false);
+  const learningXls = async () => { setXlsBusy(true); try { await adminStudiesParityApi.downloadProgressExcel(id); } catch (e) { toast(errorMessage(e), { tone: 'danger' }); } finally { setXlsBusy(false); } };
   const phoneCsv = async () => { setCsvBusy(true); try { await adminMembersParityApi.downloadCounselPhoneCsv(id); } catch (e) { toast(errorMessage(e), { tone: 'danger' }); } finally { setCsvBusy(false); } };
 
   const masked = (field: RevealKey, value: string | null | undefined) => {
@@ -187,7 +191,7 @@ export default function MemberDetailPage() {
             <DataTable columns={phoneCols} rows={d.counselPhone} rowKey={(r) => r.idx} onRowClick={canWrite ? (r) => setPhone({ idx: r.idx, Category: r.category ?? '', Name: r.name ?? '', Contents: r.contents, Status: r.status ?? '' }) : undefined} emptyTitle={tr('전화상담 내역이 없습니다.', 'No phone counselling.')} dense />
           </Card>
           <Card title={tr('1:1 문의 내역', '1:1 inquiries')}><DataTable columns={inquiryCols} rows={d.inquiries} rowKey={(r) => r.idx} emptyTitle={tr('1:1 문의 내역이 없습니다.', 'No inquiries.')} dense /></Card>
-          <Card title={tr('수강 내역', 'Enrollments')} aside={<span className="muted" style={{ fontSize: 12 }}>{tr('진도율 = 학습시간 ÷ 15시간 (패키지는 하위 과정 합산)', 'Progress = study time ÷ 15h (package: sub-courses summed)')}</span>}>
+          <Card title={tr('수강 내역', 'Enrollments')} aside={<span style={{ display: 'inline-flex', gap: 10, alignItems: 'center' }}><span className="muted" style={{ fontSize: 12 }}>{tr('진도율 = 학습시간 ÷ 15시간 (패키지는 하위 과정 합산) · 진도 로그 보기 = 차시별 학습 기록', 'Progress = study time ÷ 15h (package: sub-courses summed) · View = per-chapter log')}</span><AButton size="sm" loading={xlsBusy} onClick={() => void learningXls()}>{tr('학습내역 엑셀 출력', 'Learning record CSV')}</AButton></span>}>
             {scroll(500, <DataTable columns={enrollCols(d.enrollments.length, p.id, p.name ?? '')} rows={d.enrollments} rowKey={(r) => r.studySeq} emptyTitle={tr('수강 내역이 없습니다.', 'No enrollments.')} dense />)}
           </Card>
         </div>

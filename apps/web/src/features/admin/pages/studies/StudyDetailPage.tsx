@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { adminApi } from '../../../../shared/api/endpoints/admin';
@@ -10,7 +10,8 @@ import { Skeleton } from '../../../../shared/ui/Skeleton';
 import { chapterColumns, dailyColumns } from '../../../manager/pages/TraineeDetailPage';
 import { tr } from '../../../../shared/i18n/adminLang';
 import { adm, studyTime } from '../../strings';
-import { legacyAdminHref, openLegacy } from '../learning/learningShared';
+import { useToast } from '../../../../app/providers/ToastProvider';
+import { errorMessage } from '../../useAdminMutation';
 import { CertificateDialog, ChapterTicks, DayTimeDialog, GrantDialog, PostCellView, PreCellView, PreResumeDialog } from './studies-parity-dialogs';
 
 const c = adm.studies.detail;
@@ -94,6 +95,11 @@ export default function StudyDetailPage() {
   const q = useQuery({ queryKey: ['admin', 'studies', 'detail', n], queryFn: ({ signal }) => adminStudiesParityApi.detail(n, signal), enabled: Number.isFinite(n) && n > 0 });
   const d = q.data;
   const [openRow, setOpenRow] = useState<LearningRow | null>(null);
+  const { toast } = useToast();
+  const [xlsBusy, setXlsBusy] = useState<'excel' | 'log' | null>(null);
+  const runCsv = async (kind: 'excel' | 'log', run: () => Promise<void>) => { setXlsBusy(kind); try { await run(); } catch (e) { toast(errorMessage(e), { tone: 'danger' }); } finally { setXlsBusy(null); } };
+  // /admin/studies/:seq#learning (from the member page's 진도 로그 button) scrolls to the 학습 내역 block once it renders
+  useEffect(() => { if (d && window.location.hash === '#learning') document.getElementById('learning')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [d]);
   const [dayTime, setDayTime] = useState<number | null>(null);
   const [cert, setCert] = useState<number | null>(null);
   const [resume, setResume] = useState<number | null>(null);
@@ -127,12 +133,12 @@ export default function StudyDetailPage() {
             </Card>
           ) : null}
           {d.learning ? (
-            <Card title={tr('학습 내역', 'Learning record')} aside={<AButton size="sm" onClick={() => openLegacy(legacyAdminHref('study_progress_excel.php', { id: d.id }))}>{tr('학습내역 엑셀 출력 (기존 사이트)', 'Excel (previous site)')}</AButton>}>
+            <div id="learning" style={{ scrollMarginTop: 160 }}><Card title={tr('학습 내역 (차시를 누르면 진도 로그)', 'Learning record (click a chapter for its log)')} aside={<span style={{ display: 'inline-flex', gap: 6 }}><AButton size="sm" loading={xlsBusy === 'excel'} onClick={() => void runCsv('excel', () => adminStudiesParityApi.downloadProgressExcel(d.id))}>{tr('학습내역 엑셀 출력', 'Learning record CSV')}</AButton><AButton size="sm" loading={xlsBusy === 'log'} onClick={() => void runCsv('log', () => adminStudiesParityApi.downloadProgressLogCsv([n]))}>{tr('진도로그 엑셀 출력', 'Progress log CSV')}</AButton></span>}>
               <DataTable columns={learningCols} rows={d.learning.items} rowKey={(r) => `${r.lectureCode}-${r.rowStudySeq}-${r.chapterSeq}`} dense size={200} onRowClick={(r) => setOpenRow(openRow && openRow.chapterSeq === r.chapterSeq && openRow.rowStudySeq === r.rowStudySeq ? null : r)} selectedKey={openRow ? `${openRow.lectureCode}-${openRow.rowStudySeq}-${openRow.chapterSeq}` : null}
                 emptyTitle={tr('학습 내역이 없습니다.', 'No learning record.')} emptyBody=" "
                 footer={d.learning.items.length ? <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13, padding: '6px 4px' }}><span>{tr(`합계 (전체 ${d.learning.sum.chapters}차시 · 15시간=54,000초 기준)`, `Total (${d.learning.sum.chapters} chapters · 15 h = 54,000 s)`)}</span><b>{d.learning.sum.label} ({d.learning.sum.seconds.toLocaleString('ko-KR')}{tr('초', ' s')})</b><StatusBadge tone={d.learning.sum.met ? 'ok' : 'warn'}>{d.learning.sum.met ? tr('수강시간 충족', '15 h met') : tr('수강시간 미달', '15 h not met')}</StatusBadge></div> : undefined} />
               {openRow ? <ChapterTicks key={`${openRow.rowStudySeq}-${openRow.chapterSeq}`} seq={n} lectureCode={openRow.lectureCode} studySeq={openRow.rowStudySeq} chapterSeq={openRow.chapterSeq} /> : <p className="muted" style={{ fontSize: 12, margin: '6px 0 0' }}>{tr('행을 누르면 그 차시의 상세 로그(틱)를 펼칩니다.', 'Click a row to open its tick log.')}</p>}
-            </Card>
+            </Card></div>
           ) : null}
           {d.scores ? (
             <Card title={tr('저장된 평가 점수 (Study)', 'Stored evaluation scores')}>
