@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { adminSiteCmsApi } from '../../../../shared/api/endpoints/admin-site-cms';
-import { AButton, ACheckbox, AdminPage, AInput, Callout, Card, DescList, FieldRow } from '../../../../shared/ui/admin';
+import { AButton, ACheckbox, AdminPage, AInput, Card, DescList, FieldRow } from '../../../../shared/ui/admin';
 import { isAppError } from '../../../../shared/api/client';
 import { useToast } from '../../../../app/providers/ToastProvider';
 import { tr } from '../../../../shared/i18n/adminLang';
-import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
 import { adm } from '../../strings';
 import { joinPhone, splitPhone, staffPasswordError } from './siteCms.helpers';
@@ -13,10 +12,12 @@ import { joinPhone, splitPhone, staffPasswordError } from './siteCms.helpers';
 interface Form { Team: string; Mobile: [string, string, string]; Phone: [string, string, string]; Email: string; BankName: string; BankNumber: string; PwdChange: boolean; Passwd: string; Passwd2: string; Current: string }
 const EMPTY: Form = { Team: '', Mobile: ['', '', ''], Phone: ['', '', ''], Email: '', BankName: '', BankNumber: '', PwdChange: false, Passwd: '', Passwd2: '', Current: '' };
 
-/** my_info.php / my_info_script.php — 정보변경 (the signed-in staff member edits their own StaffInfo row). */
+/**
+ * my_info.php / my_info_script.php — 정보변경 (the signed-in staff member edits their own StaffInfo row).
+ * Not behind useWriteGate(): every department, including 영업 (B, otherwise read-only), may save its own profile, as the PHP allowed.
+ */
 export default function MyInfoPage() {
   const { toast } = useToast();
-  const { canWrite, readOnlyTitle } = useWriteGate();
   const me = useQuery({ queryKey: ['admin', 'my-info'], queryFn: ({ signal }) => adminSiteCmsApi.myInfo(signal) });
   const [f, setF] = useState<Form>(EMPTY);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -49,7 +50,6 @@ export default function MyInfoPage() {
   const d = me.data;
   return (
     <AdminPage title={tr('정보변경', 'My profile')} lead={tr('로그인한 운영자 본인의 소속·연락처·이메일·계좌·비밀번호를 변경합니다.', 'Edit your own team, contact details, bank account and password.')}>
-      {!canWrite ? <Callout tone="warn">{readOnlyTitle}</Callout> : null}
       {d ? (
         <div style={{ display: 'grid', gap: 12, maxWidth: 860 }}>
           <Card title={tr('계정', 'Account')}>
@@ -69,9 +69,9 @@ export default function MyInfoPage() {
               <FieldRow label={tr('휴대폰', 'Mobile')} htmlFor="mi-mobile" required error={errors.Mobile}>{tri('Mobile', 'mi-mobile')}</FieldRow>
               <FieldRow label={tr('연락처', 'Phone')} htmlFor="mi-phone" error={errors.Phone}>{tri('Phone', 'mi-phone')}</FieldRow>
               {d.showBank ? <FieldRow label={tr('계좌정보', 'Bank account')}><div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>{tr('은행명', 'Bank')} : <AInput aria-label={tr('은행명', 'Bank')} value={f.BankName} maxLength={50} style={{ width: 140 }} onChange={(e) => setF({ ...f, BankName: e.target.value })} /> {tr('계좌번호', 'Account no.')} : <AInput aria-label={tr('계좌번호', 'Account no.')} value={f.BankNumber} maxLength={50} style={{ width: 260 }} onChange={(e) => setF({ ...f, BankNumber: e.target.value })} /></div></FieldRow> : null}
-              <FieldRow label={tr('이메일', 'E-mail')} htmlFor="mi-email" required error={errors.Email}><AInput id="mi-email" type="email" value={f.Email} maxLength={50} onChange={(e) => setF({ ...f, Email: e.target.value })} /></FieldRow>
+              <FieldRow label={tr('이메일', 'E-mail')} htmlFor="mi-email" required error={errors.Email}><AInput id="mi-email" type="text" inputMode="email" value={f.Email} maxLength={50} onChange={(e) => setF({ ...f, Email: e.target.value })} /></FieldRow>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}><AButton variant="primary" disabled={!canWrite} title={readOnlyTitle} loading={save.isPending} onClick={submit}>{tr('수정 하기', 'Save')}</AButton></div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}><AButton variant="primary" loading={save.isPending} onClick={submit}>{tr('수정 하기', 'Save')}</AButton></div>
           </Card>
         </div>
       ) : me.isError ? <p className="muted">{adm.common.failed}</p> : <p className="muted">{adm.common.loading}</p>}

@@ -62,8 +62,10 @@ const MemberDetailPage = lazy(() => import('./pages/members/MemberDetailPage'));
 const CompaniesPage = lazy(() => import('./pages/companies/CompaniesPage'));
 const CompanyDetailPage = lazy(() => import('./pages/companies/CompanyDetailPage'));
 const CompanyImportPage = lazy(() => import('./pages/companies/CompanyImportPage'));
+const CompanyByCodePage = lazy(() => import('./pages/companies/CompanyByCodePage'));
 const StudiesPage = lazy(() => import('./pages/studies/StudiesPage'));
 const StudyDetailPage = lazy(() => import('./pages/studies/StudyDetailPage'));
+const StudyCertificatePrintPage = lazy(() => import('./pages/studies/StudyCertificatePrintPage'));
 const MonitoringDailyPage = lazy(() => import('./pages/studies/MonitoringPages').then((m) => ({ default: m.MonitoringDailyPage })));
 const MonitoringOverlapPage = lazy(() => import('./pages/studies/MonitoringPages').then((m) => ({ default: m.MonitoringOverlapPage })));
 const MonitoringAbnormalPage = lazy(() => import('./pages/studies/MonitoringPages').then((m) => ({ default: m.MonitoringAbnormalPage })));
@@ -74,6 +76,9 @@ const ContentsPage = lazy(() => import('./pages/courses/ContentsPage'));
 const ContentDetailPage = lazy(() => import('./pages/courses/ContentDetailPage'));
 const CategoriesPage = lazy(() => import('./pages/courses/CategoriesPage'));
 const ListsPage = lazy(() => import('./pages/courses/ListsPage'));
+const ContentsExcelPage = lazy(() => import('./pages/courses/ContentsExcelPage'));
+const CourseExcelPage = lazy(() => import('./pages/courses/CourseExcelPage'));
+const ChapterExcelPage = lazy(() => import('./pages/courses/ChapterExcelPage'));
 const NoticesPage = lazy(() => import('./pages/community/NoticesPage'));
 const FaqsPage = lazy(() => import('./pages/community/FaqsPage'));
 const InquiriesPage = lazy(() => import('./pages/community/InquiryPages').then((m) => ({ default: m.InquiriesPage })));
@@ -182,9 +187,11 @@ export const adminRouteTree: RouteObject = {
           { path: 'learning/certificates/print', element: el(<CertificatePrintPage />) },
           { path: 'companies', element: grant('A1', <CompaniesPage />) },
           { path: 'companies/import', element: grant('A1', <CompanyImportPage />) },
+          { path: 'companies/by-code/:code', element: grant('A1', <CompanyByCodePage />) },
           { path: 'companies/:idx', element: grant('A1', <CompanyDetailPage />) },
           { path: 'studies', element: grant('B5', <StudiesPage />) },
           { path: 'studies/:seq', element: grant('B5', <StudyDetailPage />) },
+          { path: 'studies/:seq/certificate/print', element: grant('B5', <StudyCertificatePrintPage />) },
           { path: 'monitoring/daily', element: grant('B3', <MonitoringDailyPage />) },
           { path: 'monitoring/overlap', element: grant('B1', <MonitoringOverlapPage />) },
           { path: 'monitoring/abnormal', element: grant('B1', <MonitoringAbnormalPage />) },
@@ -192,13 +199,16 @@ export const adminRouteTree: RouteObject = {
           { path: 'emon/pending', element: grant('B1', <EmonPendingPage />) },
           { path: 'emon/diagnosis', element: grant('B1', <EmonDiagnosisPage />) },
           { path: 'emon/preview/:job', element: grant('B1', <EmonPreviewPage />) },
-          { path: 'courses', element: grant('D1', <CoursesPage />) },
-          { path: 'courses/:idx', element: grant('D1', <CourseEditPage />) },
-          { path: 'courses/:lectureCode/chapters', element: grant('D1', <CourseChaptersPage />) },
-          { path: 'contents', element: grant('D1', <ContentsPage />) },
-          { path: 'contents/:idx', element: grant('D1', <ContentDetailPage />) },
+          { path: 'courses', element: el(<CoursesPage />) },
+          { path: 'courses/:idx', element: el(<CourseEditPage />) },
+          { path: 'courses/:lectureCode/chapters', element: el(<CourseChaptersPage />) },
+          { path: 'contents', element: el(<ContentsPage />) },
+          { path: 'contents/:idx', element: el(<ContentDetailPage />) },
+          { path: 'courses/excel', element: el(<CourseExcelPage />) },
+          { path: 'chapters/excel', element: el(<ChapterExcelPage />) },
+          { path: 'contents/excel', element: el(<ContentsExcelPage />) },
           { path: 'categories', element: grant('D1', <CategoriesPage />) },
-          { path: 'lists', element: grant('D1', <ListsPage />) },
+          { path: 'lists', element: el(<ListsPage />) },
           { path: 'notices', element: grant('F1', <NoticesPage />) },
           { path: 'faqs', element: grant('F2', <FaqsPage />) },
           { path: 'inquiries', element: grant('E7', <InquiriesPage />) },

@@ -1,10 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { adminApi } from '../../../../shared/api/endpoints/admin';
 import type { CompanyRow } from '../../../../shared/api/schemas';
 import { useSearchState } from '../../../../shared/utils/useSearchState';
-import { AButton, AdminPage, AInput, ASelect, DataTable, DetailDrawer, FilterBar, FilterField, StatusBadge, type Column, type SortState } from '../../../../shared/ui/admin';
+import { AButton, AdminPage, AInput, ASelect, ConfirmDialog, DataTable, DetailDrawer, FilterBar, FilterField, StatusBadge, type Column, type SortState } from '../../../../shared/ui/admin';
 import { isAppError } from '../../../../shared/api/client';
 import { useToast } from '../../../../app/providers/ToastProvider';
 import { useWriteGate } from '../../GrantGate';
@@ -24,6 +24,9 @@ export default function CompaniesPage() {
   const [p, setP, reset] = useSearchState(DEFAULTS);
   const [form, setForm] = useState({ q: p.q, col: p.col, scale: p.scale, salesManager: p.salesManager, sendSMS: p.sendSMS });
   const navigate = useNavigate();
+  const location = useLocation();
+  /** company_read.php 목록 keeps pg/sw/col: the detail page returns to this exact list URL. */
+  const openDetail = (idx: number) => navigate(`/admin/companies/${idx}`, { state: { listSearch: location.search } });
   const { toast } = useToast();
   const { canWrite, readOnlyTitle } = useWriteGate();
   const query = useMemo(() => ({ q: p.q || undefined, col: p.col, scale: p.scale || undefined, salesManager: p.salesManager || undefined, sendSMS: p.sendSMS || undefined, sort: p.sort, page: p.page, size: SIZE }), [p]);
@@ -67,13 +70,17 @@ export default function CompaniesPage() {
   const [availBlocked, setAvailBlocked] = useState(false);
   const create = useAdminMutation({
     fn: (body: Record<string, unknown>) => adminApi.createCompany(body), invalidate: [['admin', 'companies']], success: s.form.created,
-    onSuccess: (r) => { setCreateOpen(false); setValues(emptyValues()); if (r.idx) navigate(`/admin/companies/${r.idx}`); },
+    onSuccess: (r) => { setConfirmOpen(false); setCreateOpen(false); setValues(emptyValues()); if (r.idx) openDetail(r.idx); },
     onError: (err) => {
+      setConfirmOpen(false);
       if (isAppError(err) && Array.isArray(err.details)) { const e: FormErrors = {}; for (const d of err.details as { path?: string; message?: string }[]) if (d.path) e[d.path as keyof FormErrors] = d.message ?? ''; setErrors(e); }
       toast(isAppError(err) ? err.message : adm.common.failed, { tone: 'danger' });
     },
   });
-  const submitCreate = () => { const e = validateCompanyForm(values, 'create'); setErrors(e); if (Object.keys(e).length || availBlocked) return; create.mutate(toCreateBody(values)); };
+  // company_write.php: validate, then confirm('등록 하시겠습니까?') before submitting; '다시 작성' restores the blank form.
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const submitCreate = () => { const e = validateCompanyForm(values, 'create'); setErrors(e); if (Object.keys(e).length || availBlocked) return; setConfirmOpen(true); };
+  const resetCreate = () => { setValues(emptyValues()); setErrors({}); };
 
   const salesOptions = useMemo(() => [{ value: '', label: adm.common.all }, ...(meta.data?.salesManagers ?? []).map((m) => ({ value: m.id, label: `${m.name ?? m.id} (${m.team ?? m.deptName ?? m.id})` }))], [meta.data]);
   const scaleOptions = useMemo(() => [{ value: '', label: tr('-회사규모 선택-', '- any size -') }, ...(meta.data?.scales ?? [])], [meta.data]);
@@ -82,7 +89,7 @@ export default function CompaniesPage() {
     <AdminPage title={s.title} lead={s.lead}
       actions={<><AButton to="/admin/companies/import" disabled={!canWrite} title={readOnlyTitle}>{s.actions.import}</AButton><AButton variant="primary" disabled={!canWrite} title={readOnlyTitle} onClick={() => { setValues(emptyValues()); setErrors({}); setCreateOpen(true); }}>{s.actions.new}</AButton></>}>
       <FilterBar onSubmit={() => setP(form, true)} onReset={() => { setForm({ q: '', col: 'all', scale: '', salesManager: '', sendSMS: '' }); reset(); }}
-        extra={<AButton onClick={() => void exportCsv()} loading={exporting} disabled={!list.data || total === 0}>{s.actions.export}</AButton>}>
+        extra={canWrite ? <AButton onClick={() => void exportCsv()} loading={exporting} disabled={!list.data || total === 0}>{s.actions.export}</AButton> : undefined}>
         <FilterField label={s.filters.scale} htmlFor="co-scale" width={170}><ASelect id="co-scale" value={form.scale} onChange={(e) => setForm({ ...form, scale: e.target.value })} options={scaleOptions} /></FilterField>
         <FilterField label={s.filters.col} htmlFor="co-col" width={130}><ASelect id="co-col" value={form.col} onChange={(e) => setForm({ ...form, col: e.target.value })} options={s.searchCols} /></FilterField>
         <FilterField label={s.filters.q} htmlFor="co-q" width={260}><AInput id="co-q" value={form.q} placeholder={tr('검색어를 입력하세요', 'Enter a keyword')} onChange={(e) => setForm({ ...form, q: e.target.value })} /></FilterField>
@@ -91,12 +98,14 @@ export default function CompaniesPage() {
         <FilterField label={s.filters.sort} htmlFor="co-sort" width={130}><ASelect id="co-sort" value={p.sort} onChange={(e) => setP({ sort: e.target.value }, true)} options={s.sorts} /></FilterField>
       </FilterBar>
       <DataTable columns={columns} rows={list.data?.items} rowKey={(r) => r.idx} loading={list.isPending || list.isFetching} error={list.error} onRetry={() => void list.refetch()} emptyTitle={s.empty}
-        sort={sort} onSortChange={onSortChange} page={p.page} size={SIZE} total={total} onPageChange={(n) => setP({ page: n })} onRowClick={(r) => navigate(`/admin/companies/${r.idx}`)} dense />
+        sort={sort} onSortChange={onSortChange} page={p.page} size={SIZE} total={total} onPageChange={(n) => setP({ page: n })} onRowClick={(r) => openDetail(r.idx)} dense />
 
       <DetailDrawer open={createOpen} onClose={() => setCreateOpen(false)} title={s.form.createTitle} wide
-        footer={<><AButton onClick={() => setCreateOpen(false)}>{adm.common.cancel}</AButton><AButton variant="primary" loading={create.isPending} disabled={!canWrite || availBlocked} title={readOnlyTitle} onClick={submitCreate}>{adm.common.create}</AButton></>}>
+        footer={<><AButton onClick={() => setCreateOpen(false)}>{adm.common.cancel}</AButton><AButton onClick={resetCreate} disabled={!canWrite}>{tr('다시 작성', 'Reset')}</AButton><AButton variant="primary" loading={create.isPending} disabled={!canWrite || availBlocked} title={readOnlyTitle} onClick={submitCreate}>{adm.common.create}</AButton></>}>
         <CompanyForm mode="create" values={values} onChange={setValues} meta={meta.data} errors={errors} onAvailability={setAvailBlocked} disabled={!canWrite} />
       </DetailDrawer>
+      <ConfirmDialog open={confirmOpen} tone="info" title={tr('등록 하시겠습니까?', 'Register this company?')} body={<p>{values.CompanyName} <span className="mono">{values.CompanyCode}</span></p>} confirmLabel={adm.common.create}
+        loading={create.isPending} onCancel={() => setConfirmOpen(false)} onConfirm={() => create.mutate(toCreateBody(values))} />
     </AdminPage>
   );
 }

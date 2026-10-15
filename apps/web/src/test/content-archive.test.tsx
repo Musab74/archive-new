@@ -37,7 +37,7 @@ function apiMock() {
     const url = String(input); const method = init?.method ?? 'GET';
     calls.push(`${method} ${url.replace(/^.*\/v1/, '')}`);
     if (url.endsWith('/admin/archive-questions/meta')) return json(questionMeta);
-    if (url.includes('/admin/archive-questions/11')) return json({ question: questions.items[0], answers: 3 });
+    if (url.includes('/admin/archive-questions/11')) return method === 'GET' ? json({ question: questions.items[0], answers: 3 }) : json({ ok: true, updated: 1, fields: [] });
     if (url.includes('/admin/archive-questions')) return json(questions);
     if (url.includes('/admin/ability-results')) return json(abilityPage);
     if (url.includes('/admin/satisfaction-results')) return json(satisfactionPage);
@@ -59,8 +59,8 @@ const mount = (el: ReactElement, path = '/x') => {
 };
 
 describe('컨텐츠관리 · 아카이브 pages', () => {
-  beforeEach(() => { calls.length = 0; adminTokenStore.set('adm', 900); vi.stubGlobal('fetch', apiMock()); });
-  afterEach(() => { vi.unstubAllGlobals(); adminTokenStore.clear(); });
+  beforeEach(() => { calls.length = 0; adminTokenStore.set('adm', 900); vi.stubGlobal('fetch', apiMock()); vi.spyOn(window, 'confirm').mockReturnValue(true); });
+  afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); adminTokenStore.clear(); });
 
   it('역량진단 문항관리: legacy columns, 사후 (만족도) label, detail drawer with answers and edit form', async () => {
     mount(<AbilityQuestionsPage />);
@@ -77,6 +77,17 @@ describe('컨텐츠관리 · 아카이브 pages', () => {
     expect(screen.getByRole('textbox', { name: /^문항(?! 상세)/ })).toHaveValue('의사소통');
     expect(screen.getByRole('spinbutton', { name: /^순서/ })).toHaveValue(1);
     expect(calls.some((c) => c.startsWith('GET /admin/archive-questions/11'))).toBe(true);
+    expect(calls.find((c) => c.startsWith('GET /admin/archive-questions?'))).toContain('size=30'); // $page_size = 30
+    // 다시 작성 restores the stored values; 저장 asks "수정 하시겠습니까?" first
+    fireEvent.change(screen.getByRole('textbox', { name: /^문항(?! 상세)/ }), { target: { value: '바뀐 문항' } });
+    fireEvent.click(screen.getByRole('button', { name: '다시 작성' }));
+    expect(screen.getByRole('textbox', { name: /^문항(?! 상세)/ })).toHaveValue('의사소통');
+    (window.confirm as unknown as ReturnType<typeof vi.fn>).mockReturnValueOnce(false);
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    expect(window.confirm).toHaveBeenCalledWith('수정 하시겠습니까?');
+    expect(calls.some((c) => c.startsWith('PATCH '))).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: '저장' }));
+    await waitFor(() => expect(calls).toContain('PATCH /admin/archive-questions/11'));
   });
 
   it('역량진단관리: date filters, 11 legacy columns, study time and the 30-day cap notice; export button calls the CSV endpoint', async () => {
@@ -87,8 +98,9 @@ describe('컨텐츠관리 · 아카이브 pages', () => {
     expect(screen.getByText('01시간 01분')).toBeInTheDocument();
     expect(screen.getByText('★ ★ ★ ★')).toBeInTheDocument();
     expect(screen.getByText(/시작일이 2026-09-12로 자동 조정/)).toBeInTheDocument();
-    expect(screen.getByLabelText('등록일 시작')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByLabelText('등록일 시작')).toHaveValue('2026-09-12')); // the capped start, as the PHP input shows it
     const list = calls.find((c) => c.startsWith('GET /admin/ability-results?'))!;
+    expect(list).toContain('size=30');
     expect(list).toContain('from=2026-01-01'); expect(list).toContain('to=2026-10-12');
     fireEvent.click(screen.getByRole('button', { name: /검색항목 엑셀/ }));
     await waitFor(() => expect(calls.some((c) => c.startsWith('GET /admin/ability-results/export'))).toBe(true));
@@ -100,6 +112,27 @@ describe('컨텐츠관리 · 아카이브 pages', () => {
     expect(await screen.findByText('★ ★ ★ ★ ★')).toBeInTheDocument();
     for (const h of ['번호', '아이디', '이름', '순서', '문항', '만족도', '등록일']) expect(screen.getByRole('columnheader', { name: h })).toBeInTheDocument();
     expect(screen.getByText(/1건 \(2026-10-12 ~ 2026-10-12\)/)).toBeInTheDocument();
+    // the date inputs show the resolved range (today by default), like value="<?=$RegDateStart?>"
+    await waitFor(() => expect(screen.getByLabelText('등록일 시작')).toHaveValue('2026-10-12'));
+    expect(screen.getByLabelText('등록일 종료')).toHaveValue('2026-10-12');
+    expect(calls.find((c) => c.startsWith('GET /admin/satisfaction-results?'))).toContain('size=30');
+  });
+
+  it('만족도조사: 초기화 after the default (today) search puts today back into the date inputs, like satisfaction_manager.php', async () => {
+    mount(<SatisfactionPage />);
+    await waitFor(() => expect(screen.getByLabelText('등록일 시작')).toHaveValue('2026-10-12'));
+    fireEvent.click(screen.getByRole('button', { name: '초기화' }));
+    // the form is cleared and the query (and its resolved range) stays the same — the inputs must still show the range
+    await waitFor(() => expect(screen.getByLabelText('등록일 시작')).toHaveValue('2026-10-12'));
+    expect(screen.getByLabelText('등록일 종료')).toHaveValue('2026-10-12');
+  });
+
+  it('역량진단관리: 초기화 after a capped search shows the resolved (capped) range of the default search', async () => {
+    mount(<AbilityResultsPage />, '/x?from=2026-01-01&to=2026-10-12');
+    await waitFor(() => expect(screen.getByLabelText('등록일 시작')).toHaveValue('2026-09-12'));
+    fireEvent.click(screen.getByRole('button', { name: '초기화' }));
+    await waitFor(() => expect(screen.getByLabelText('등록일 시작')).toHaveValue('2026-09-12'));
+    expect(screen.getByLabelText('등록일 종료')).toHaveValue('2026-10-12');
   });
 
   it('컨텐츠 키워드 관리: categories → keyword list, move + 정렬하기 sends the new order, 추가 하기 posts to the API', async () => {
@@ -111,17 +144,25 @@ describe('컨텐츠관리 · 아카이브 pages', () => {
     const kwTable = within(screen.getAllByRole('table')[1]!);
     for (const h of ['번호', '정렬순서', '키워드', '사이트노출', '등록일자', '수정일자', 'idx']) expect(kwTable.getByRole('columnheader', { name: h })).toBeInTheDocument();
     const save = screen.getByRole('button', { name: '정렬하기' });
-    expect(save).toBeDisabled();
+    expect(save).toBeEnabled(); // like the PHP: 정렬하기 numbers every row 1..n even without moving one
     fireEvent.click(screen.getAllByRole('button', { name: '아래로' })[0]!);
-    expect(save).toBeEnabled();
     fireEvent.click(save);
+    expect(window.confirm).toHaveBeenCalledWith('정렬하시겠습니까?');
     await waitFor(() => expect(calls).toContain('PUT /admin/content-keywords/order'));
     fireEvent.click(screen.getByRole('button', { name: '추가 하기' }));
     const drawer = await screen.findByRole('heading', { name: '컨텐츠 키워드 등록' });
     expect(drawer).toBeInTheDocument();
     fireEvent.change(screen.getByRole('textbox', { name: /^키워드/ }), { target: { value: '마케팅' } });
     fireEvent.click(screen.getByRole('button', { name: '등록' }));
+    expect(window.confirm).toHaveBeenCalledWith('등록하시겠습니까?');
     await waitFor(() => expect(calls).toContain('POST /admin/content-keywords'));
+  });
+
+  it('컨텐츠 키워드 관리: 키워드개수 is COUNT(Category) with deleted rows, like contents_keyword.php', async () => {
+    mount(<ContentKeywordsPage />);
+    const row = (await screen.findByText('직무분야')).closest('tr')!;
+    expect(within(row).getByText('5')).toBeInTheDocument();
+    expect(within(row).getByText('5')).toHaveAttribute('title', expect.stringContaining('4'));
   });
 
   it('관심강의 관리 / 과정조회 관리: legacy columns and category trail', async () => {
@@ -139,11 +180,13 @@ describe('컨텐츠관리 · 아카이브 pages', () => {
     expect(within(table).getByText('7')).toBeInTheDocument();
     expect(within(table).getByText('인사')).toBeInTheDocument();
     expect(calls.some((c) => c.startsWith('GET /admin/course-views/options'))).toBe(true);
+    expect(calls.find((c) => c.startsWith('GET /admin/course-views?'))).toContain('size=30');
+    expect(calls.find((c) => c.startsWith('GET /admin/course-likes?'))).toContain('size=30');
   });
 
   it('실시간 강의실 관리 lists ctype=R courses and points to the legacy page for the MongoDB meeting list', async () => {
     mount(<LiveCoursesPage />);
-    expect(await screen.findByRole('heading', { level: 1, name: '실시간 강의실 관리' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: '라이브 컨텐츠 관리' })).toBeInTheDocument();
     expect(await screen.findByText('라이브 특강')).toBeInTheDocument();
     expect(screen.getByText('LIVE01')).toBeInTheDocument();
     expect(screen.getByText('없음')).toBeInTheDocument();
@@ -156,6 +199,9 @@ describe('컨텐츠관리 · 아카이브 pages', () => {
     expect(await screen.findByRole('heading', { level: 1, name: '실시간 강의 관리' })).toBeInTheDocument();
     expect(screen.getByText(/HrdeLive/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /실시간 강의 생성/ })).toBeInTheDocument();
+    const open = vi.spyOn(window, 'open').mockReturnValue(null);
+    fireEvent.click(screen.getByRole('button', { name: /예정 강의 등록/ }));
+    expect(open).toHaveBeenCalledWith('https://live.hrdeedu.co.kr/instructor', '_blank', 'noopener');
     expect(screen.getByRole('link', { name: /hrd_manager\/live_class\.php/ })).toHaveAttribute('href', expect.stringContaining('live_class.php'));
     expect(calls).toHaveLength(0);
   });

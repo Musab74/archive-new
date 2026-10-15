@@ -53,8 +53,12 @@ function Questions() {
     if (!f.aValue.trim()) e.aValue = tr('문항을 입력하세요.', 'Enter the question.');
     setErrors(e); if (Object.keys(e).length) return;
     const body = { aDepth: f.aDepth || null, aGroup: f.aGroup || null, aOrder: Number(f.aOrder), aValue: f.aValue.trim(), aValueDetail: f.aValueDetail || null, aType: f.aType || null, aBind: f.aBind.trim() || null };
+    // ability_question_manager_write.php: confirm("<?=$ScriptTitle?> 하시겠습니까?")
+    if (!window.confirm(editOpen === 'create' ? tr('등록 하시겠습니까?', 'Register this question?') : tr('수정 하시겠습니까?', 'Save the changes?'))) return;
     if (editOpen === 'create') create.mutate(body); else patch.mutate(body);
   };
+  /** "다시 작성" (location.reload on the PHP form): back to the stored values (edit) or an empty form (create). */
+  const resetForm = () => { setF(editOpen === 'edit' && sel ? fromRow(sel) : empty()); setErrors({}); };
 
   const columns: Column<ArchiveQuestionRow>[] = [
     { key: 'no', header: tr('번호', 'No.'), align: 'right', width: 60, render: (_r, i) => noOf(total, p.page, SIZE, i) },
@@ -84,7 +88,7 @@ function Questions() {
       </DetailDrawer>
 
       <DetailDrawer open={!!editOpen} onClose={() => setEditOpen(null)} title={editOpen === 'create' ? tr('역량진단 문항관리 등록', 'New question') : tr('역량진단 문항관리 수정', 'Edit question')}
-        footer={<><AButton onClick={() => setEditOpen(null)}>{adm.common.cancel}</AButton><AButton variant="primary" loading={create.isPending || patch.isPending} disabled={!canWrite} onClick={submit}>{editOpen === 'create' ? adm.common.create : adm.common.save}</AButton></>}>
+        footer={<><AButton onClick={() => setEditOpen(null)}>{adm.common.cancel}</AButton><AButton onClick={resetForm} disabled={!canWrite}>{tr('다시 작성', 'Reset')}</AButton><AButton variant="primary" loading={create.isPending || patch.isPending} disabled={!canWrite} onClick={submit}>{editOpen === 'create' ? adm.common.create : adm.common.save}</AButton></>}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <FieldRow label={tr('단계', 'Step')} htmlFor="qf-depth"><ASelect id="qf-depth" value={f.aDepth} onChange={(e) => setF({ ...f, aDepth: e.target.value })} options={opt(meta.data?.depths, tr('-- 단계 선택 --', '-- step --'))} loading={meta.isPending} /></FieldRow>
           <FieldRow label={tr('타입', 'Type')} htmlFor="qf-group"><ASelect id="qf-group" value={f.aGroup} onChange={(e) => setF({ ...f, aGroup: e.target.value })} options={opt(meta.data?.groups, tr('-- 타입 선택 --', '-- type --'))} loading={meta.isPending} /></FieldRow>

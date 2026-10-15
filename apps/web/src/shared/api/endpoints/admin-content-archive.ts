@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { api } from '../client';
 import { pageOf } from '../schemas';
 import { downloadAdminFile } from './admin';
+import { CpChapterRowSchema, CpCourseDetailSchema, CpCourseMetaSchema, CpTestIdsSchema } from './admin-courses-parity';
 
 /**
  * 컨텐츠관리 (역량진단 문항관리 D3 · 역량진단관리 D4 · 만족도조사 D5) + 아카이브 (실시간 강의실 E1 · 컨텐츠 키워드 E4 · 관심강의/과정조회 E6).
@@ -50,7 +51,7 @@ export const CourseLikeRowSchema = z.object({ idx: z.number().int(), id: z.strin
 export type CourseLikeRow = z.infer<typeof CourseLikeRowSchema>;
 export const CourseViewRowSchema = z.object({ idx: z.number().int(), lectureCode: S, category1: S, category2: S, category: z.string(), keyword2: S, keyword2Name: S, courseName: S, count: z.number(), ctype: S, useYN: S, del: S });
 export type CourseViewRow = z.infer<typeof CourseViewRowSchema>;
-export const CourseViewOptionsSchema = z.object({ category1: z.array(z.object({ idx: z.number().int(), name: z.string() })), category2: z.array(z.object({ idx: z.number().int(), parent: z.number().int(), name: z.string() })), keyword2: z.array(z.object({ idx: z.number().int(), name: z.string() })) });
+export const CourseViewOptionsSchema = z.object({ category1: z.array(z.object({ idx: z.number().int(), name: z.string() })), category2: z.array(z.object({ idx: z.number().int(), parent: z.number().int(), name: z.string() })), keyword2: z.array(z.object({ idx: z.number().int(), name: z.string(), del: z.boolean().optional() })) });
 export type CourseViewOptions = z.infer<typeof CourseViewOptionsSchema>;
 
 export const LiveCourseRowSchema = z.object({
@@ -58,6 +59,27 @@ export const LiveCourseRowSchema = z.object({
   mobile: S, mobileLabel: z.string(), useYN: S, useLabel: z.string(), professor: S, regDate: S,
 });
 export type LiveCourseRow = z.infer<typeof LiveCourseRowSchema>;
+
+/** course_write.php?ctype=R options: the course form lists + the NCS select and whether Course.NcsCode exists. */
+export const LiveMetaSchema = CpCourseMetaSchema.extend({ ncsCodes: z.array(Option), ncsColumn: z.boolean() });
+export type LiveMeta = z.infer<typeof LiveMetaSchema>;
+export const LiveCourseDetailSchema = CpCourseDetailSchema.extend({ ncsCode: S });
+export type LiveCourseDetail = z.infer<typeof LiveCourseDetailSchema>;
+export const LiveTestIdsSchema = CpTestIdsSchema;
+
+/** CourseExcelTemp row (course_excel_list.php) — the 30 template cells keep their column names. */
+const Cell = z.union([z.string(), z.number()]).nullable().optional();
+export const LIVE_EXCEL_KEYS = [
+  'ClassGrade', 'LectureCode', 'PackageLectureCode', 'UseYN', 'ContentsURLSelect', 'HrdSeq', 'Category1', 'Category2', 'ContentsName', 'Keyword1', 'Keyword2', 'Keyword3', 'Keyword4', 'Chapter', 'ContentsTime',
+  'ContentsStart', 'ContentsEnd', 'UploadDate', 'Professor', 'PassTime', 'Mobile', 'BookPrice', 'PreviewImage', 'Intro', 'EduTarget', 'EduGoal', 'Price', 'Price01View', 'Price02View', 'Price03View',
+] as const;
+export type LiveExcelKey = (typeof LIVE_EXCEL_KEYS)[number];
+export const LiveExcelRowSchema = z.object({ idx: z.number().int(), ctype: S, ServiceType: S, hrdCode: S, ...Object.fromEntries(LIVE_EXCEL_KEYS.map((k) => [k, Cell])) as Record<LiveExcelKey, typeof Cell> }).passthrough();
+export type LiveExcelRow = z.infer<typeof LiveExcelRowSchema>;
+export const LiveExcelListItemSchema = LiveExcelRowSchema.extend({ no: z.number().int(), missing: z.record(z.string(), z.enum(['error', 'optional'])), duplicate: z.enum(['course', 'temp']).nullable(), errors: z.array(z.string()), errorCount: z.number().int(), status: z.string() });
+export type LiveExcelListItem = z.infer<typeof LiveExcelListItemSchema>;
+export const LiveExcelListSchema = z.object({ items: z.array(LiveExcelListItemSchema), total: z.number().int(), errorCount: z.number().int() });
+export type LiveExcelList = z.infer<typeof LiveExcelListSchema>;
 
 export const adminContentArchiveApi = {
   // D3 역량진단 문항관리
@@ -91,4 +113,20 @@ export const adminContentArchiveApi = {
 
   // E1 실시간 강의실 관리 (MariaDB part)
   liveCourses: (query: Q, signal?: AbortSignal) => api.get('/admin/live-courses', { query, schema: pageOf(LiveCourseRowSchema), signal }),
+  downloadLiveCoursesCsv: (query: Q) => downloadAdminFile('/admin/live-courses/export', query, 'live_courses.csv'),
+  liveMeta: (signal?: AbortSignal) => api.get('/admin/live-courses/meta', { schema: LiveMetaSchema, signal }),
+  liveCourse: (idx: number, signal?: AbortSignal) => api.get(`/admin/live-courses/${idx}`, { schema: LiveCourseDetailSchema, signal }),
+  createLiveCourse: (body: Record<string, unknown>) => api.post('/admin/live-courses', body, { schema: OkSchema }),
+  patchLiveCourse: (idx: number, body: Record<string, unknown>) => api.patch(`/admin/live-courses/${idx}`, body, { schema: OkSchema }),
+  deleteLiveCourse: (idx: number) => api.delete(`/admin/live-courses/${idx}`, { schema: OkSchema }),
+  /** course_read_list.php rows for a live course (E grants; same shape as the D1 chapters API). */
+  liveChapters: (idx: number, signal?: AbortSignal) => api.get(`/admin/live-courses/${idx}/chapters`, { schema: z.array(CpChapterRowSchema), signal }),
+  liveTestIds: (idx: number, signal?: AbortSignal) => api.get(`/admin/live-courses/${idx}/test-ids`, { schema: LiveTestIdsSchema, signal }),
+  // 엑셀로 등록 (CourseExcelTemp, Ctype R)
+  liveExcelList: (signal?: AbortSignal) => api.get('/admin/live-courses/excel', { schema: LiveExcelListSchema, signal }),
+  uploadLiveExcel: (rows: Record<string, string | null>[]) => api.post('/admin/live-courses/excel', { rows }, { schema: OkSchema }),
+  liveExcelRow: (idx: number, signal?: AbortSignal) => api.get(`/admin/live-courses/excel/${idx}`, { schema: LiveExcelRowSchema, signal }),
+  patchLiveExcel: (idx: number, body: Record<string, string | number | null>) => api.patch(`/admin/live-courses/excel/${idx}`, body, { schema: OkSchema }),
+  deleteLiveExcel: (ids: number[]) => api.post('/admin/live-courses/excel/delete', { ids }, { schema: OkSchema }),
+  registerLiveExcel: (idx: number) => api.post(`/admin/live-courses/excel/${idx}/register`, {}, { schema: OkSchema }),
 };

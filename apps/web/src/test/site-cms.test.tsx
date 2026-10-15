@@ -111,8 +111,13 @@ describe('site-cms admin pages render the legacy columns from the API shapes', (
     expect(await screen.findByText('홍길동')).toBeInTheDocument();
     expect(screen.getByText('원본.pdf')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText(/작성자/), { target: { value: '관리자' } });
-    fireEvent.change(screen.getByLabelText(/답변 내용/), { target: { value: '답변 내용입니다. 15자 이상 작성합니다.' } });
+    const editor = screen.getByRole('textbox', { name: '답변 내용' });
+    editor.innerHTML = '<p>답변 내용입니다. 15자 이상 작성합니다.</p>';
+    fireEvent.input(editor);
     fireEvent.click(screen.getByRole('button', { name: '답변 하기' }));
+    expect(await screen.findByText('등록하시겠습니까?')).toBeInTheDocument();
+    expect(calls).not.toContain('PATCH /admin/archiving/3/reply');
+    fireEvent.click(screen.getByRole('button', { name: '등록' }));
     await waitFor(() => expect(calls).toContain('PATCH /admin/archiving/3/reply'));
   });
 

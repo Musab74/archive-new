@@ -59,3 +59,28 @@ export function validatePopupForm(f: { EndDate: string; Title: string; ImgWidth:
 
 /** edudata list numbering: the legacy page shows "공지" for pinned rows and counts down for the rest. */
 export const rowNumber = (total: number, page: number, size: number, index: number): number => total - (page - 1) * size - index;
+
+/** Rows per page on every hrd_manager list (include_top.php `$page_size = 30`); popup.php overrides it with 25. */
+export const LEGACY_PAGE_SIZE = 30;
+
+const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/** SmartEditor2 TEXT mode: HTML → plain text (block ends and <br> become line breaks, entities decoded, tags dropped). */
+export function htmlToPlainText(html: string): string {
+  const marked = String(html ?? '')
+    .replace(/\r\n?/g, '\n').replace(/\n/g, ' ')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|h[1-6]|tr|blockquote|pre)>/gi, '\n')
+    .replace(/<(script|style)[\s\S]*?<\/\1>/gi, '');
+  const text = marked.replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
+  return text.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').replace(/^\n+|\n+$/g, '');
+}
+
+/** SmartEditor2 TEXT → Editor: each line becomes a <p>, empty lines keep a &nbsp; paragraph. */
+export function plainTextToHtml(text: string): string {
+  const lines = String(text ?? '').replace(/\r\n?/g, '\n').split('\n');
+  if (lines.length === 1 && lines[0] === '') return '';
+  return lines.map((l) => `<p>${l ? escapeHtml(l) : '&nbsp;'}</p>`).join('');
+}
+

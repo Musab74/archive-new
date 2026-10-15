@@ -10,10 +10,10 @@ import { tr } from '../../../../shared/i18n/adminLang';
 import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
 import { adm } from '../../strings';
-import { rowNumber } from './siteCms.helpers';
+import { LEGACY_PAGE_SIZE, rowNumber } from './siteCms.helpers';
 
 const DEFAULTS = { col: 'ContentsName', q: '', page: 1 };
-const SIZE = 20;
+const SIZE = LEGACY_PAGE_SIZE; // include_top.php $page_size = 30
 
 /** survey.php / survey_read.php / survey_excel.php — 커뮤니티관리 > 수강후기 (F4). */
 export default function ReviewsPage() {
@@ -31,7 +31,7 @@ export default function ReviewsPage() {
   const [exporting, setExporting] = useState(false);
   const exportCsv = async () => {
     setExporting(true);
-    try { await adminSiteCmsApi.downloadReviewsCsv({ col: query.col, q: query.q }); }
+    try { await adminSiteCmsApi.downloadReviewsXlsx({ col: query.col, q: query.q }); }
     catch (err) { toast(isAppError(err) ? err.message : adm.common.failed, { tone: 'danger' }); }
     finally { setExporting(false); }
   };
@@ -50,7 +50,7 @@ export default function ReviewsPage() {
   return (
     <AdminPage title={tr('수강후기', 'Course reviews')} lead={tr('학습자가 남긴 수강후기 목록입니다. 행을 누르면 내용을 확인하고 삭제할 수 있습니다.', 'Reviews written by learners. Click a row to read or delete one.')}>
       <FilterBar onSubmit={() => setP(form, true)} onReset={() => { setForm({ col: 'ContentsName', q: '' }); reset(); }}
-        extra={<AButton onClick={() => void exportCsv()} loading={exporting} disabled={!list.data || total === 0}>{tr('검색항목 엑셀 출력', 'Export CSV')}</AButton>}>
+        extra={<AButton onClick={() => void exportCsv()} loading={exporting}>{tr('검색항목 엑셀 출력', 'Export to Excel')}</AButton>}>
         <FilterField label={tr('검색 항목', 'Search in')} htmlFor="rv-col" width={130}><ASelect id="rv-col" value={form.col} onChange={(e) => setForm({ ...form, col: e.target.value })} options={[{ value: 'ContentsName', label: tr('과정명', 'Course') }, { value: 'ID', label: tr('아이디', 'User ID') }, { value: 'Title', label: tr('제목', 'Title') }]} /></FilterField>
         <FilterField label={tr('검색어', 'Keyword')} htmlFor="rv-q" width={260}><AInput id="rv-q" value={form.q} onChange={(e) => setForm({ ...form, q: e.target.value })} /></FilterField>
       </FilterBar>

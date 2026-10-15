@@ -3,23 +3,27 @@ import { useNavigate } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { adminCoursesParityApi as cp, type CpContentsRow } from '../../../../shared/api/endpoints/admin-courses-parity';
 import { useSearchState } from '../../../../shared/utils/useSearchState';
-import { AButton, AdminPage, AInput, ASelect, Callout, DataTable, FilterBar, FilterField, type Column } from '../../../../shared/ui/admin';
+import { AButton, AdminPage, AInput, ASelect, DataTable, FilterBar, FilterField, type Column } from '../../../../shared/ui/admin';
 import { useToast } from '../../../../app/providers/ToastProvider';
 import { useWriteGate } from '../../GrantGate';
 import { adm } from '../../strings';
 import { tr } from '../../../../shared/i18n/adminLang';
+import { useRememberListSearch } from './courses-parity.shared';
+import { AnyGrantGate, G } from './courses-parity.grants';
 
 const DEFAULTS = { gubun: '', col: 'ContentsTitle', q: '', page: 1 };
-const SIZE = 20;
+/** include_top.php $page_size = 30 (contents.php). */
+export const SIZE = 30;
 
 /** contents.php — 기초차시 관리 목록 (차시구분 / 검색 항목 / 검색어, Gubun ASC · idx ASC). */
-export default function ContentsPage() {
+function ContentsPageBody() {
   const [p, setP] = useSearchState(DEFAULTS);
   const [form, setForm] = useState({ gubun: p.gubun, col: p.col, q: p.q });
   const navigate = useNavigate();
   const { toast } = useToast();
   const { canWrite, readOnlyTitle } = useWriteGate();
   const [exporting, setExporting] = useState(false);
+  useRememberListSearch('contents');
   const opts = useQuery({ queryKey: ['admin', 'contents-options', '', ''], queryFn: ({ signal }) => cp.contentsOptions({}, signal), staleTime: 5 * 60_000 });
   const filter = useMemo(() => ({ gubun: p.gubun || undefined, col: p.q ? p.col : undefined, q: p.q || undefined }), [p]);
   const query = useMemo(() => ({ ...filter, page: p.page, size: SIZE }), [filter, p.page]);
@@ -39,6 +43,7 @@ export default function ContentsPage() {
     <AdminPage title={tr('기초차시 관리', 'Base contents')} lead={tr('차시구분과 검색 항목(차시명/차시목표/훈련내용/학습활동)으로 찾습니다. 행을 누르면 상세 구성으로 이동합니다.', 'Filter by 차시 구분 and field. Click a row for its page composition.')}
       actions={<>
         <AButton onClick={() => void download()} loading={exporting}>{tr('검색항목 엑셀 출력', 'Export search result')}</AButton>
+        <AButton disabled={!canWrite} title={readOnlyTitle} onClick={() => navigate('/admin/contents/excel')}>{tr('엑셀로 기초차시 등록', 'Register from Excel')}</AButton>
         <AButton variant="primary" disabled={!canWrite} title={readOnlyTitle} onClick={() => navigate('/admin/contents/new')}>{tr('신규 등록', 'New')}</AButton>
       </>}>
       <FilterBar onSubmit={() => setP(form, true)} onReset={() => { setForm({ gubun: '', col: 'ContentsTitle', q: '' }); setP({ gubun: '', col: 'ContentsTitle', q: '' }, true); }}>
@@ -47,7 +52,11 @@ export default function ContentsPage() {
         <FilterField label={tr('검색어', 'Search')} htmlFor="ct-q" width={300}><AInput id="ct-q" value={form.q} onChange={(e) => setForm({ ...form, q: e.target.value })} /></FilterField>
       </FilterBar>
       <DataTable columns={columns} rows={list.data?.items} rowKey={(r) => r.idx} loading={list.isPending || list.isFetching} error={list.error} onRetry={() => void list.refetch()} page={p.page} size={SIZE} total={list.data?.total} onPageChange={(n) => setP({ page: n })} onRowClick={(r) => navigate(`/admin/contents/${r.idx}`)} emptyTitle={tr('등록된 기초차시가 없습니다.', 'No base contents.')} dense />
-      <Callout className="u-mt-8">{tr('"엑셀로 기초차시 등록"(contents_excel.php 파일 업로드 → 임시표 검수)은 아직 기존 사이트에서 진행합니다.', '"Register from Excel" (file upload → temp-table review) still runs on the previous site.')}</Callout>
     </AdminPage>
   );
+}
+
+/** 기초차시 관리 (contents.php): menu D2. */
+export default function ContentsPage() {
+  return <AnyGrantGate grants={G.contents}><ContentsPageBody /></AnyGrantGate>;
 }

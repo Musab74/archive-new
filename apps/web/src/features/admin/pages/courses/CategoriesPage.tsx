@@ -9,9 +9,14 @@ import { tr } from '../../../../shared/i18n/adminLang';
 import { useFormErrors } from './courses-parity.shared';
 
 type Cat = CpCategories['categories'][number];
+/** course_category.php puts 5 하부 카테고리 per table row: 5 equal columns when there is room, fewer on a phone. */
+export const CHILD_GRID = 'repeat(auto-fill, minmax(max(140px, calc((100% - 32px) / 5)), 1fr))';
 type Edit = { mode: 'New'; parent: Cat | null } | { mode: 'Edit'; row: Cat; parent: Cat | null };
 
-/** course_category.php — 과정 카테고리 (1차 카테고리 + 하부 카테고리, 5개씩 한 줄) with the course_category_reg.php popup as a drawer. */
+/**
+ * course_category.php — 과정 카테고리 (1차 카테고리 + 하부 카테고리, 5개씩 한 줄) with the course_category_reg.php popup as a drawer.
+ * 정렬 순서: an empty or 0 OrderByNum is prefilled with MAX+1 (PHP `!$OrderByNum`); 등록/수정 asks "등록 하시겠습니까?".
+ */
 export default function CategoriesPage() {
   const { canWrite, readOnlyTitle } = useWriteGate();
   const q = useQuery({ queryKey: ['admin', 'categories'], queryFn: ({ signal }) => cp.categories(signal) });
@@ -28,7 +33,7 @@ export default function CategoriesPage() {
             <Card key={t.idx} title={<span><b style={{ color: 'var(--danger, #c00)' }}>{t.name}</b>{t.useYN === 'N' ? unused : null}</span>}
               aside={<span style={{ display: 'inline-flex', gap: 6 }}><AButton size="xs" disabled={!canWrite} onClick={() => setEdit({ mode: 'Edit', row: t, parent: null })}>{tr('수정', 'Edit')}</AButton><AButton size="xs" disabled={!canWrite} onClick={() => setEdit({ mode: 'New', parent: t })}>{tr('하부 카테고리 추가', 'Add sub category')}</AButton></span>}>
               {t.children.length ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8, fontSize: 13 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: CHILD_GRID, gap: 8, fontSize: 13 }}>
                   {t.children.map((c) => <div key={c.idx} style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span>{c.order ?? ''}. {c.name}{c.useYN === 'N' ? unused : null}</span><AButton size="xs" disabled={!canWrite} onClick={() => setEdit({ mode: 'Edit', row: c, parent: t })}>{tr('수정', 'Edit')}</AButton></div>)}
                 </div>
               ) : <p className="muted" style={{ textAlign: 'center', margin: 0, fontSize: 13 }}>{tr('등록된 하부 카테고리가 없습니다.', 'No sub categories.')}</p>}
@@ -46,7 +51,7 @@ function CategoryDrawer({ edit, data, onClose }: { edit: Edit; data: CpCategorie
   const { errors, setErrors, onError } = useFormErrors();
   const nextOrder = edit.parent ? data.nextOrder.byParent[String(edit.parent.idx)] ?? 1 : data.nextOrder.root;
   const [f, setF] = useState({ CategoryName: '', OrderByNum: '', UseYN: 'Y' as 'Y' | 'N' });
-  useEffect(() => { setF(edit.mode === 'Edit' ? { CategoryName: edit.row.name ?? '', OrderByNum: edit.row.order != null ? String(edit.row.order) : String(nextOrder), UseYN: edit.row.useYN === 'N' ? 'N' : 'Y' } : { CategoryName: '', OrderByNum: String(nextOrder), UseYN: 'Y' }); setErrors({}); }, [edit, nextOrder, setErrors]);
+  useEffect(() => { setF(edit.mode === 'Edit' ? { CategoryName: edit.row.name ?? '', OrderByNum: edit.row.order ? String(edit.row.order) : String(nextOrder), UseYN: edit.row.useYN === 'N' ? 'N' : 'Y' } : { CategoryName: '', OrderByNum: String(nextOrder), UseYN: 'Y' }); setErrors({}); }, [edit, nextOrder, setErrors]);
   const inv = [['admin', 'categories'], ['admin', 'courses', 'meta']];
   const save = useAdminMutation({
     fn: () => (edit.mode === 'New'
@@ -62,7 +67,8 @@ function CategoryDrawer({ edit, data, onClose }: { edit: Edit; data: CpCategorie
     if (!f.OrderByNum.trim()) e.OrderByNum = '정렬순서를 등록하세요.';
     else if (!/^\d+$/.test(f.OrderByNum.trim())) e.OrderByNum = '정렬순서는 숫자만 등록하세요.';
     setErrors(e);
-    if (!Object.keys(e).length) save.mutate();
+    if (Object.keys(e).length) return;
+    if (window.confirm(tr('등록 하시겠습니까?', 'Save?'))) save.mutate();
   };
   return (
     <DetailDrawer open onClose={onClose} title={tr(`과정 카테고리 ${edit.mode === 'New' ? '등록' : '수정'}`, edit.mode === 'New' ? 'New category' : 'Edit category')}

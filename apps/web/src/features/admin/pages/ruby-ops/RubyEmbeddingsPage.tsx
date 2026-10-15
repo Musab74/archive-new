@@ -5,8 +5,8 @@ import { AButton, AdminPage, ASelect, Callout, Card, DataTable, DescList, Kpi, S
 import { tr } from '../../../../shared/i18n/adminLang';
 import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
-import { legacyUrl } from '../../../../shared/auth/adminMenu';
 import { statusTone } from './RubyFaqPage';
+import { RubyGate } from './rubyAccess';
 
 type Recent = RubyEmbeddingStatus['recentKb'][number];
 const cols: Column<Recent>[] = [
@@ -20,8 +20,8 @@ const cols: Column<Recent>[] = [
 ];
 const fmt = (o: Record<string, number>) => Object.entries(o).map(([k, v]) => `${k} ${v}`).join(' · ') || '0';
 
-/** ruby_embeddings.php — stored embedding state + the 재생성 action (currently answered by the API with EMBEDDING_NOT_CONFIGURED). */
-export default function RubyEmbeddingsPage() {
+/** ruby_embeddings.php — stored embedding state + 재생성 실행 (POST target all|faq|kb → "임베딩 재생성 완료: FAQ n건, KB m건"). */
+function RubyEmbeddingsPageInner() {
   const { canWrite, readOnlyTitle } = useWriteGate();
   const q = useQuery({ queryKey: ['admin', 'ruby', 'embeddings'], queryFn: ({ signal }) => adminRubyOpsApi.embeddingStatus(signal) });
   const [target, setTarget] = useState<'all' | 'faq' | 'kb'>('all');
@@ -29,8 +29,7 @@ export default function RubyEmbeddingsPage() {
   const regen = useAdminMutation({ fn: (t: 'all' | 'faq' | 'kb') => adminRubyOpsApi.regenerateEmbeddings(t), invalidate: [['admin', 'ruby', 'embeddings']], onSuccess: (r) => setResult(r) });
   const d = q.data;
   return (
-    <AdminPage title={tr('Ruby 임베딩 재생성', 'Ruby embeddings')} lead={tr('FAQ·지식베이스의 RAG 임베딩 현황입니다. 기존 화면의 "재생성 실행"은 OpenAI 임베딩을 만들어 embedding_json에 저장했습니다.', 'RAG embedding state of the FAQ and knowledge base. The legacy "regenerate" built OpenAI embeddings into embedding_json.')}>
-      <Callout tone="warn" className="u-mb-8">{tr('임베딩 재생성은 아직 새 API에 연결되지 않았습니다(임베딩 생성기 미구현). 실행이 필요하면 기존 관리자 화면에서 하세요: ', 'Regeneration is not wired to the new API yet (no embedding generator). Run it from the legacy admin page: ')}<a href={legacyUrl('ruby_embeddings.php')} target="_blank" rel="noreferrer">ruby_embeddings.php</a></Callout>
+    <AdminPage title={tr('Ruby 임베딩 재생성', 'Ruby embeddings')} lead={tr('FAQ·지식베이스(draft·published)의 RAG 임베딩을 다시 만듭니다. OpenAI text-embedding-3-small 을 쓰고, 키가 없거나 실패하면 ruby-hash-128 벡터를 저장합니다(기존 화면과 동일).', 'Rebuilds the RAG embeddings of draft/published FAQ and knowledge-base rows with OpenAI text-embedding-3-small, or the ruby-hash-128 vector without a key / on failure (same as the legacy page).')}>
       {d ? (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 12 }}>
@@ -46,11 +45,14 @@ export default function RubyEmbeddingsPage() {
                 <ASelect aria-label={tr('대상', 'Target')} value={target} onChange={(e) => setTarget(e.target.value as 'all' | 'faq' | 'kb')} options={[{ value: 'all', label: tr('FAQ + KB 전체', 'FAQ + KB') }, { value: 'faq', label: tr('FAQ만', 'FAQ only') }, { value: 'kb', label: tr('KB만', 'KB only') }]} />
                 <AButton variant="primary" loading={regen.isPending} disabled={!canWrite} title={readOnlyTitle} onClick={() => regen.mutate(target)}>{tr('재생성 실행', 'Regenerate')}</AButton>
               </div>
-              {result ? <Callout tone={result.ok ? 'ok' : 'warn'} className="u-mt-8">{result.ok ? tr(`임베딩 재생성 완료: FAQ ${result.candidates.faq}건, KB ${result.candidates.kb}건`, `Done: FAQ ${result.candidates.faq}, KB ${result.candidates.kb}`) : `${result.message ?? result.code} (${tr('대상', 'candidates')}: FAQ ${result.candidates.faq}, KB ${result.candidates.kb})`}</Callout> : null}
+              {result ? <Callout tone={result.ok ? 'ok' : 'warn'} className="u-mt-8">{result.updated ? tr(`임베딩 재생성 완료: FAQ ${result.updated.faq}건, KB ${result.updated.kb}건`, `Embeddings rebuilt: FAQ ${result.updated.faq}, KB ${result.updated.kb}`) : (result.message ?? result.code)} <span className="muted">({tr('대상', 'candidates')}: FAQ {result.candidates.faq}, KB {result.candidates.kb})</span></Callout> : null}
+              {d.openAiConfigured === false ? <p className="muted" style={{ fontSize: 12, margin: '8px 0 0' }}>{tr('OPENAI_API_KEY 가 없어 ruby-hash-128 벡터로 저장됩니다.', 'No OPENAI_API_KEY: the ruby-hash-128 vector is stored.')}</p> : null}
             </Card>
             <Card title={tr('임베딩 모델별 KB 건수', 'KB rows per embedding model')}>
               <DescList items={d.kb.models.length ? d.kb.models.map((m) => [m.model ?? tr('(모델 없음)', '(no model)'), m.count] as [string, number]) : [[tr('임베딩 없음', 'No embeddings'), '—']]} />
-              <p className="muted" style={{ fontSize: 12, margin: '8px 0 0' }}>{tr('RubyFaq 표에는 임베딩 컬럼이 없어(스키마 계약) 상태 건수만 표시합니다.', 'RubyFaq has no embedding columns in the schema contract, so only status counts are shown for FAQ.')}</p>
+              {d.faq.embeddingColumns
+                ? <p className="muted" style={{ fontSize: 12, margin: '8px 0 0' }}>{tr(`FAQ 임베딩 보유 ${d.faq.embedded}건`, `FAQ rows with an embedding: ${d.faq.embedded}`)}{d.faq.models.length ? ` · ${d.faq.models.map((m) => `${m.model ?? '-'} ${m.count}`).join(', ')}` : ''}{d.faq.lastUpdatedAt ? ` · ${tr('최근', 'last')} ${d.faq.lastUpdatedAt}` : ''}</p>
+                : <p className="muted" style={{ fontSize: 12, margin: '8px 0 0' }}>{tr('RubyFaq 표에 임베딩 컬럼(embedding_json 등)이 없어 FAQ 임베딩은 저장되지 않습니다(기존 화면도 0건으로 처리).', 'RubyFaq has no embedding columns, so FAQ embeddings are not stored (the legacy page counted 0 too).')}</p>}
             </Card>
           </div>
           <Card title={tr('최근 수정된 지식베이스 20건', 'Recently updated KB rows')}>
@@ -60,4 +62,8 @@ export default function RubyEmbeddingsPage() {
       ) : <DataTable columns={cols} rows={undefined} rowKey={(r) => r.id} loading={q.isPending} error={q.error} onRetry={() => void q.refetch()} />}
     </AdminPage>
   );
+}
+
+export default function RubyEmbeddingsPage() {
+  return <RubyGate><RubyEmbeddingsPageInner /></RubyGate>;
 }

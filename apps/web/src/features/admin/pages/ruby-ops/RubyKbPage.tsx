@@ -9,7 +9,8 @@ import { tr } from '../../../../shared/i18n/adminLang';
 import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
 import { adm } from '../../strings';
-import { EMBEDDING_NOTE, RUBY_STATUS_OPTIONS, statusTone } from './RubyFaqPage';
+import { EMBEDDING_NOTE, RUBY_STATUS_OPTIONS, embeddingToast, statusTone } from './RubyFaqPage';
+import { RubyGate } from './rubyAccess';
 
 const DEFAULTS = { q: '', type: '', status: '', page: 1 };
 const SIZE = 20;
@@ -18,7 +19,7 @@ type Form = { type: string; title: string; content: string; status: string; prio
 const empty = (): Form => ({ type: 'policy', title: '', content: '', status: 'published', priority: '50', sourceUrl: '' });
 
 /** ruby_kb.php + ruby_kb_script.php — RubyKnowledgeBase list, create/edit, delete. */
-export default function RubyKbPage() {
+function RubyKbPageInner() {
   const [p, setP, reset] = useSearchState(DEFAULTS);
   const [form, setForm] = useState({ q: p.q, type: p.type, status: p.status });
   const { toast } = useToast();
@@ -33,8 +34,8 @@ export default function RubyKbPage() {
   useEffect(() => { const d = detail.data; if (edit?.mode === 'edit' && d) { setF({ type: d.type, title: d.title, content: d.content, status: d.status, priority: String(d.priority), sourceUrl: d.sourceUrl ?? '' }); setErrors({}); } }, [detail.data, edit]);
   const onErr = (err: unknown) => { if (isAppError(err) && Array.isArray(err.details)) { const e: Record<string, string> = {}; for (const d of err.details as { path?: string; message?: string }[]) if (d.path) e[d.path] = d.message ?? ''; setErrors(e); } toast(isAppError(err) ? err.message : adm.common.failed, { tone: 'danger' }); };
   const inv = [['admin', 'ruby', 'kb'], ['admin', 'ruby', 'embeddings']];
-  const create = useAdminMutation({ fn: (b: Record<string, unknown>) => adminRubyOpsApi.createKb(b), invalidate: inv, success: adm.common.created, onSuccess: () => setEdit(null), onError: onErr });
-  const patch = useAdminMutation({ fn: (b: Record<string, unknown>) => adminRubyOpsApi.patchKb((edit as { id: number }).id, b), invalidate: inv, success: adm.common.saved, onSuccess: () => setEdit(null), onError: onErr });
+  const create = useAdminMutation({ fn: (b: Record<string, unknown>) => adminRubyOpsApi.createKb(b), invalidate: inv, success: adm.common.created, onSuccess: (r) => { setEdit(null); embeddingToast(r, toast); }, onError: onErr });
+  const patch = useAdminMutation({ fn: (b: Record<string, unknown>) => adminRubyOpsApi.patchKb((edit as { id: number }).id, b), invalidate: inv, success: adm.common.saved, onSuccess: (r) => { setEdit(null); embeddingToast(r, toast); }, onError: onErr });
   const [delOpen, setDelOpen] = useState(false);
   const del = useAdminMutation({ fn: () => adminRubyOpsApi.deleteKb((edit as { id: number }).id), invalidate: inv, success: adm.common.deleted, onSuccess: () => { setDelOpen(false); setEdit(null); } });
   const submit = () => {
@@ -76,10 +77,14 @@ export default function RubyKbPage() {
           <FieldRow label={tr('우선순위', 'Priority')} htmlFor="rk-f-prio"><AInput id="rk-f-prio" type="number" style={{ width: 120 }} value={f.priority} onChange={(e) => setF({ ...f, priority: e.target.value })} /></FieldRow>
           <FieldRow label={tr('출처 URL', 'Source URL')} htmlFor="rk-f-src"><AInput id="rk-f-src" value={f.sourceUrl} onChange={(e) => setF({ ...f, sourceUrl: e.target.value })} maxLength={500} /></FieldRow>
           {edit?.mode === 'edit' && detail.data ? <p className="muted" style={{ fontSize: 12, margin: 0 }}>{tr('임베딩', 'Embedding')}: {detail.data.embeddingModel ?? '—'} {detail.data.embeddingUpdatedAt ? `(${detail.data.embeddingUpdatedAt})` : ''} · {tr('수정일', 'Updated')} {detail.data.updatedAt}</p> : null}
-          <Callout tone="warn">{EMBEDDING_NOTE}</Callout>
+          <Callout>{EMBEDDING_NOTE}</Callout>
         </div>
       </DetailDrawer>
       <ConfirmDialog open={delOpen} title={tr('지식베이스 삭제', 'Delete entry')} tone="danger" loading={del.isPending} onCancel={() => setDelOpen(false)} onConfirm={() => del.mutate(undefined as never)} body={<p>{tr('행을 삭제합니다(기존 화면과 동일). 되돌릴 수 없습니다.', 'Deletes the row (as the legacy page did). This cannot be undone.')}</p>} />
     </AdminPage>
   );
+}
+
+export default function RubyKbPage() {
+  return <RubyGate><RubyKbPageInner /></RubyGate>;
 }

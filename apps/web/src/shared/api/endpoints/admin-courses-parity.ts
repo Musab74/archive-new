@@ -83,6 +83,30 @@ export type CpList = z.infer<typeof CpListSchema>;
 export const CpListCandidatesSchema = z.object({ items: z.array(z.object({ no: z.number(), idx: z.number(), lectureCode: z.string(), name: S, ctype: S })) });
 export type CpListCandidates = z.infer<typeof CpListCandidatesSchema>;
 
+// ---------------------------------------------------------------- 엑셀로 등록 (ContentsExcelTemp / CourseExcelTemp / ChapterExcelTemp)
+export const CpUploadResultSchema = z.object({ ok: z.boolean(), inserted: z.number(), ids: z.array(z.number()) });
+export const CpRegResultSchema = z.object({ ok: z.boolean(), idx: z.number(), status: z.enum(['B', 'C']), label: z.string(), message: z.string().optional(), newIdx: z.number().optional() });
+export type CpRegResult = z.infer<typeof CpRegResultSchema>;
+export const CpContentsTempRowSchema = z.object({
+  no: z.number(), idx: z.number(), gubun: z.string(), title: z.string(), lectureTime: z.number(), goal: z.string(), trainingContents: z.string(), activities: z.string(), contentsType: z.string(),
+  pages: z.string(), mobilePages: z.string(), url: z.string(), mobileUrl: z.string(), regDate: S, missing: z.array(z.string()), errorCount: z.number(),
+});
+export type CpContentsTempRow = z.infer<typeof CpContentsTempRowSchema>;
+export const CpContentsTempSchema = z.object({ items: z.array(CpContentsTempRowSchema), total: z.number(), errorCount: z.number() });
+export const CpCourseTempRowSchema = z.object({
+  no: z.number(), idx: z.number(), values: z.record(z.string(), z.union([z.string(), z.number()])), dates: z.object({ ContentsStart: z.string(), ContentsEnd: z.string(), UploadDate: z.string() }),
+  missing: z.array(z.string()), blank: z.array(z.string()), duplicate: z.string().nullable(), errorCount: z.number(),
+});
+export type CpCourseTempRow = z.infer<typeof CpCourseTempRowSchema>;
+export const CpCourseTempSchema = z.object({ ctype: z.string(), items: z.array(CpCourseTempRowSchema), total: z.number(), errorCount: z.number() });
+export const CpChapterTempRowSchema = z.object({ no: z.number(), idx: z.number(), lectureCode: z.string(), chapterType: z.string(), subIdx: z.string(), orderByNum: z.number(), missing: z.array(z.string()), dupSub: z.string().nullable(), dupOrder: z.string().nullable(), errorCount: z.number() });
+export type CpChapterTempRow = z.infer<typeof CpChapterTempRowSchema>;
+export const CpChapterTempSchema = z.object({ items: z.array(CpChapterTempRowSchema), total: z.number(), errorCount: z.number() });
+export const CpCourseFileSchema = z.object({ ok: z.boolean(), fileName: z.string(), realFileName: z.string() });
+export const CpCourseFileDeleteSchema = z.object({ ok: z.boolean(), removed: z.boolean(), reason: z.string().optional() });
+export type CpCourseFileSlot = 'attachFile' | 'PreviewImage' | 'BookImage';
+const formOf = (file: File) => { const fd = new FormData(); fd.append('file', file, file.name); return fd; };
+
 export const adminCoursesParityApi = {
   // course.php / course_package.php / course_read.php / course_write.php
   courses: (query: Q, signal?: AbortSignal) => api.get('/admin/courses', { query, schema: pageOf(CpCourseRowSchema), signal }),
@@ -136,4 +160,33 @@ export const adminCoursesParityApi = {
   addToList: (gubun: string, lectureCode: string) => api.post(`/admin/lists/${gubun}`, { lectureCode }, { schema: CpOkSchema }),
   orderList: (gubun: string, ids: number[]) => api.put(`/admin/lists/${gubun}/order`, { ids }, { schema: CpOkSchema }),
   removeFromList: (gubun: string, idx: number) => api.delete(`/admin/lists/${gubun}/${idx}`, { schema: CpOkSchema }),
+
+  // 패키지 엑셀 파일 (course_package_excel_upload.php)
+  importPackageFile: (idx: number, file: File) => api.post(`/admin/course-packages/${idx}/import-file`, formOf(file), { schema: CpPackageImportSchema }),
+
+  // 엑셀로 기초차시 등록 (contents_excel*.php)
+  contentsTemp: (signal?: AbortSignal) => api.get('/admin/contents/excel-temp', { schema: CpContentsTempSchema, signal }),
+  uploadContentsTemp: (file: File) => api.post('/admin/contents/excel-temp/upload', formOf(file), { schema: CpUploadResultSchema }),
+  patchContentsTemp: (idx: number, body: Record<string, unknown>) => api.patch(`/admin/contents/excel-temp/${idx}`, body, { schema: CpOkSchema }),
+  deleteContentsTemp: (ids: number[]) => api.post('/admin/contents/excel-temp/delete', { ids }, { schema: CpOkSchema }),
+  registerContentsTemp: (idx: number) => api.post(`/admin/contents/excel-temp/${idx}/register`, {}, { schema: CpRegResultSchema }),
+
+  // 컨텐츠 엑셀 등록 (course_*excel*.php)
+  courseTemp: (ctype: string, signal?: AbortSignal) => api.get('/admin/courses/excel-temp', { query: { ctype }, schema: CpCourseTempSchema, signal }),
+  uploadCourseTemp: (ctype: string, file: File) => api.post(`/admin/courses/excel-temp/upload?ctype=${encodeURIComponent(ctype)}`, formOf(file), { schema: CpUploadResultSchema }),
+  patchCourseTemp: (idx: number, body: Record<string, unknown>) => api.patch(`/admin/courses/excel-temp/${idx}`, body, { schema: CpOkSchema }),
+  deleteCourseTemp: (ids: number[]) => api.post('/admin/courses/excel-temp/delete', { ids }, { schema: CpOkSchema }),
+  registerCourseTemp: (idx: number, ctype: string) => api.post(`/admin/courses/excel-temp/${idx}/register?ctype=${encodeURIComponent(ctype)}`, {}, { schema: CpRegResultSchema }),
+
+  // 차시 엑셀 등록 (chapter_*excel*.php)
+  chapterTemp: (signal?: AbortSignal) => api.get('/admin/chapters/excel-temp', { schema: CpChapterTempSchema, signal }),
+  uploadChapterTemp: (file: File) => api.post('/admin/chapters/excel-temp/upload', formOf(file), { schema: CpUploadResultSchema }),
+  patchChapterTemp: (idx: number, body: Record<string, unknown>) => api.patch(`/admin/chapters/excel-temp/${idx}`, body, { schema: CpOkSchema }),
+  deleteChapterTemp: (ids: number[]) => api.post('/admin/chapters/excel-temp/delete', { ids }, { schema: CpOkSchema }),
+  registerChapterTemp: (idx: number) => api.post(`/admin/chapters/excel-temp/${idx}/register`, {}, { schema: CpRegResultSchema }),
+
+  // 학습자료 / 과정 이미지 / 교재 이미지 (upload_file_ok.php / file_delete.php / direct_download.php)
+  uploadCourseFile: (kind: 'text' | 'img', file: File) => api.post(`/admin/courses/files/upload?kind=${kind}`, formOf(file), { schema: CpCourseFileSchema }),
+  deleteCourseFile: (fileName: string, idx?: number) => api.delete(`/admin/courses/files/${encodeURIComponent(fileName)}${idx ? `?idx=${idx}` : ''}`, { schema: CpCourseFileDeleteSchema }),
+  downloadCourseFile: (idx: number, slot: CpCourseFileSlot, fallback: string) => downloadAdminFile(`/admin/courses/${idx}/files/${slot}`, {}, fallback),
 };

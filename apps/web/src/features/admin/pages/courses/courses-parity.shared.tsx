@@ -1,4 +1,5 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 import { isAppError } from '../../../../shared/api/client';
 import { useToast } from '../../../../app/providers/ToastProvider';
 import { tr } from '../../../../shared/i18n/adminLang';
@@ -72,9 +73,32 @@ export function ReadButtons({ left, center, right }: { left?: ReactNode; center?
  * whitespace removed — the same header normalisation as course_package_excel_upload.php normalizeHeader().
  */
 export function parsePasted(text: string): Record<string, string>[] {
-  const lines = text.replace(/\r/g, '').split('\n').filter((l) => l.trim() !== '');
+  // Blank lines inside the block are kept as empty rows so "행 N" in the summary matches the sheet row; leading / trailing blanks are dropped.
+  const all = text.replace(/\r/g, '').split('\n');
+  while (all.length && all[0]!.trim() === '') all.shift();
+  while (all.length && all[all.length - 1]!.trim() === '') all.pop();
+  const lines = all;
   if (!lines.length) return [];
   const sep = lines[0]!.includes('\t') ? '\t' : ',';
   const head = lines[0]!.split(sep).map((h) => h.replace(/\s+/g, ''));
   return lines.slice(1).map((l) => { const cells = l.split(sep); const o: Record<string, string> = {}; head.forEach((h, i) => { o[h] = (cells[i] ?? '').trim(); }); return o; });
+}
+
+// ---------------------------------------------------------------- "목록" keeps the list's page / filters (PHP pg, sw, col)
+
+const LIST_KEY = 'admin.courses.listSearch.';
+/** Stores the list page's query string (per list) so a detail page's 목록 returns to the same page and search. */
+export function rememberListSearch(key: string, search: string): void {
+  try { sessionStorage.setItem(LIST_KEY + key, search); } catch { /* storage unavailable: fall back to the plain list */ }
+}
+/** `${base}${saved search}` or `${base}${fallbackSearch}` when nothing was saved. */
+export function listHref(key: string, base: string, fallbackSearch = ''): string {
+  let saved = '';
+  try { saved = sessionStorage.getItem(LIST_KEY + key) ?? ''; } catch { saved = ''; }
+  return `${base}${saved || fallbackSearch}`;
+}
+/** Call on a list page: remembers its current ?query under `key`. */
+export function useRememberListSearch(key: string): void {
+  const loc = useLocation();
+  useEffect(() => { rememberListSearch(key, loc.search); }, [key, loc.search]);
 }

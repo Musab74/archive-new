@@ -5,7 +5,7 @@ import { useSearchState } from '../../../../shared/utils/useSearchState';
 import { AdminPage, AInput, ASelect, DataTable, DateField, FilterBar, FilterField, type Column } from '../../../../shared/ui/admin';
 import { tr } from '../../../../shared/i18n/adminLang';
 import { GrantGate } from '../../GrantGate';
-import { ExportButton, RangeSummary, SIZE, noOf } from './shared';
+import { ExportButton, RangeSummary, SIZE, noOf, useResolvedRangeInForm } from './shared';
 
 const DEFAULTS = { from: '', to: '', col: 'aValue', q: '', page: 1 };
 
@@ -20,6 +20,7 @@ function Satisfaction() {
   const query = useMemo(() => ({ from: p.from || undefined, to: p.to || undefined, col: p.col, q: p.q || undefined, page: p.page, size: SIZE }), [p]);
   const list = useQuery({ queryKey: ['admin', 'satisfaction-results', query], queryFn: ({ signal }) => apiX.satisfactionResults(query, signal), placeholderData: keepPreviousData });
   const total = list.data?.total ?? 0;
+  useResolvedRangeInForm(list.data?.range, p, form, setForm, list.isPlaceholderData);
   const columns: Column<SatisfactionRow>[] = [
     { key: 'no', header: tr('번호', 'No.'), align: 'right', width: 60, render: (_r, i) => noOf(total, p.page, SIZE, i) },
     { key: 'id', header: tr('아이디', 'User ID'), nowrap: true, render: (r) => <b>{r.id}</b> },

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { adminCoursesParityApi as cp, type CpChapterRow } from '../../../../shared/api/endpoints/admin-courses-parity';
 import { AButton, ACheckbox, AInput, ASelect, Callout, Card, ConfirmDialog, DataTable, DetailDrawer, FieldRow, StatusBadge, type Column } from '../../../../shared/ui/admin';
@@ -13,8 +13,9 @@ import { MoveButtons, moveIn, useFormErrors } from './courses-parity.shared';
  * 차시 구성 — course_read_list.php (list, ▲▼ + 정렬 하기, 수정/삭제) with the chapter_regist.php popup
  * (차시구분 → 기초 차시, 정렬 순서, "선택한 [차시 구분] 모두 등록하기").
  */
-export function ChapterSection({ lectureCode, contentsName, chapterCount }: { lectureCode: string; contentsName?: string | null; chapterCount?: string | null }) {
+export function ChapterSection({ lectureCode, contentsName, chapterCount, ctype = 'X', courseIdx }: { lectureCode: string; contentsName?: string | null; chapterCount?: string | null; ctype?: string; courseIdx?: number }) {
   const { canWrite, readOnlyTitle } = useWriteGate();
+  const navigate = useNavigate();
   const key = ['admin', 'chapters', lectureCode];
   const q = useQuery({ queryKey: key, queryFn: ({ signal }) => cp.chapters(lectureCode, signal), enabled: !!lectureCode });
   const [order, setOrder] = useState<CpChapterRow[] | null>(null);
@@ -35,17 +36,18 @@ export function ChapterSection({ lectureCode, contentsName, chapterCount }: { le
     { key: 'typeLabel', header: tr('차시 유형', 'Type'), align: 'center', width: 100, render: (r) => r.typeLabel },
     { key: 'listTitle', header: tr('차시명 / 질문', 'Title / question'), render: (r) => (r.contentsIdx ? <Link to={`/admin/contents/${r.contentsIdx}`}>{r.listTitle ?? r.title ?? ''}</Link> : <span className="muted">{r.listTitle ?? String(r.subIdx ?? '')}</span>) },
     { key: 'subCount', header: tr('하부 컨텐츠수 / 문항수', 'Pages / items'), align: 'center', width: 150, render: (r) => <>{r.subCount ?? ''}{r.deleted ? <> <StatusBadge tone="danger">{tr('삭제된 기초차시', 'Deleted content')}</StatusBadge></> : null}</> },
-    { key: 'edit', header: tr('수정', 'Edit'), align: 'center', width: 60, render: (r) => <AButton size="xs" disabled={!canWrite || r.chapterType !== 'A'} onClick={() => setEdit({ mode: 'edit', row: r })}>{tr('수정', 'Edit')}</AButton> },
+    { key: 'edit', header: tr('수정', 'Edit'), align: 'center', width: 60, render: (r) => <AButton size="xs" disabled={!canWrite} title={r.chapterType !== 'A' ? tr('수정하면 강의 차시(A)로 바뀝니다 (기존과 같음).', 'Saving turns this row into a lecture chapter (A), as before.') : undefined} onClick={() => setEdit({ mode: 'edit', row: r })}>{tr('수정', 'Edit')}</AButton> },
     { key: 'del', header: tr('삭제', 'Delete'), align: 'center', width: 60, render: (r) => <AButton size="xs" variant="danger" disabled={!canWrite} onClick={() => setDel(r)}>{tr('삭제', 'Delete')}</AButton> },
   ];
   return (
     <Card title={tr('차시 구성', 'Chapters')} aside={<span style={{ display: 'inline-flex', gap: 6 }}>
       <AButton size="sm" disabled={!canWrite} title={readOnlyTitle} onClick={() => setEdit({ mode: 'new' })}>{tr('추가 하기', 'Add')}</AButton>
+      <AButton size="sm" disabled={!canWrite} title={readOnlyTitle} onClick={() => navigate(`/admin/chapters/excel?ctype=${encodeURIComponent(ctype)}${courseIdx ? `&from=${encodeURIComponent(`/admin/courses/${courseIdx}`)}` : ''}`)}>{tr('엑셀로 등록', 'Register from Excel')}</AButton>
       <AButton size="sm" variant="primary" disabled={!canWrite || !order} loading={reorder.isPending} onClick={() => { if (rows.length < 2) return; if (window.confirm(tr('차시 구성을 정렬하시겠습니까?', 'Save this order?'))) reorder.mutate(rows.map((r) => r.chapterSeq)); }}>{tr('정렬 하기', 'Save order')}</AButton>
     </span>}>
       {mismatch ? <Callout tone="warn">{tr('☆ 차시수 오류 : 차시구성에 등록된 차시수가 강의정보와 일치하지 않습니다.', '☆ Chapter count mismatch: the chapters registered here do not match the course information.')} ({tr('강의정보', 'course')} {chapterCount} / {tr('차시구성', 'chapters')} {lectureRows})</Callout> : null}
       <DataTable columns={columns} rows={q.isPending ? undefined : rows} rowKey={(r) => r.chapterSeq} loading={q.isPending} error={q.error} onRetry={() => void q.refetch()} dense emptyTitle={tr('차시 구성 내역이 없습니다.', 'No chapters.')} emptyBody=" " />
-      <p className="muted" style={{ fontSize: 12, margin: '8px 0 0' }}>{tr('▲▼로 순서를 바꾼 뒤 "정렬 하기"를 누르면 차시 순서가 1부터 다시 매겨집니다. "엑셀로 등록"(chapter_write_excel)은 기존 사이트에서 진행합니다.', 'Move rows with ▲▼ then "Save order" to renumber from 1. "Register from Excel" still runs on the previous site.')}</p>
+      <p className="muted" style={{ fontSize: 12, margin: '8px 0 0' }}>{tr('▲▼로 순서를 바꾼 뒤 "정렬 하기"를 누르면 차시 순서가 1부터 다시 매겨집니다.', 'Move rows with ▲▼ then "Save order" to renumber from 1.')}</p>
       {edit ? <ChapterDrawer lectureCode={lectureCode} contentsName={contentsName} edit={edit} nextOrder={nextOrder} onClose={() => setEdit(null)} invalidate={inv} /> : null}
       <ConfirmDialog open={!!del} tone="danger" title={tr('차시 구성 삭제', 'Delete chapter')} body={<p>{tr('클릭한 차시 구성을 삭제하시겠습니까? (Chapter 행이 삭제됩니다)', 'Delete this chapter row?')} <b>{del?.listTitle ?? ''}</b></p>} loading={remove.isPending} onCancel={() => setDel(null)} onConfirm={() => del && remove.mutate(del.chapterSeq)} />
     </Card>
@@ -55,7 +57,7 @@ export function ChapterSection({ lectureCode, contentsName, chapterCount }: { le
 function ChapterDrawer({ lectureCode, contentsName, edit, nextOrder, onClose, invalidate }: { lectureCode: string; contentsName?: string | null; edit: { mode: 'new' } | { mode: 'edit'; row: CpChapterRow }; nextOrder: number; onClose: () => void; invalidate: (string | number)[][] }) {
   const { canWrite } = useWriteGate();
   const { errors, setErrors, onError } = useFormErrors();
-  const [only, setOnly] = useState(edit.mode === 'new');
+  const [only, setOnly] = useState(true); // chapter_regist.php: "현재 강의와 일치하는 차시구분만 보기" is checked in both modes
   const [gubun, setGubun] = useState(edit.mode === 'edit' ? edit.row.gubun ?? '' : '');
   const [content, setContent] = useState(edit.mode === 'edit' && edit.row.contentsIdx ? String(edit.row.contentsIdx) : '');
   const [orderNum, setOrderNum] = useState(String(edit.mode === 'edit' ? edit.row.order : nextOrder));
@@ -63,7 +65,9 @@ function ChapterDrawer({ lectureCode, contentsName, edit, nextOrder, onClose, in
   const gubunOptions = useMemo(() => (opts.data?.gubuns ?? []).map((g) => ({ value: g, label: g })), [opts.data]);
   const save = useAdminMutation({
     fn: (b: { ContentIdx: number; OrderByNum: number }) => (edit.mode === 'new' ? cp.createChapter(lectureCode, b) : cp.patchChapter(lectureCode, edit.row.chapterSeq, b)),
-    invalidate, success: tr('처리되었습니다.', 'Saved.'), onSuccess: onClose, onError,
+    invalidate, success: tr('처리되었습니다.', 'Saved.'), onError,
+    // chapter_regist_script.php (new): the popup stays open with 정렬 순서 + 1 so several chapters can be added in a row.
+    onSuccess: () => { if (edit.mode === 'new') { setOrderNum((o) => String((Number(o) || 0) + 1)); setContent(''); setErrors({}); } else onClose(); },
   });
   const batch = useAdminMutation({ fn: (g: string) => cp.batchChapters(lectureCode, g), invalidate, success: tr('등록 되었습니다.', 'Registered.'), onSuccess: onClose, onError });
   const submit = () => {
@@ -73,6 +77,7 @@ function ChapterDrawer({ lectureCode, contentsName, edit, nextOrder, onClose, in
     else if (!/^\d+$/.test(orderNum.trim())) e.OrderByNum = tr('정렬순서를 숫자만 입력하세요.', 'Digits only.');
     setErrors(e);
     if (Object.keys(e).length) return;
+    if (!window.confirm(tr('등록 하시겠습니까?', 'Register?'))) return;
     save.mutate({ ContentIdx: Number(content), OrderByNum: Number(orderNum) });
   };
   const runBatch = () => {

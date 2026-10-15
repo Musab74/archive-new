@@ -87,7 +87,7 @@ describe('학습관리 / 일자별 학습시간 parity pages', () => {
     const dlg = await screen.findByRole('dialog');
     fireEvent.click(within(dlg).getByRole('button', { name: '삭제' }));
     await waitFor(() => expect(calls.some((c) => c.startsWith('POST /admin/studies/delete') && c.includes('"seqs":[7]'))).toBe(true));
-  });
+  }, 20_000); // heavy page (many popups); slow when the whole suite runs in parallel
 
   it('학습관리 without a search shows the hint and does not query the list', async () => {
     mount(<StudiesPage />, '/admin/studies');

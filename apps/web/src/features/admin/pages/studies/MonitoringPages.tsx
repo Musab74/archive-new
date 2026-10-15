@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { adminApi } from '../../../../shared/api/endpoints/admin';
 import type { AbnormalRow, DailyMonitor, OverlapMonitor } from '../../../../shared/api/schemas';
+import { abnormalLearningLinks } from '../learning/learningLinks';
 import { useSearchState } from '../../../../shared/utils/useSearchState';
 import { AButton, AdminPage, AInput, ASelect, Callout, DataTable, DateField, FilterBar, FilterField, JsonViewer, Kpi, StatusBadge, TabStrip, toIsoDate, type Column } from '../../../../shared/ui/admin';
 import { StudyTimePage } from './studies-parity-daily';
@@ -136,7 +137,7 @@ export function MonitoringAbnormalPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 280px', gap: 12 }}>
         <div>
           <DataTable columns={abnormalCols} rows={q.data?.items} rowKey={(r) => r.idx} loading={q.isPending || q.isFetching} error={q.error} onRetry={() => void q.refetch()} page={p.page} size={20} total={q.data?.total} onPageChange={(n) => setP({ page: n })} onRowClick={setSelected} selectedKey={selected?.idx} dense />
-          {selected ? <div className="u-mt-8"><h3 style={{ fontSize: 13, margin: '0 0 6px' }}>#{selected.idx} metric · sample</h3><JsonViewer value={{ metric: selected.metric, sample: selected.sample }} maxHeight={260} /></div> : null}
+          {selected ? <div className="u-mt-8"><h3 style={{ fontSize: 13, margin: '0 0 6px' }}>#{selected.idx} metric · sample</h3>{abnormalLearningLinks(selected).length ? <p style={{ display: 'flex', gap: 12, margin: '0 0 6px', fontSize: 13 }}>{abnormalLearningLinks(selected).map((l) => <Link key={l.to} to={l.to}>{l.label}</Link>)}</p> : null}<JsonViewer value={{ metric: selected.metric, sample: selected.sample }} maxHeight={260} /></div> : null}
         </div>
         <aside>
           <h3 style={{ fontSize: 13, margin: '0 0 6px' }}>{m.legend}</h3>

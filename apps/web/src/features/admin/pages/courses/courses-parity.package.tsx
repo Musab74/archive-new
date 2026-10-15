@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminCoursesParityApi as cp, type CpCourseDetail, type CpCourseRow, type CpPackageImport } from '../../../../shared/api/endpoints/admin-courses-parity';
 import { useSearchState } from '../../../../shared/utils/useSearchState';
 import { AButton, AdminPage, AInput, ASelect, ATextarea, Callout, Card, ConfirmDialog, DataTable, DescList, FieldRow, FilterBar, FilterField, type Column } from '../../../../shared/ui/admin';
@@ -9,10 +9,15 @@ import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
 import { tr } from '../../../../shared/i18n/adminLang';
 import { adm } from '../../strings';
-import { ReadButtons, parsePasted, useFormErrors, useYnOptions } from './courses-parity.shared';
+import { ReadButtons, listHref, parsePasted, useFormErrors, useRememberListSearch, useYnOptions } from './courses-parity.shared';
+import { btnCls } from './courses-parity.excel';
+import { isAppError } from '../../../../shared/api/client';
+import packageSampleXlsx from './sample-package.xlsx?url';
+
+const packagesHref = () => listHref('packages', '/admin/courses', '?packageYN=Y');
 
 const DEFAULTS = { packageYN: 'Y', col: 'ContentsName', q: '', page: 1 };
-const SIZE = 20;
+const SIZE = 30; // include_top.php $page_size
 
 // ====================================================================== course_package.php
 
@@ -21,6 +26,7 @@ export function PackageList() {
   const [form, setForm] = useState({ col: p.col, q: p.q });
   const navigate = useNavigate();
   const { canWrite, readOnlyTitle } = useWriteGate();
+  useRememberListSearch('packages');
   const query = useMemo(() => ({ packageYN: 'Y', col: p.q ? p.col : undefined, q: p.q || undefined, page: p.page, size: SIZE }), [p]);
   const list = useQuery({ queryKey: ['admin', 'courses', query], queryFn: ({ signal }) => cp.courses(query, signal), placeholderData: keepPreviousData });
   const total = list.data?.total ?? 0;
@@ -61,14 +67,14 @@ export function PackageDetail({ d, onEdit }: { d: CpCourseDetail; onEdit: () => 
   const inv = [['admin', 'course', d.idx], ['admin', 'courses']];
   const save = useAdminMutation({ fn: (codes: string[]) => cp.putPackageCodes(d.idx, codes), invalidate: inv, success: tr('처리되었습니다.', 'Saved.') });
   const [del, setDel] = useState(false);
-  const remove = useAdminMutation({ fn: () => cp.deleteCourse(d.idx), invalidate: inv, success: tr('처리되었습니다.', 'Done.'), onSuccess: () => navigate('/admin/courses?packageYN=Y') });
+  const remove = useAdminMutation({ fn: () => cp.deleteCourse(d.idx), invalidate: inv, success: tr('처리되었습니다.', 'Done.'), onSuccess: () => navigate(packagesHref()) });
   // 강의 검색 (package_search.php)
   const [name, setName] = useState(''); const [searched, setSearched] = useState<string | null>(null); const [pick, setPick] = useState('');
   const search = useQuery({ queryKey: ['admin', 'course-packages', 'search', searched], queryFn: ({ signal }) => cp.searchPackageCourses(searched ?? '', signal), enabled: searched !== null });
   const addPicked = () => {
     const hit = search.data?.items.find((i) => i.lectureCode === pick);
-    if (!hit) { toast(tr('추가할 과정을 선택하세요.', 'Choose a course.'), { tone: 'danger' }); return; }
-    if (items.some((i) => i.lectureCode === hit.lectureCode)) { toast(tr('이미 선택된 과정입니다.', 'Already in the list.'), { tone: 'danger' }); return; }
+    if (!hit) { toast(tr('과정을 선택하세요.', 'Choose a course.'), { tone: 'danger' }); return; }
+    if (items.some((i) => i.lectureCode === hit.lectureCode)) { toast(tr('동일한 과정이 존재합니다.', 'The same course is already in the list.'), { tone: 'danger' }); return; }
     setItems([...items, { idx: hit.idx, lectureCode: hit.lectureCode, name: hit.name, serviceType: hit.serviceType, serviceTypeLabel: hit.serviceTypeLabel, chapter: hit.chapter }]);
   };
   // 엑셀로 일괄 등록 (course_package_excel_upload.php) — pasted from the sheet
@@ -80,13 +86,30 @@ export function PackageDetail({ d, onEdit }: { d: CpCourseDetail; onEdit: () => 
     imp.mutate(rows.map((r) => ({ lectureCode: r['강의코드'] ?? '', serviceType: r['수강유형'] ?? '', chapter: r['차시수'] ?? '', delete: r['삭제'] ?? '' })));
   };
   const [exporting, setExporting] = useState(false);
+  // 엑셀로 일괄 등록 — the .xlsx / .xls itself (course_package_excel_upload.php, PHPExcel read both); the server keeps the sheet row numbers for "행 N".
+  const [fileBusy, setFileBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const qc = useQueryClient();
+  const runFileImport = async () => {
+    const file = fileRef.current?.files?.[0];
+    if (!file) { toast(tr('엑셀 파일을 선택해주세요.', 'Choose an Excel file.'), { tone: 'danger' }); return; }
+    if (!/\.(xlsx|xls)$/i.test(file.name)) { toast(tr('엑셀 파일(.xlsx, .xls)만 업로드 가능합니다.', 'Only Excel files (.xlsx, .xls) can be uploaded.'), { tone: 'danger' }); return; }
+    setFileBusy(true);
+    try {
+      const r = await cp.importPackageFile(d.idx, file);
+      setResult(r);
+      if (fileRef.current) fileRef.current.value = '';
+      for (const k of inv) void qc.invalidateQueries({ queryKey: k });
+    } catch (err) { toast(isAppError(err) ? err.message : adm.common.failed, { tone: 'danger' }); }
+    finally { setFileBusy(false); }
+  };
   const pageRows = items.slice((pg - 1) * PKG_PAGE, pg * PKG_PAGE);
   const cols: Column<PkgCourse>[] = [
     { key: 'lectureCode', header: tr('강의 코드', 'Course code'), align: 'center', width: 110, render: (r) => <span className="mono">{r.lectureCode}</span> },
     { key: 'name', header: tr('과정명', 'Course name'), render: (r) => r.name ?? '' },
     { key: 'serviceTypeLabel', header: tr('수강 유형', 'Type'), align: 'center', width: 100, render: (r) => r.serviceTypeLabel },
     { key: 'chapter', header: tr('차시수', 'Chapters'), align: 'center', width: 100, render: (r) => tr(`${r.chapter ?? ''}차시`, `${r.chapter ?? ''}`) },
-    { key: 'del', header: tr('삭제', 'Remove'), align: 'center', width: 60, render: (r) => <AButton size="xs" disabled={!canWrite} onClick={() => setItems(items.filter((x) => x.lectureCode !== r.lectureCode))}>{tr('삭제', 'Remove')}</AButton> },
+    { key: 'del', header: tr('삭제', 'Remove'), align: 'center', width: 60, render: (r) => <AButton size="xs" disabled={!canWrite} onClick={() => { if (window.confirm(tr('선택한 과정을 삭제 하시겠습니까?', 'Remove the selected course?'))) setItems(items.filter((x) => x.lectureCode !== r.lectureCode)); }}>{tr('삭제', 'Remove')}</AButton> },
   ];
   const fixed = (k: string) => k;
   return (
@@ -101,7 +124,7 @@ export function PackageDetail({ d, onEdit }: { d: CpCourseDetail; onEdit: () => 
           [tr('패키지 번호', 'Package no.'), d.packageRefPad], ['', ''],
         ]} />
       </Card>
-      <ReadButtons left={canWrite ? <AButton variant="danger" onClick={() => setDel(true)}>{tr('컨텐츠 삭제', 'Delete')}</AButton> : null} center={canWrite ? <AButton variant="primary" onClick={onEdit}>{tr('컨텐츠 수정', 'Edit')}</AButton> : null} right={<AButton to="/admin/courses?packageYN=Y">{tr('목록', 'List')}</AButton>} />
+      <ReadButtons left={canWrite ? <AButton variant="danger" onClick={() => setDel(true)}>{tr('컨텐츠 삭제', 'Delete')}</AButton> : null} center={canWrite ? <AButton variant="primary" onClick={onEdit}>{tr('컨텐츠 수정', 'Edit')}</AButton> : null} right={<AButton to={packagesHref()}>{tr('목록', 'List')}</AButton>} />
       {canWrite ? (
         <Card title={tr('패키지 강의 검색', 'Find courses')}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -126,9 +149,14 @@ export function PackageDetail({ d, onEdit }: { d: CpCourseDetail; onEdit: () => 
       </Card>
       {canWrite ? (
         <Card title={tr('엑셀로 일괄 등록', 'Bulk update from Excel')}>
-          <p className="muted" style={{ fontSize: 13, margin: '0 0 8px' }}>{tr('엑셀에서 머리글 행(번호 · 강의 코드 · 과정명 · 수강 유형 · 차시수 · 삭제)을 포함해 복사한 뒤 붙여 넣으세요. "삭제" 열이 Y/1/삭제이면 빠지고, 나머지는 추가됩니다(기존 엑셀 업로드와 같은 규칙). 바로 저장됩니다.', 'Paste the sheet including the header row (번호 · 강의 코드 · 과정명 · 수강 유형 · 차시수 · 삭제). Rows with 삭제 = Y/1/삭제 are removed, others added (same rules as the Excel upload). Saved immediately.')}</p>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
+            <input ref={fileRef} type="file" accept=".xlsx,.xls" aria-label={tr('엑셀 파일', 'Excel file')} />
+            <AButton variant="primary" onClick={() => void runFileImport()} loading={fileBusy}>{tr('엑셀로 일괄 등록', 'Upload Excel')}</AButton>
+            <a className={btnCls} href={packageSampleXlsx} download="excel_sample_data.xlsx">{tr('샘플 다운로드', 'Download sample')}</a>
+          </div>
+          <p className="muted" style={{ fontSize: 13, margin: '0 0 8px' }}>{tr('또는 엑셀에서 머리글 행(번호 · 강의 코드 · 과정명 · 수강 유형 · 차시수 · 삭제)을 포함해 복사한 뒤 붙여 넣으세요. "삭제" 열이 Y/1/삭제이면 빠지고, 나머지는 추가됩니다(기존 엑셀 업로드와 같은 규칙). 바로 저장됩니다.', 'Paste the sheet including the header row (번호 · 강의 코드 · 과정명 · 수강 유형 · 차시수 · 삭제). Rows with 삭제 = Y/1/삭제 are removed, others added (same rules as the Excel upload). Saved immediately.')}</p>
           <ATextarea aria-label={tr('붙여넣기', 'Paste')} rows={6} value={paste} onChange={(e) => setPaste(e.target.value)} />
-          <div className="u-mt-8"><AButton onClick={runImport} disabled={!paste.trim()} loading={imp.isPending}>{tr('엑셀로 일괄 등록', 'Apply')}</AButton></div>
+          <div className="u-mt-8"><AButton onClick={runImport} disabled={!paste.trim()} loading={imp.isPending}>{tr('붙여넣기로 일괄 등록', 'Apply pasted rows')}</AButton></div>
           {result ? <pre style={{ fontSize: 12, whiteSpace: 'pre-wrap', marginTop: 8 }}>{result.summary}</pre> : null}
         </Card>
       ) : null}
@@ -180,8 +208,8 @@ export function PackageForm({ detail, onDone, onCancel }: { detail?: CpCourseDet
 export function PackageNewPage() {
   const navigate = useNavigate();
   return (
-    <AdminPage title={tr('패키지 컨텐츠 관리 등록', 'New package')} crumbs={[{ label: adm.top.home, to: '/admin' }, { label: tr('패키지 컨텐츠 관리', 'Packages'), to: '/admin/courses?packageYN=Y' }, { label: tr('등록', 'New') }]}>
-      <PackageForm onDone={(idx) => navigate(`/admin/courses/${idx}`)} onCancel={() => navigate('/admin/courses?packageYN=Y')} />
+    <AdminPage title={tr('패키지 컨텐츠 관리 등록', 'New package')} crumbs={[{ label: adm.top.home, to: '/admin' }, { label: tr('패키지 컨텐츠 관리', 'Packages'), to: packagesHref() }, { label: tr('등록', 'New') }]}>
+      <PackageForm onDone={(idx) => navigate(`/admin/courses/${idx}`)} onCancel={() => navigate(packagesHref())} />
     </AdminPage>
   );
 }

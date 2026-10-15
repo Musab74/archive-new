@@ -8,7 +8,7 @@ import { adminTokenStore } from '../shared/auth/adminTokenStore';
 import { tokenStore } from '../shared/auth/tokenStore';
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
-const admin = { id: 'admin01', name: '관리자', dept: 'A', deptIdx: 1, deptName: 'LMS개발부', topGrants: ['A', 'B', 'C', 'D', 'E', 'F', 'G'], subGrants: ['A1', 'A2', 'B1', 'B2', 'C1', 'D1', 'E1', 'F1', 'G1'], canWrite: true };
+const admin = { id: 'admin01', name: '관리자', dept: 'A', deptIdx: 1, deptName: 'LMS개발부', topGrants: ['A', 'B', 'C', 'D', 'E', 'F', 'G'], subGrants: ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'C1', 'C2', 'C3', 'C4', 'C5', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E7', 'E8', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'G1', 'G2', 'G3'], canWrite: true }; // a fully granted dept A: the menu follows DeptStructure like include_submenu.php
 const dashboard = { today: '2026-10-12', monthStart: '2026-10-01', logins: { today: 7, uniqueUsers: 3 }, activePlayers: { count: 0, freshnessSeconds: 90 }, learnersOver15hThisMonth: 1, activeEnrollments: 2, emon: { pending: 3, pendingStale: 0 }, support: { openInquiries: 0, openCounsel: 0 }, signupsToday: 4 };
 const companies = { items: [{ idx: 2144, companyCode: '7568002646', bizNo: '756-80-02646', companyName: '(A)+기쁨드림방문요양센터', scale: 'C', scaleLabel: '우선지원대상', companyId: 't003', manageCode: 't003', cyberEnabled: false, eduManager: '이명아', eduManagerPhone: '010-9960-1163', eduManagerEmail: '77malee@naver.com', sendSMS: 'Y', sendSMSLabel: '수신허용', salesManager: 't000', salesName: '탑플러스', salesTeam: '탑플러스', regDate: '2026-10-01 09:00:00' }], page: 1, size: 20, total: 1 };
 const companyMeta = { scales: [{ value: 'C', label: '우선지원대상' }, { value: 'A', label: '대규모 1000인 이상' }, { value: 'B', label: '대규모 1000인 미만' }], sendSMS: [{ value: 'Y', label: '수신허용' }, { value: 'N', label: '수신거부' }], yn: [], banks: ['국민은행'], salesManagers: [{ id: 't000', name: '탑플러스', team: '탑플러스', mobile: null, deptIdx: 2, deptName: '영업부' }] };
@@ -62,8 +62,8 @@ describe('admin + manager routes', () => {
     expect(top).toHaveTextContent('모니터링');
     expect(top).toHaveTextContent('사이트관리');
     const side = screen.getByRole('complementary', { name: '관리자 메뉴' });
-    expect(side).toHaveTextContent('사업주 관리'); // first section (회원 관리) is shown on the dashboard
-    expect(screen.getByText(/관리자 \(LMS개발부\)님 안녕하세요/)).toBeInTheDocument();
+    expect(side).toHaveTextContent('메인'); // include_submenu.php default case: 메인 heading, no links, on main.php
+    expect(screen.getByTestId('admin-greeting')).toHaveTextContent(/관리자 \(부서명:.*\)님 안녕하세요/);
     expect(screen.getByText(/자동 로그아웃/)).toBeInTheDocument();
     expect(screen.queryByText('조회 권한만 있는 계정입니다. 변경할 수 없습니다.')).not.toBeInTheDocument();
   });

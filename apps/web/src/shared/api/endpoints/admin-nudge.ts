@@ -21,6 +21,7 @@ export const CompanyOptionListSchema = z.object({ items: z.array(z.object({ comp
 export const NudgeTargetSchema = z.object({
   seq: z.number(), serviceType: S, serviceTypeLabel: z.string(), id: z.string(), name: S, depart: S, eduManager: z.boolean(), lectureCode: z.string(), courseName: z.string(), lectureStart: z.string(), lectureEnd: z.string(), tutorLimit: z.string().nullable(),
   progress: z.number(), passOk: S, passLabel: z.string(), studyEnd: S, certCount: z.number(), certDate: S, companyCode: S, companyName: S, salesName: S, salesTeam: S, tutorName: S, openChapter: z.union([z.number(), z.string()]).nullable().optional(), pre: z.string(), post: z.string(),
+  companyIdx: z.number().nullable().optional(), preSubmitted: z.boolean().optional(),
 });
 export type NudgeTarget = z.infer<typeof NudgeTargetSchema>;
 export const NudgePreviewSchema = z.object({
@@ -50,7 +51,7 @@ export const AlarmLogSchema = pageOf(AlarmRowSchema).extend({
 export type AlarmLog = z.infer<typeof AlarmLogSchema>;
 
 // 메일발송내역 (study_email_log*.php)
-export const ManagerMailRowSchema = z.object({ idx: z.number(), companyCode: S, companyName: z.string(), eduManager: S, email: S, title: S, message: S, messageText: z.string(), regDate: S, reciveDate: S, code: S, status: z.string(), inputId: S });
+export const ManagerMailRowSchema = z.object({ idx: z.number(), companyCode: S, logCompanyCode: S.optional(), companyIdx: z.number().nullable().optional(), companyName: z.string(), eduManager: S, email: S, title: S, message: S, messageText: z.string(), regDate: S, reciveDate: S, code: S, status: z.string(), inputId: S });
 export type ManagerMailRow = z.infer<typeof ManagerMailRowSchema>;
 export const MailRowSchema = ManagerMailRowSchema.extend({ id: S, name: S, studySeq: z.number().nullable() });
 export type MailRow = z.infer<typeof MailRowSchema>;
@@ -60,6 +61,34 @@ export const TemplateRowSchema = z.object({ idx: z.number(), messageMode: z.stri
 export type TemplateRow = z.infer<typeof TemplateRowSchema>;
 export const TemplateListSchema = pageOf(TemplateRowSchema).extend({ variables: z.array(z.object({ key: z.string(), label: z.string(), example: z.string() })), modes: z.array(z.object({ mode: z.string(), label: z.string() })) });
 export type TemplateList = z.infer<typeof TemplateListSchema>;
+
+// MemberInfo / CompanyInfo popups (member_info_pop.php, company_info_pop.php)
+const CompanyCardSchema = z.object({
+  idx: z.number().nullable(), companyScale: z.string(), companyScaleLabel: z.string(), companyName: z.string(), companyCode: z.string(), hrd: z.string(), companyId: z.string(), ceo: z.string(), tel: z.string(), tel2: z.string(), csEnabled: z.boolean(),
+  uptae: z.string(), upjong: z.string(), fax: z.string(), fax2: z.string(), zipcode: z.string(), address01: z.string(), address02: z.string(), bankName: z.string(), bankNumber: z.string(), email: z.string(), homePage: z.string(),
+  eduManager: z.string(), eduManagerPhone: z.string(), eduManagerEmail: z.string(), salesManager: z.string(), salesName: z.string(), remark: z.string(), cyberUrl: z.string(), cyberEnabled: z.boolean(), sendSms: z.string(), sendSmsLabel: z.string(), salesDeptName: z.string(),
+});
+export type NudgeCompanyCard = z.infer<typeof CompanyCardSchema>;
+export const NudgeMemberInfoSchema = z.object({
+  profile: z.object({
+    id: z.string(), name: S, useYN: z.string(), unused: z.boolean(), gender: z.string(), genderLabel: z.string(), email: S, tel: S, mobile: S, birthDay: S, hasEmail: z.boolean(), hasTel: z.boolean(), hasMobile: z.boolean(), hasBirthDay: z.boolean(),
+    nameEng: z.string(), zipcode: z.string(), address01: z.string(), address02: z.string(), depart: z.string(), position: z.string(), etc01: z.string(), etc02: z.string(), mailling: z.string(), acs: z.string(), regDate: S,
+    eduManager: z.string(), protectId: z.string(), marketing: z.string(), marketingLabel: z.string(), cardName: z.string(), cardNumber: z.string(), companyCode: z.string(), masked: z.boolean(),
+  }),
+  company: CompanyCardSchema.nullable(),
+  loginHistory: z.array(z.object({ no: z.number(), regDate: S, ip: S, device: S, userAgent: z.string(), browser: z.string() })),
+  certHistory: z.array(z.object({ no: z.number(), contentsName: z.string(), regDate: S })),
+  inquiries: z.array(z.object({ no: z.number(), idx: z.number(), category: z.string(), categoryLabel: z.string(), name: S, title: S, regDate: S, status: z.string(), statusLabel: z.string() })),
+});
+export type NudgeMemberInfo = z.infer<typeof NudgeMemberInfoSchema>;
+export const NudgeCompanyInfoSchema = z.object({
+  company: CompanyCardSchema,
+  studies: z.array(z.object({ no: z.number(), lectureCode: z.string(), contentsName: z.string(), lectureStart: z.string(), lectureEnd: z.string(), studyCount: z.number(), passCount: z.number(), passRatio: z.number(), price: z.number(), rPrice: z.number() })),
+  members: z.array(z.object({ no: z.number(), id: z.string(), name: S, birthDay: S, genderLabel: z.string(), email: S, mobile: S, depart: z.string(), position: z.string(), lastLogin: S, regDate: S, useYNLabel: z.string() })),
+});
+export type NudgeCompanyInfo = z.infer<typeof NudgeCompanyInfoSchema>;
+export const NudgeRevealSchema = z.object({ field: z.string(), label: z.string(), value: z.string() });
+export type RevealField = 'BirthDay' | 'Email' | 'Tel' | 'Mobile';
 
 /** 독려 관리 (menu C) — /admin/nudge/* (AdminNudgeController). */
 export const adminNudgeApi = {
@@ -84,6 +113,10 @@ export const adminNudgeApi = {
   managerMailLog: (query: Q, signal?: AbortSignal) => api.get<Page<ManagerMailRow>>('/admin/nudge/manager-mail-log', { query, schema: pageOf(ManagerMailRowSchema), signal }),
   mailLog: (query: Q, signal?: AbortSignal) => api.get<Page<MailRow>>('/admin/nudge/mail-log', { query, schema: pageOf(MailRowSchema), signal }),
   downloadMailLogCsv: (query: Q) => downloadAdminFile('/admin/nudge/mail-log/export', query, 'mail_log.csv'),
+  // MemberInfo / CompanyInfo popups (any C grant)
+  memberInfo: (id: string, signal?: AbortSignal) => api.get<NudgeMemberInfo>(`/admin/nudge/member-info/${encodeURIComponent(id)}`, { schema: NudgeMemberInfoSchema, signal }),
+  revealMember: (id: string, body: { field: RevealField; gubun: string; reason: string; url?: string }) => api.post<z.infer<typeof NudgeRevealSchema>>(`/admin/nudge/member-info/${encodeURIComponent(id)}/reveal`, body, { schema: NudgeRevealSchema }),
+  companyInfo: (code: string, signal?: AbortSignal) => api.get<NudgeCompanyInfo>(`/admin/nudge/company-info/${encodeURIComponent(code)}`, { schema: NudgeCompanyInfoSchema, signal }),
   // C5 문자/템플릿관리
   templates: (query: Q, signal?: AbortSignal) => api.get<TemplateList>('/admin/nudge/templates', { query, schema: TemplateListSchema, signal }),
   template: (idx: number, signal?: AbortSignal) => api.get<TemplateRow>(`/admin/nudge/templates/${idx}`, { schema: TemplateRowSchema, signal }),

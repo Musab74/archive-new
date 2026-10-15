@@ -72,17 +72,27 @@ export type CheatingDetail = z.infer<typeof CheatingDetailSchema>;
 // 사이트 정보
 export const SiteInfoSchema = z.object({ idx: z.number(), companyName: nstr, ceo: nstr, companyNumber: nstr, salesReportNumber: nstr, phone: nstr, fax: nstr, email: nstr, personalInformationManager: nstr, address: nstr, copyright: nstr, kakaoUrl: nstr, regDate: nstr }).nullable();
 export type SiteInfo = z.infer<typeof SiteInfoSchema>;
-export const SiteInfoSaveSchema = z.object({ ok: z.boolean(), updated: z.number(), fields: z.array(z.string()).default([]), idx: z.number().nullable().optional(), previousIdx: z.number().nullable().optional() });
+export const SiteInfoSaveSchema = z.object({ ok: z.boolean(), updated: z.number(), fields: z.array(z.string()).default([]), unchanged: z.boolean().optional(), idx: z.number().nullable().optional(), previousIdx: z.number().nullable().optional() });
 
 // 대시보드 (existing tiles + main.php blocks; new fields optional so older API builds still parse)
 const optNum = z.number().nullable().optional();
 export const DashboardSchema = z.object({
   today: z.string(), monthStart: z.string(), logins: z.object({ today: optNum, uniqueUsers: optNum }), activePlayers: z.object({ count: optNum, freshnessSeconds: z.number() }), learnersOver15hThisMonth: optNum, activeEnrollments: optNum,
   emon: z.object({ pending: optNum, pendingStale: optNum }), support: z.object({ openInquiries: optNum, openCounsel: optNum, openCheating: optNum }), signupsToday: optNum,
-  welcome: z.object({ id: z.string(), name: nstr, deptName: nstr, loginAt: nstr, clientIp: nstr, serverIp: nstr }).nullable().optional(),
+  welcome: z.object({ id: z.string(), name: nstr, deptName: nstr, loginAt: nstr, clientIp: nstr, serverIp: nstr, team: nstr, greeting: nstr }).nullable().optional(),
   rubyShortcuts: z.boolean().optional(),
+  siteName: nstr, siteAddress: nstr, browserTitle: nstr,
 });
 export type Dashboard = z.infer<typeof DashboardSchema>;
+
+/** GET /admin/dashboard/chrome — include_top.php greeting / <title> and include_bottom.php footer values. */
+export const AdminChromeSchema = z.object({
+  id: z.string(), name: nstr, dept: nstr, deptName: nstr, team: nstr, greeting: z.string(), serverIp: nstr, siteName: z.string(), siteAddress: nstr, browserTitle: z.string(),
+});
+export type AdminChrome = z.infer<typeof AdminChromeSchema>;
+
+export const EditorPhotoSchema = z.object({ ok: z.boolean(), fileName: z.string(), url: z.string(), html: z.string() });
+export type EditorPhoto = z.infer<typeof EditorPhotoSchema>;
 
 const formOf = (file: File) => { const fd = new FormData(); fd.append('file', file, file.name); return fd; };
 
@@ -119,7 +129,10 @@ export const adminSupportParityApi = {
   deleteCounsel: (idx: number) => api.delete<Ok>(`/admin/counsel/${idx}`, { schema: OkSchema }),
   uploadCounselFile: (idx: number, slot: number, file: File) => api.post<Ok>(`/admin/counsel/${idx}/files/${slot}`, formOf(file), { schema: OkSchema }),
   downloadCounselFile: (idx: number, slot: number | 'student', name: string) => downloadAdminFile(`/admin/counsel/${idx}/files/${slot}`, {}, name),
-  downloadCounselCsv: (query: Q) => downloadAdminFile('/admin/counsel/export', query, 'counsel.csv'),
+  /** qna_excel.php: 1대1문의_YYYYMMDD.xlsx (the server sends the name). */
+  downloadCounselXlsx: (query: Q) => downloadAdminFile('/admin/counsel/export', query, '1대1문의.xlsx'),
+  /** The same rows as CSV (format=csv). */
+  downloadCounselCsv: (query: Q) => downloadAdminFile('/admin/counsel/export', { ...query, format: 'csv' }, '1대1문의.csv'),
 
   // 부정제보 F6
   cheating: (query: Q, signal?: AbortSignal) => api.get<Page<CheatingRow>>('/admin/cheating', { query, schema: pageOf(CheatingRowSchema), signal }),
@@ -133,6 +146,9 @@ export const adminSupportParityApi = {
 
   // 대시보드
   dashboard: (signal?: AbortSignal) => api.get<Dashboard>('/admin/dashboard', { schema: DashboardSchema, signal }),
+  /** SmartEditor2 사진 (photo_uploader file_uploader.php): stores upload/webedit/<Ym>/<YmdHis>.<ext>; returns the <img> tag to insert. */
+  uploadEditorPhoto: (file: File) => api.post<EditorPhoto>('/admin/support/editor-photo', formOf(file), { schema: EditorPhotoSchema }),
+  chrome: (signal?: AbortSignal) => api.get<AdminChrome>('/admin/dashboard/chrome', { schema: AdminChromeSchema, signal }),
 };
 
 /** include/include_function.php arrays, used as fallbacks while the meta endpoints load. */

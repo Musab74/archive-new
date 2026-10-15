@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { adminApi } from '../../../../shared/api/endpoints/admin';
 import { adminMembersParityApi, type MemberEditForm, type MemberParityDetail } from '../../../../shared/api/endpoints/admin-members-parity';
@@ -15,6 +15,9 @@ import { errorMessage, useAdminMutation } from '../../useAdminMutation';
 import { adm } from '../../strings';
 import { tr } from '../../../../shared/i18n/adminLang';
 import { CompanyPicker, MemberFormDrawer, PrivacyReasonDialog } from './members-parity-form';
+import { membersListHref } from './members-parity-nav';
+import { MemberInquiryDrawer, MemberProgressDrawer } from './members-parity-progress';
+import { hasGrant } from '../../../../shared/auth/adminMenu';
 
 type Enrollment = MemberParityDetail['enrollments'][number];
 type Login = MemberParityDetail['loginHistory'][number];
@@ -28,12 +31,24 @@ const REVEAL_LABEL: Record<RevealKey, string> = { BirthDay: '생년월일', Emai
 /** Numbering like the PHP lists: total, total-1, … */
 const desc = (total: number) => (_r: unknown, i: number) => total - i;
 
-const enrollCols = (total: number, memberId: string, memberName: string): Column<Enrollment>[] => [
-  { key: 'no', header: <>{tr('번호', 'No.')}<br />{tr('구분', 'Type')}</>, align: 'center', render: (r, i) => <>{total - i}<br /><small className="muted">{r.serviceTypeLabel || r.serviceType || ''}</small></> },
-  { key: 'name', header: <>{tr('이름', 'Name')}<br />ID</>, render: (r) => <>{r.memberName ?? memberName}<br /><small className="muted">{memberId}</small></> },
+const linkBtn = { background: 'none', border: 0, padding: 0, color: 'var(--link, #1e6bd6)', cursor: 'pointer', textDecoration: 'underline' } as const;
+
+/**
+ * 진도율 / 진도 로그 open progress_info_pop.php. Staff with a 학습관리 grant (B5/B1) go to the enrollment page; staff with only
+ * 수강생 관리 (A2) get the same popup in a drawer (`onProgress`), because the PHP popup only checked the admin login.
+ */
+const enrollCols = (total: number, memberId: string, memberName: string, onProgress?: (seq: number) => void): Column<Enrollment>[] => [
+  // 구분 = $ServiceType_array[ServiceType] like member_read.php (no entry for 'A', so 패키지 rows show an empty 구분 there).
+  { key: 'no', header: <>{tr('번호', 'No.')}<br />{tr('구분', 'Type')}</>, align: 'center', render: (r, i) => <>{total - i}<br /><small className="muted">{r.serviceTypeLabelPhp ?? r.serviceTypeLabel ?? ''}</small></> },
+  // member_read.php opened member_info_pop.php here; every section of that popup is on this page, so the link opens the 기본 정보 tab.
+  { key: 'name', header: <>{tr('이름', 'Name')}<br />ID</>, render: (r) => <Link to="?tab=info" title={tr('수강생 상세 정보', 'Learner details')}>{r.memberName ?? memberName}<br /><small className="muted">{memberId}</small></Link> },
   { key: 'course', header: <>{tr('과정명', 'Course')}<br />{tr('수강기간', 'Period')}</>, render: (r) => <><small style={{ color: r.packageYN === 'Y' ? 'var(--info, #1e6bd6)' : 'var(--muted, #888)' }}>[{r.packageYN === 'Y' ? tr('패키지', 'Package') : tr('단과', 'Single')}]</small> <b title={r.lectureCode}>{r.courseName}</b><br /><small>{r.period.start} ~ {r.period.end}</small></> },
-  { key: 'percent', header: tr('진도율', 'Progress'), align: 'center', render: (r) => <Link to={`/admin/studies/${r.studySeq}`} title={`${r.formatted} · ${tr('저장값', 'stored')} ${r.storedProgress}%`}>{r.percent}%</Link> },
-  { key: 'log', header: tr('진도 로그', 'Progress log'), align: 'center', render: (r) => <AButton size="xs" to={`/admin/studies/${r.studySeq}#learning`}>{tr('보기', 'View')}</AButton> },
+  { key: 'percent', header: tr('진도율', 'Progress'), align: 'center', render: (r) => (onProgress
+    ? <button type="button" style={linkBtn} title={`${r.formatted} · ${tr('저장값', 'stored')} ${r.storedProgress}%`} onClick={() => onProgress(r.studySeq)}>{r.percent}%</button>
+    : <Link to={`/admin/studies/${r.studySeq}`} title={`${r.formatted} · ${tr('저장값', 'stored')} ${r.storedProgress}%`}>{r.percent}%</Link>) },
+  { key: 'log', header: tr('진도 로그', 'Progress log'), align: 'center', render: (r) => (onProgress
+    ? <AButton size="xs" onClick={() => onProgress(r.studySeq)}>{tr('보기', 'View')}</AButton>
+    : <AButton size="xs" to={`/admin/studies/${r.studySeq}#learning`}>{tr('보기', 'View')}</AButton>) },
   { key: 'passOk', header: tr('수료여부', 'Completion'), align: 'center', render: (r) => (r.passOkRaw === 'Y' ? <StatusBadge tone="ok">{tr('수료', 'Completed')}</StatusBadge> : r.passOkRaw === 'N' ? <StatusBadge tone="warn">{tr('미수료', 'Not completed')}</StatusBadge> : '') },
   { key: 'studyEnd', header: tr('수강마감', 'Closed'), align: 'center', render: (r) => (r.studyEnd ? <><StatusBadge tone="info">{tr('마감완료', 'Closed')}</StatusBadge>{r.studyEndInPeriod ? <><br /><small style={{ color: 'var(--warn, #c77700)' }}>{tr('기간중', 'In period')}</small></> : null}</> : <StatusBadge tone="warn">{tr('미마감', 'Open')}</StatusBadge>) },
   { key: 'tutor', header: tr('교·강사', 'Tutor'), render: (r) => r.tutorName ?? '' },
@@ -44,9 +59,12 @@ const enrollCols = (total: number, memberId: string, memberName: string): Column
 export default function MemberDetailPage() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { admin } = useAdminSession();
   const { canWrite, readOnlyTitle } = useWriteGate();
+  // 목록 keeps pg/col/sw like member_read.php: the list passes its query string in the navigation state (sessionStorage after a reload).
+  const listHref = membersListHref(location.state);
   const q = useQuery({ queryKey: ['admin', 'member', id], queryFn: ({ signal }) => adminMembersParityApi.member(id, signal), enabled: !!id });
   const d = q.data;
   const p = d?.profile;
@@ -64,9 +82,22 @@ export default function MemberDetailPage() {
   // member_script.php actions
   const [confirm, setConfirm] = useState<'pcd' | 'out' | 'use' | 'delete' | null>(null);
   const initPw = useAdminMutation({ fn: () => adminMembersParityApi.initPassword(id), success: tr('비밀번호가 초기화되었습니다.', 'Password reset to 1111.'), invalidate, onSuccess: () => setConfirm(null) });
-  const withdraw = useAdminMutation({ fn: () => adminMembersParityApi.withdraw(id), success: tr('탈퇴 처리가 완료되었습니다.', 'Member withdrawn.'), invalidate, onSuccess: () => { setConfirm(null); navigate('/admin/members'); } });
+  const withdraw = useAdminMutation({ fn: () => adminMembersParityApi.withdraw(id), success: tr('탈퇴 처리가 완료되었습니다.', 'Member withdrawn.'), invalidate, onSuccess: () => { setConfirm(null); navigate(listHref); } });
   const setUse = useAdminMutation({ fn: (v: 'Y' | 'N') => adminMembersParityApi.setUse(id, v), success: tr('사용여부가 변경되었습니다.', 'Account status changed.'), invalidate, onSuccess: () => setConfirm(null) });
-  const del = useAdminMutation({ fn: (r: string) => adminMembersParityApi.deleteData(id, r), success: tr('삭제되었습니다.', 'Deleted.'), invalidate: [['admin', 'members']], onSuccess: () => { setConfirm(null); navigate('/admin/members'); } });
+  const del = useAdminMutation({ fn: (r: string) => adminMembersParityApi.deleteData(id, r), success: tr('삭제되었습니다.', 'Deleted.'), invalidate: [['admin', 'members']], onSuccess: () => { setConfirm(null); navigate(listHref); } });
+  // 회원으로 로그인 (member_login.php): the tab is opened inside the click (popup blockers), then pointed at the learner site once the session exists.
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [loginBusy, setLoginBusy] = useState(false);
+  const loginAs = async () => {
+    const w = window.open('about:blank', '_blank');
+    setLoginBusy(true);
+    try {
+      const r = await adminMembersParityApi.loginAs(id);
+      setLoginOpen(false);
+      if (w) w.location.href = r.url || '/'; else window.open(r.url || '/', '_blank');
+      toast(tr(`[${r.id}] 회원으로 로그인했습니다. 새 탭에서 학습자 사이트가 열립니다.`, `Signed in as ${r.id}; the learner site opens in a new tab.`), { tone: 'ok' });
+    } catch (e) { w?.close(); toast(errorMessage(e), { tone: 'danger' }); } finally { setLoginBusy(false); }
+  };
   const [pwOpen, setPwOpen] = useState(false);
   const [pw, setPw] = useState('');
   const resetPw = useAdminMutation({ fn: (password: string) => adminApi.resetPassword(id, password), success: adm.members.detail.resetDone, onSuccess: () => { setPwOpen(false); setPw(''); } });
@@ -78,6 +109,10 @@ export default function MemberDetailPage() {
   const [phone, setPhone] = useState<{ idx: number | null; Category: string; Name: string; Contents: string; Status: string } | null>(null);
   const savePhone = useAdminMutation({ fn: (v: { idx: number | null; Category: string; Name: string; Contents: string; Status: string }) => { const { idx, ...b } = v; return idx ? adminMembersParityApi.updateCounselPhone(id, idx, b) : adminMembersParityApi.createCounselPhone(id, b); }, success: tr('처리되었습니다.', 'Saved.'), invalidate, onSuccess: () => setPhone(null) });
   const removePhone = useAdminMutation({ fn: (idx: number) => adminMembersParityApi.removeCounselPhone(id, idx), success: tr('처리되었습니다.', 'Deleted.'), invalidate, onSuccess: () => setPhone(null) });
+  // progress_info_pop.php / qna_read.php drawers (see enrollCols)
+  const hasStudyPage = hasGrant(admin, 'B5') || hasGrant(admin, 'B1');
+  const [progressSeq, setProgressSeq] = useState<number | null>(null);
+  const [inquiryIdx, setInquiryIdx] = useState<number | null>(null);
   const [csvBusy, setCsvBusy] = useState(false);
   const [xlsBusy, setXlsBusy] = useState(false);
   const learningXls = async () => { setXlsBusy(true); try { await adminStudiesParityApi.downloadProgressExcel(id); } catch (e) { toast(errorMessage(e), { tone: 'danger' }); } finally { setXlsBusy(false); } };
@@ -119,7 +154,8 @@ export default function MemberDetailPage() {
     { key: 'no', header: tr('번호', 'No.'), align: 'right', width: 80, render: desc(d?.inquiries.length ?? 0) },
     { key: 'category', header: tr('문의종류', 'Category'), render: (r) => r.categoryLabel },
     { key: 'name', header: tr('이름', 'Name'), render: (r) => r.name ?? '' },
-    { key: 'title', header: tr('제목', 'Title'), render: (r) => <Link to={`/admin/counsel?q=${encodeURIComponent(id)}`}>{r.title ?? ''}</Link> },
+    // member_read.php opened qna_read.php?idx= for the clicked inquiry: read it here (A2 is enough); answering stays on 1:1 상담문의.
+    { key: 'title', header: tr('제목', 'Title'), render: (r) => <button type="button" style={linkBtn} onClick={() => setInquiryIdx(r.idx)}>{r.title ?? ''}</button> },
     { key: 'regDate', header: tr('등록일', 'Registered'), nowrap: true, render: (r) => r.regDate ?? '' },
     { key: 'status', header: tr('처리상태', 'Status'), align: 'center', render: (r) => <StatusBadge tone={r.status === 'B' ? 'ok' : 'warn'}>{r.statusLabel}</StatusBadge> },
   ];
@@ -154,7 +190,7 @@ export default function MemberDetailPage() {
           { label: tr('최근 로그인', 'Last login'), value: p.lastLogin ? p.lastLogin.slice(0, 16) : null, hint: p.lastLoginIp ?? undefined },
           { label: tr('가입일', 'Joined'), value: p.regDate ? p.regDate.slice(0, 10) : null },
         ]}
-        back={{ to: '/admin/members', label: tr('목록', 'List') }}
+        back={{ to: listHref, label: tr('목록', 'List') }}
         actions={<AButton variant="primary" icon="edit" disabled={!canWrite || p.memberOut === 'Y'} title={readOnlyTitle} onClick={() => setReason({ kind: 'edit' })}>{tr('정보 수정', 'Edit')}</AButton>}
         dangerActions={<>
           <MenuAction onClick={() => setConfirm('pcd')} disabled={!canWrite} title={readOnlyTitle}>{tr('비밀번호 초기화 (1111)', 'Reset password (1111)')}</MenuAction>
@@ -162,7 +198,7 @@ export default function MemberDetailPage() {
           <MenuAction onClick={() => setConfirm('use')} disabled={!canWrite} title={readOnlyTitle}>{p.useYN === 'Y' ? tr('회원 미사용처리', 'Deactivate') : tr('회원 사용처리', 'Activate')}</MenuAction>
           <MenuAction onClick={() => setConfirm('out')} disabled={!canWrite || p.memberOut === 'Y'} title={readOnlyTitle} danger>{tr('회원 탈퇴처리', 'Withdraw')}</MenuAction>
           <MenuAction onClick={() => setConfirm('delete')} disabled={!canWrite} title={readOnlyTitle} danger>{tr('회원 데이터 삭제', 'Delete member data')}</MenuAction>
-          <MenuAction onClick={() => undefined} disabled title={tr('회원으로 로그인은 아직 이전 사이트(hrd_manager)에서만 가능합니다.', 'Log in as member is still only available on the previous site.')}>{tr('회원으로 로그인', 'Log in as member')}</MenuAction>
+          <MenuAction onClick={() => setLoginOpen(true)} disabled={!canWrite || p.memberOut === 'Y' || p.useYN !== 'Y'} title={p.memberOut === 'Y' || p.useYN !== 'Y' ? tr('로그인이 불가능한 아이디입니다.[미사용 전환 아이디]', 'This account cannot be signed in (inactive or withdrawn).') : readOnlyTitle}>{tr('회원으로 로그인', 'Log in as member')}</MenuAction>
         </>}
       />
 
@@ -176,6 +212,8 @@ export default function MemberDetailPage() {
               { label: tr('영문 이름', 'English name'), value: p.nameEng }, { label: tr('회원구분', 'Member type'), value: p.memberTypeLabel },
               { label: tr('가입일', 'Joined'), value: p.regDate }, { label: tr('최종로그인', 'Last login'), value: p.lastLogin ? `${p.lastLogin} (${p.lastLoginIp ?? ''})` : null },
               { label: tr('교육 담당자', 'Training manager'), value: p.eduManager }, { label: tr('계정 사용', 'Account'), value: p.useYN === 'N' ? tr('미사용', 'Inactive') : tr('사용', 'Active') },
+              // member_info_pop.php 대리수강 방지 (Member.ProtectID, $UseYN_array)
+              { label: tr('대리수강 방지', 'Proxy-study guard'), value: p.protectId === 'Y' ? tr('사용', 'On') : p.protectId === 'N' ? tr('미사용', 'Off') : null },
             ] },
             { title: tr('개인정보', 'Personal data'), aside: <span className="muted" style={{ fontSize: 12 }}>{tr('가려진 값을 누르면 사유를 남기고 열람합니다', 'Click a masked value to view it with a logged reason')}</span>, rows: [
               { label: tr('생년월일 / 성별', 'Birth date / gender'), value: <span>{masked('BirthDay', p.birthDay) || '—'}{p.genderLabel ? ` / ${p.genderLabel}` : ''}</span> },
@@ -221,7 +259,7 @@ export default function MemberDetailPage() {
           <SectionPanel title={tr('수강 내역', 'Enrollments')} count={d.enrollments.length}
             note={tr('진도율 = 학습시간 ÷ 15시간 (패키지는 하위 과정 합산). 진도 로그 "보기"를 누르면 차시별 학습 기록과 로그가 열립니다.', 'Progress = study time ÷ 15h (package: sub-courses summed). "View" opens the per-chapter record and log.')}
             toolbar={<AButton size="sm" icon="download" loading={xlsBusy} onClick={() => void learningXls()}>{tr('학습내역 엑셀 출력', 'Learning record CSV')}</AButton>}>
-            <DataTable columns={enrollCols(d.enrollments.length, p.id, p.name ?? '')} rows={d.enrollments} rowKey={(r) => r.studySeq} emptyTitle={tr('수강 내역이 없습니다.', 'No enrollments.')} dense />
+            <DataTable columns={enrollCols(d.enrollments.length, p.id, p.name ?? '', hasStudyPage ? undefined : setProgressSeq)} rows={d.enrollments} rowKey={(r) => r.studySeq} emptyTitle={tr('수강 내역이 없습니다.', 'No enrollments.')} dense />
           </SectionPanel>
         </DetailTab>
 
@@ -259,6 +297,7 @@ export default function MemberDetailPage() {
         onSubmit={(gubun, text) => { if (reason?.kind === 'reveal') reveal.mutate({ field: reason.field, gubun, reason: text }); else editForm.mutate({ gubun, reason: text }); }} />
       <MemberFormDrawer open={!!editInitial} mode="edit" initial={editInitial} onClose={() => setEditInitial(null)} onSaved={() => setRevealed({})} />
 
+      <ConfirmDialog open={loginOpen} tone="info" title={tr('회원으로 로그인', 'Log in as member')} body={<p>{tr(`[${id}]로 로그인 하시겠습니까?`, `Log in as [${id}]?`)}<br /><small className="muted">{tr('이 브라우저의 학습자 로그인이 이 회원으로 바뀌고, 이 회원의 다른 접속은 끊어집니다.', "This browser's learner session switches to this member and their other session is signed out.")}</small></p>} loading={loginBusy} onCancel={() => setLoginOpen(false)} onConfirm={() => void loginAs()} />
       <ConfirmDialog open={confirm === 'pcd'} title={tr('비밀번호 초기화', 'Reset password')} body={<p>{tr('비밀번호를 1111 으로 초기화 하시겠습니까?', 'Reset the password to 1111?')}</p>} loading={initPw.isPending} onCancel={() => setConfirm(null)} onConfirm={() => initPw.mutate(undefined)} />
       <ConfirmDialog open={confirm === 'out'} tone="danger" title={tr('회원 탈퇴처리', 'Withdraw member')} body={<p>{tr('현재회원을 탈퇴처리 하시겠습니까?', 'Withdraw this member?')}</p>} loading={withdraw.isPending} onCancel={() => setConfirm(null)} onConfirm={() => withdraw.mutate(undefined)} />
       <ConfirmDialog open={confirm === 'use'} title={p?.useYN === 'Y' ? tr('회원 미사용처리', 'Deactivate') : tr('회원 사용처리', 'Activate')} body={<p>{p?.useYN === 'Y' ? tr('현재회원을 미사용처리 하시겠습니까?', 'Deactivate this member?') : tr('현재회원을 사용처리 하시겠습니까?', 'Activate this member?')}</p>} loading={setUse.isPending} onCancel={() => setConfirm(null)} onConfirm={() => setUse.mutate(p?.useYN === 'Y' ? 'N' : 'Y')} />
@@ -277,6 +316,9 @@ export default function MemberDetailPage() {
           </div>
         </div> : null}
       </Modal>
+
+      <MemberProgressDrawer memberId={p.id} seq={progressSeq} onClose={() => setProgressSeq(null)} />
+      <MemberInquiryDrawer memberId={p.id} idx={inquiryIdx} canAnswer={hasGrant(admin, 'F3')} onClose={() => setInquiryIdx(null)} />
 
       <Modal open={!!phone} onClose={() => setPhone(null)} title={tr('전화상담 내역 작성', 'Phone counselling')}>
         {phone ? <div style={{ display: 'flex', flexDirection: 'column', gap: 10, minWidth: 360 }}>

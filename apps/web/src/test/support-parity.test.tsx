@@ -59,6 +59,14 @@ function apiMock() {
     return json({ error: { code: 'NOT_FOUND', message: `${method} ${url}` } }, 404);
   });
 }
+/** Types into the rich editor (contenteditable) like a user would: the DOM changes, then an input event fires. */
+const typeInEditor = (name: RegExp | string, html: string) => { const el = screen.getByRole('textbox', { name }); el.innerHTML = html; fireEvent.input(el); };
+/** SubmitOk(): confirm("등록하시겠습니까?") → 확인. */
+const confirmSubmit = async (text = '등록하시겠습니까?') => {
+  const dialog = await screen.findByRole('dialog', { name: '확인' });
+  expect(dialog).toHaveTextContent(text);
+  fireEvent.click(within(dialog).getByRole('button', { name: '확인' }));
+};
 const mount = (el: ReactElement, path = '/x') => {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(<QueryClientProvider client={qc}><ToastProvider><AdminSessionContext.Provider value={session}><MemoryRouter initialEntries={[path]}>{el}</MemoryRouter></AdminSessionContext.Provider></ToastProvider></QueryClientProvider>);
@@ -120,9 +128,10 @@ describe('support parity pages', () => {
     expect(calls.find((c) => c.url === '/admin/counsel/11/reveal')?.body).toEqual({ field: 'Mobile', gubun: '학습자 관리', reason: '본인 확인 요청' });
     const st = screen.getByRole('combobox', { name: /처리 상태/ }); st.focus(); fireEvent.keyDown(st, { key: 'ArrowDown' });
     fireEvent.click(await screen.findByRole('option', { name: '완료' }));
-    fireEvent.change(screen.getByLabelText(/답변 내용/), { target: { value: '진도가 반영되었습니다. 확인 부탁드립니다.' } });
+    typeInEditor('답변 내용', '<p>진도가 반영되었습니다. 확인 부탁드립니다.</p>');
     fireEvent.click(screen.getByRole('button', { name: '답변 하기' }));
-    await waitFor(() => expect(calls.find((c) => c.m === 'PATCH' && c.url === '/admin/counsel/11/answer')?.body).toMatchObject({ Status: 'B', Name2: '관리자', Contents2: '진도가 반영되었습니다. 확인 부탁드립니다.' }));
+    await confirmSubmit();
+    await waitFor(() => expect(calls.find((c) => c.m === 'PATCH' && c.url === '/admin/counsel/11/answer')?.body).toMatchObject({ Status: 'B', Name2: '관리자', Contents2: '<p>진도가 반영되었습니다. 확인 부탁드립니다.</p>' }));
   });
 
   it('부정제보: PHP columns and the 상태 변경 form', async () => {
@@ -133,6 +142,8 @@ describe('support parity pages', () => {
     expect(await screen.findByText('rep@example.com')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText(/작성자/), { target: { value: '관리자' } });
     fireEvent.click(screen.getByRole('button', { name: '상태 변경' }));
+    expect(calls.some((c) => c.url === '/admin/cheating/21/status')).toBe(false); // nothing is sent before the confirm
+    await confirmSubmit();
     await waitFor(() => expect(calls.find((c) => c.url === '/admin/cheating/21/status')?.body).toEqual({ Status: 'A', Name2: '관리자' }));
   });
 
@@ -142,11 +153,12 @@ describe('support parity pages', () => {
     for (const h of ['번호', '문의종류', '회사명', '문의자 이름', '문의일', '처리상태']) expect(screen.getByRole('columnheader', { name: h })).toBeInTheDocument();
     fireEvent.click(screen.getByText('테스트기업'));
     expect(await screen.findByText('30명')).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText(/답변 내용/), { target: { value: '담당자가 곧 연락드리겠습니다. 감사합니다.' } });
+    typeInEditor('답변 내용', '담당자가 곧 연락드리겠습니다. 감사합니다.');
     fireEvent.click(screen.getByRole('button', { name: '답변 하기' }));
     expect(await screen.findByText('작성자를 입력하세요.')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText(/작성자/), { target: { value: '영업팀' } });
     fireEvent.click(screen.getByRole('button', { name: '답변 하기' }));
+    await confirmSubmit();
     await waitFor(() => expect(calls.find((c) => c.url === '/admin/inquiries/31/answer')?.body).toEqual({ Status: 'A', Contents2: '담당자가 곧 연락드리겠습니다. 감사합니다.', Name2: '영업팀' }));
   });
 
@@ -159,6 +171,7 @@ describe('support parity pages', () => {
     expect(await screen.findByText('FAX를 입력하세요.')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText(/FAX/), { target: { value: '02-111-1111' } });
     fireEvent.click(screen.getByRole('button', { name: '수정 하기' }));
+    await confirmSubmit('등록 하시겠습니까?');
     await waitFor(() => expect(calls.find((c) => c.m === 'PUT')?.body).toMatchObject({ CompanyName: '에이치알디이', Fax: '02-111-1111', KakaoURL: '' }));
   });
 

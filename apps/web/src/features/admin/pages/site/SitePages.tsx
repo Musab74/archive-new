@@ -11,6 +11,7 @@ import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
 import { tr } from '../../../../shared/i18n/adminLang';
 import { adm } from '../../strings';
+import { SupportSubmitConfirm, useSubmitConfirm } from '../community/SupportSubmitConfirm';
 
 /** site_info.php inputs in screen order with the PHP <th> labels; every field except Kakao 채널 URL is required (SubmitOk). */
 const FIELDS = [
@@ -36,12 +37,13 @@ export function SiteInfoPage() {
   const [form, setForm] = useState<Record<Key, string>>(base);
   const [errors, setErrors] = useState<Partial<Record<Key, string>>>({});
   useEffect(() => { setForm(base); setErrors({}); }, [base]);
-  const changed = FIELDS.some((f) => form[f.key].trim() !== base[f.key].trim());
-  const save = useAdminMutation({ fn: () => adminSupportParityApi.saveSiteInfo(Object.fromEntries(FIELDS.map((f) => [f.key, form[f.key].trim()]))), invalidate: [['admin', 'site-info'], ['design']], success: tr('처리되었습니다.', 'Done.') });
+  const save = useAdminMutation({ fn: () => adminSupportParityApi.saveSiteInfo(Object.fromEntries(FIELDS.map((f) => [f.key, form[f.key].trim()]))), invalidate: [['admin', 'site-info'], ['design'], ['admin', 'chrome']], success: tr('처리되었습니다.', 'Done.') });
+  const confirmSave = useSubmitConfirm();
+  /** site_info.php SubmitOk(): every required field, then confirm("등록 하시겠습니까?"); site_info_script.php then INSERTs a new row (also when nothing changed). */
   const submit = () => {
     const e: Partial<Record<Key, string>> = {};
     for (const f of FIELDS) if (f.msg && !form[f.key].trim()) e[f.key] = f.msg();
-    setErrors(e); if (!Object.keys(e).length) save.mutate(undefined as never);
+    setErrors(e); if (!Object.keys(e).length) confirmSave.ask();
   };
   return (
     <AdminPage title={tr('사이트 정보 관리', 'Site information')} lead={tr('저장할 때마다 기존 사이트와 같이 새 행이 추가되고, 화면에는 가장 최근 행이 표시됩니다.', 'Each save adds a new row (as the previous site does); the newest row is shown.')}>
@@ -52,10 +54,11 @@ export function SiteInfoPage() {
             {FIELDS.map((f) => <FieldRow key={f.key} label={f.label()} htmlFor={`si-${f.key}`} required={!!f.msg} error={errors[f.key]}><AInput id={`si-${f.key}`} value={form[f.key]} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} maxLength={f.key === 'KakaoURL' ? 100 : 250} disabled={!canWrite} /></FieldRow>)}
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
-            <AButton variant="primary" disabled={!canWrite || (!changed && q.data !== null)} title={readOnlyTitle} loading={save.isPending} onClick={submit}>{tr('수정 하기', 'Save')}</AButton>
+            <AButton variant="primary" disabled={!canWrite} title={readOnlyTitle} loading={save.isPending} onClick={submit}>{tr('수정 하기', 'Save')}</AButton>
           </div>
         </Card>
       )}
+      <SupportSubmitConfirm open={confirmSave.open} body={tr('등록 하시겠습니까?', 'Save now?')} loading={save.isPending} onCancel={confirmSave.close} onConfirm={() => save.mutate(undefined as never, { onSettled: confirmSave.close })} />
     </AdminPage>
   );
 }

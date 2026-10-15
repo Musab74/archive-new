@@ -9,9 +9,10 @@ import { nav, placeholders, my as myCopy } from '../../shared/strings/ko';
 import { cx } from '../../shared/utils/format';
 import { Skeleton } from '../../shared/ui/Skeleton';
 import { HeaderChromeContext } from '../../shared/ui/headerChrome';
+import { SiteVisitCounter } from '../../features/admin/pages/site-cms/SiteVisitCounter';
 
 const ManagerShell = lazy(() => import('../../features/manager/ManagerShell'));
-const AdminShell = lazy(() => import('../../features/admin/AdminShell'));
+const AdminShell = lazy(() => import('../../features/admin/pages/site/AdminShellParity'));
 const shellFallback = <div className="section" aria-busy="true"><Skeleton height={28} width="40%" /><Skeleton lines={5} /></div>;
 
 function Shell({ wide }: { wide?: boolean }) {
@@ -25,6 +26,7 @@ function Shell({ wide }: { wide?: boolean }) {
           <PageTransition><Outlet /></PageTransition>
         </main>
         <Footer />
+        <SiteVisitCounter />
       </div>
     </HeaderChromeContext.Provider>
   );
@@ -67,6 +69,7 @@ export function MyRoomLayout() {
         </div>
       </main>
       <Footer />
+      <SiteVisitCounter />
     </div>
   );
 }

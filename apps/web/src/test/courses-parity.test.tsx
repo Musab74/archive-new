@@ -136,9 +136,14 @@ describe('컨텐츠관리 parity pages', () => {
     expect(screen.getByText(/\(예비\) \/v\/1b\.mp4/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '추가 하기' }));
     const drawer = await screen.findByRole('dialog');
-    expect(within(drawer).getByLabelText('정렬 순서')).toHaveValue('2');
+    expect(within(drawer).getByLabelText(/정렬 순서/)).toHaveValue('2');
     fireEvent.click(within(drawer).getByRole('button', { name: '등록 하기' }));
-    await waitFor(() => expect(bodies['POST /admin/contents/5/details']).toMatchObject({ ContentsType: 'A', OrderByNum: 2, UseYN: 'Y', Teacher: 0 }));
+    expect(await within(drawer).findByText('컨텐츠 경로를 입력하세요.')).toBeInTheDocument(); // ContentsDetailSubmitOk: type A needs a path
+    expect(bodies['POST /admin/contents/5/details']).toBeUndefined();
+    fireEvent.change(within(drawer).getByLabelText(/컨텐츠 경로/), { target: { value: '/MCS01/019/01/index.html' } });
+    fireEvent.click(within(drawer).getByRole('button', { name: '등록 하기' }));
+    await waitFor(() => expect(bodies['POST /admin/contents/5/details']).toMatchObject({ ContentsType: 'A', ContentsURL: '/MCS01/019/01/index.html', OrderByNum: 2, UseYN: 'Y', Teacher: 0 }));
+    expect(window.confirm).toHaveBeenCalledWith('등록 하시겠습니까?');
   });
 
   it('course_category.php: tree with [미사용] and the 하부 카테고리 추가 drawer', async () => {

@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { adminLearningApi, type IdentityRow } from '../../../../shared/api/endpoints/admin-learning';
 import { useSearchState } from '../../../../shared/utils/useSearchState';
@@ -8,15 +9,24 @@ import { useWriteGate } from '../../GrantGate';
 import { MemberLink, StudyLink, useCsvDownload } from './learningShared';
 
 const DEFAULTS = { col: 'Name', q: '', page: 1 };
+/** PHP column names (a.ID, a.Name, c.CompanyName) → the API's col. */
+const normCol = (v: string | null | undefined) => { const raw = String(v ?? '').replace(/^[a-z]\./, ''); return raw === 'ID' || raw === 'Name' || raw === 'CompanyName' ? raw : 'Name'; };
 const SIZE = 30;
 
 /** certification_list.php — 본인인증 모니터링 (B2): UserCertOTP, newest first. */
 export default function IdentityChecksPage() {
   const [p, setP, reset] = useSearchState(DEFAULTS);
-  const [form, setForm] = useState({ col: p.col, q: p.q });
+  const [sp] = useSearchParams();
+  const [form, setForm] = useState({ col: normCol(p.col), q: sp.get('sw') ?? p.q });
+  /** certification_list.php?col=a.ID&sw=<ID> (이상데이터 상세 "본인인증 목록에서 검색"): accept the PHP names and search at once. */
+  useEffect(() => {
+    const sw = sp.get('sw'); if (sw === null) return;
+    const col = normCol(sp.get('col'));
+    setForm({ col, q: sw }); setP({ col, q: sw, page: 1 }, true);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const { canWrite } = useWriteGate();
   const [exporting, download] = useCsvDownload();
-  const query = useMemo(() => ({ col: p.col, q: p.q || undefined, page: p.page, size: SIZE }), [p]);
+  const query = useMemo(() => ({ col: normCol(p.col), q: (sp.get('sw') ?? p.q) || undefined, page: p.page, size: SIZE }), [p, sp]);
   const list = useQuery({ queryKey: ['admin', 'learning', 'identity-checks', query], queryFn: ({ signal }) => adminLearningApi.identityChecks(query, signal), placeholderData: keepPreviousData });
   const total = list.data?.total ?? 0; const firstNo = total - (p.page - 1) * SIZE;
   const columns: Column<IdentityRow>[] = [

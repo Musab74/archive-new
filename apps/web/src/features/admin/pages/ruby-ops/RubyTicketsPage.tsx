@@ -7,6 +7,7 @@ import { tr } from '../../../../shared/i18n/adminLang';
 import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
 import { adm } from '../../strings';
+import { RubyGate } from './rubyAccess';
 
 const DEFAULTS = { status: '', q: '', page: 1 };
 const SIZE = 20;
@@ -15,7 +16,7 @@ const tone = (s: string) => (s === 'new' ? 'danger' : s === 'in_progress' ? 'war
 const score = (v: number | null) => (v === null || v === undefined ? '' : v.toFixed(4));
 
 /** ruby_tickets.php + ruby_tickets_script.php — RubySupportTicket list with the per-row status change. */
-export default function RubyTicketsPage() {
+function RubyTicketsPageInner() {
   const [p, setP, reset] = useSearchState(DEFAULTS);
   const [form, setForm] = useState({ status: p.status, q: p.q });
   const { canWrite, readOnlyTitle } = useWriteGate();
@@ -81,4 +82,8 @@ export default function RubyTicketsPage() {
       </DetailDrawer>
     </AdminPage>
   );
+}
+
+export default function RubyTicketsPage() {
+  return <RubyGate><RubyTicketsPageInner /></RubyGate>;
 }

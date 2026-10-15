@@ -34,6 +34,12 @@ function Keywords() {
   const rows = useMemo(() => orderList.map((idx) => rowsById.get(idx)).filter((r): r is KeywordRow => !!r), [orderList, rowsById]);
   const move = (idx: number, dir: -1 | 1) => { const i = orderList.indexOf(idx); const j = i + dir; if (i < 0 || j < 0 || j >= orderList.length) return; const next = [...orderList]; [next[i], next[j]] = [next[j]!, next[i]!]; setOrder(next); };
   const reorder = useAdminMutation({ fn: (ids: number[]) => apiX.reorderKeywords(p.category, ids), invalidate: inv, success: tr('정렬을 저장했습니다.', 'Order saved.'), onSuccess: () => setOrder(null) });
+  /** contents_keyword_read.php "정렬하기": works without moving anything (numbers every row 1..n — new keywords have no OrderByNum yet). */
+  const saveOrder = () => {
+    if (!orderList.length) { toast(tr('등록된 컨텐츠 키워드가 없습니다.', 'There are no keywords in this category.'), { tone: 'danger' }); return; }
+    if (!window.confirm(tr('정렬하시겠습니까?', 'Save this order?'))) return;
+    reorder.mutate(orderList);
+  };
 
   // create / edit / delete
   const [edit, setEdit] = useState<{ mode: 'create' } | { mode: 'edit'; row: KeywordRow } | null>(null);
@@ -47,13 +53,16 @@ function Keywords() {
   const submit = () => {
     const kw = f.Keyword.trim();
     if (!kw) { setErrors({ Keyword: tr('키워드를 입력하세요.', 'Enter the keyword.') }); return; }
+    // contents_keyword_write.php SubmitOk(): the same confirm for 등록 and 수정
+    if (!window.confirm(tr('등록하시겠습니까?', 'Save this keyword?'))) return;
     if (edit?.mode === 'create') create.mutate({ Category: p.category, Keyword: kw, UseYN: f.UseYN }); else if (edit?.mode === 'edit') patch.mutate({ idx: edit.row.idx, body: { Keyword: kw, UseYN: f.UseYN } });
   };
 
   const catCols: Column<KeywordCategory>[] = [
     { key: 'category', header: tr('번호', 'No.'), align: 'right', width: 60 },
     { key: 'label', header: tr('과정분류', 'Category'), render: (r) => <b>{r.label}</b> },
-    { key: 'count', header: tr('키워드개수', 'Keywords'), align: 'right', render: (r) => <span title={tr(`삭제 포함 ${r.count}건`, `${r.count} incl. deleted`)}>{r.activeCount.toLocaleString()}</span> },
+    // contents_keyword.php: COUNT(Category) — deleted rows included, as the old page shows it; the live count is the tooltip
+    { key: 'count', header: tr('키워드개수', 'Keywords'), align: 'right', render: (r) => <span title={tr(`사용 중(삭제 제외) ${r.activeCount}건`, `${r.activeCount} not deleted`)}>{r.count.toLocaleString()}</span> },
   ];
   const kwCols: Column<KeywordRow>[] = [
     { key: 'no', header: tr('번호', 'No.'), align: 'right', width: 56, render: (_r, i) => i + 1 },
@@ -74,8 +83,8 @@ function Keywords() {
           <DataTable columns={catCols} rows={cats.data?.items} rowKey={(r) => r.category} loading={cats.isPending} error={cats.error} onRetry={() => void cats.refetch()} onRowClick={(r) => setP({ category: r.category })} selectedKey={p.category || null} dense />
         </Card>
         {p.category ? (
-          <Card title={`${tr('키워드', 'Keywords')} — ${catLabel}`} aside={<AButton size="sm" variant="primary" disabled={!canWrite || !order} loading={reorder.isPending} onClick={() => reorder.mutate(orderList)}>{tr('정렬하기', 'Save order')}</AButton>}>
-            <p className="muted" style={{ margin: '0 0 8px', fontSize: 13 }}>{tr('▲▼로 순서를 바꾼 뒤 "정렬하기"를 누르면 정렬순서(OrderByNum)가 1부터 다시 매겨집니다. 키워드를 누르면 수정합니다.', 'Move rows with ▲▼ then "Save order" to renumber OrderByNum from 1. Click a keyword to edit it.')}</p>
+          <Card title={`${tr('키워드', 'Keywords')} — ${catLabel}`} aside={<AButton size="sm" variant="primary" disabled={!canWrite || list.isPending} title={readOnlyTitle} loading={reorder.isPending} onClick={saveOrder}>{tr('정렬하기', 'Save order')}</AButton>}>
+            <p className="muted" style={{ margin: '0 0 8px', fontSize: 13 }}>{tr('"정렬하기"를 누르면 보이는 순서대로 정렬순서(OrderByNum)가 1부터 다시 매겨집니다(새로 추가한 키워드도 번호를 받습니다). ▲▼로 순서를 바꿀 수 있고, 키워드를 누르면 수정합니다.', '"Save order" renumbers OrderByNum from 1 in the order shown (new keywords get a number too). Move rows with ▲▼; click a keyword to edit it.')}</p>
             <DataTable columns={kwCols} rows={rows} rowKey={(r) => r.idx} loading={list.isPending || list.isFetching} error={list.error} onRetry={() => void list.refetch()} emptyTitle={tr('등록된 컨텐츠 키워드가 없습니다.', 'No keywords in this category.')} dense />
           </Card>
         ) : null}

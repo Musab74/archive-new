@@ -3,21 +3,26 @@ import { useNavigate } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { adminCoursesParityApi as cp, type CpCourseRow } from '../../../../shared/api/endpoints/admin-courses-parity';
 import { useSearchState } from '../../../../shared/utils/useSearchState';
-import { AButton, AdminPage, AInput, ASelect, Callout, DataTable, FilterBar, FilterField, type Column } from '../../../../shared/ui/admin';
+import { AButton, AdminPage, AInput, ASelect, DataTable, FilterBar, FilterField, type Column } from '../../../../shared/ui/admin';
 import { useToast } from '../../../../app/providers/ToastProvider';
 import { useWriteGate } from '../../GrantGate';
 import { tr } from '../../../../shared/i18n/adminLang';
 import { adm } from '../../strings';
-import { menuName } from './courses-parity.shared';
+import { menuName, useRememberListSearch } from './courses-parity.shared';
 import { PackageList } from './courses-parity.package';
+import { AnyGrantGate, G, ctypeGrants } from './courses-parity.grants';
 
 const DEFAULTS = { ctype: '', packageYN: '', col: 'ContentsName', q: '', page: 1 };
-const SIZE = 20;
+/** include_top.php $page_size = 30 (course.php / course_package.php). */
+export const SIZE = 30;
 
-/** course.php (이러닝/마이크로닝/숏폼 컨텐츠 관리) and, with ?packageYN=Y, course_package.php (패키지컨텐츠관리). */
+/**
+ * course.php (이러닝/마이크로닝/숏폼 컨텐츠 관리, menu E1/E2/E3) and, with ?packageYN=Y, course_package.php
+ * (패키지컨텐츠관리, menu D6). Each screen checks its own grant, like the API.
+ */
 export default function CoursesPage() {
   const [p] = useSearchState(DEFAULTS);
-  return p.packageYN === 'Y' ? <PackageList /> : <CourseList />;
+  return p.packageYN === 'Y' ? <AnyGrantGate grants={G.packages}><PackageList /></AnyGrantGate> : <AnyGrantGate grants={ctypeGrants(p.ctype)}><CourseList /></AnyGrantGate>;
 }
 
 function CourseList() {
@@ -28,6 +33,7 @@ function CourseList() {
   const { toast } = useToast();
   const { canWrite, readOnlyTitle } = useWriteGate();
   const [exporting, setExporting] = useState(false);
+  useRememberListSearch(`courses:${ctype}`);
   const query = useMemo(() => ({ ctype, packageYN: 'N', col: p.q ? p.col : undefined, q: p.q || undefined, page: p.page, size: SIZE }), [p, ctype]);
   const list = useQuery({ queryKey: ['admin', 'courses', query], queryFn: ({ signal }) => cp.courses(query, signal), placeholderData: keepPreviousData });
   const total = list.data?.total ?? 0;
@@ -52,6 +58,7 @@ function CourseList() {
     <AdminPage title={tr(`${menuName(ctype)} 컨텐츠 관리`, `${menuName(ctype)} contents`)} lead={tr('과정명(포함) 또는 강의 코드(일치)로 검색합니다. 행을 누르면 상세(차시 구성 포함)로 이동합니다.', 'Search by course name (contains) or code (exact). Click a row for details and chapters.')}
       actions={<>
         <AButton onClick={() => void download()} loading={exporting}>{tr('검색 항목 엑셀 출력', 'Export search result')}</AButton>
+        <AButton disabled={!canWrite} title={readOnlyTitle} onClick={() => navigate(`/admin/courses/excel?ctype=${ctype}`)}>{tr('엑셀로 등록', 'Register from Excel')}</AButton>
         <AButton variant="primary" disabled={!canWrite} title={readOnlyTitle} onClick={() => navigate(`/admin/courses/new?ctype=${ctype}`)}>{tr('신규 등록', 'New')}</AButton>
       </>}>
       <FilterBar onSubmit={() => setP({ col: form.col, q: form.q }, true)} onReset={() => { setForm({ col: 'ContentsName', q: '' }); setP({ col: 'ContentsName', q: '' }, true); }}>
@@ -59,7 +66,6 @@ function CourseList() {
         <FilterField label={tr('검색어', 'Search')} htmlFor="c-q" width={300}><AInput id="c-q" value={form.q} onChange={(e) => setForm({ ...form, q: e.target.value })} /></FilterField>
       </FilterBar>
       <DataTable columns={columns} rows={list.data?.items} rowKey={(r) => r.idx} loading={list.isPending || list.isFetching} error={list.error} onRetry={() => void list.refetch()} page={p.page} size={SIZE} total={list.data?.total} onPageChange={(n) => setP({ page: n })} onRowClick={(r) => navigate(`/admin/courses/${r.idx}`)} emptyTitle={tr('등록된 컨텐츠가 없습니다.', 'No contents registered.')} dense />
-      <Callout className="u-mt-8">{tr('"엑셀로 등록"(엑셀 파일 업로드 → 임시표 검수 → 일괄 등록)은 아직 기존 사이트에서 진행합니다.', '"Register from Excel" (upload → temp-table review → bulk insert) still runs on the previous site.')}</Callout>
     </AdminPage>
   );
 }

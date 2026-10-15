@@ -9,18 +9,24 @@ import { tr } from '../../../../shared/i18n/adminLang';
 import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
 import { adm } from '../../strings';
+import { RubyGate } from './rubyAccess';
 
 const DEFAULTS = { q: '', status: '', page: 1 };
 const SIZE = 20;
 export const RUBY_STATUS_OPTIONS = [{ value: 'draft', label: 'draft' }, { value: 'published', label: 'published' }, { value: 'archived', label: 'archived' }];
 export const statusTone = (s: string) => (s === 'published' ? 'ok' : s === 'draft' ? 'warn' : 'neutral') as 'ok' | 'warn' | 'neutral';
-export const EMBEDDING_NOTE = tr('저장 후 RAG 임베딩 갱신은 아직 새 API에 연결되지 않았습니다(기존 관리자 Ruby 임베딩 작업에서 재생성).', 'The RAG embedding refresh after saving is not wired to the new API yet (regenerate from the legacy Ruby embeddings page).');
+export const EMBEDDING_NOTE = tr('저장하면 RAG 임베딩도 함께 갱신됩니다(OpenAI text-embedding-3-small, 키가 없거나 실패하면 ruby-hash-128 벡터). 기존 화면과 같습니다.', 'Saving also refreshes the RAG embedding (OpenAI text-embedding-3-small, or the ruby-hash-128 vector when no key / on failure), as the legacy page did.');
+/** Toast after a save: the embedding refresh result (ruby_rag_upsert_*_embedding). */
+export function embeddingToast(r: { embedding?: string }, toast: (m: string, o?: { tone?: 'ok' | 'warn' | 'danger' }) => void) {
+  if (r.embedding === 'failed') toast(tr('저장했지만 RAG 임베딩 갱신에 실패했습니다. Ruby 임베딩 재생성에서 다시 실행하세요.', 'Saved, but the RAG embedding refresh failed — run it again from Ruby embeddings.'), { tone: 'warn' });
+  else if (r.embedding === 'no_columns') toast(tr('저장했습니다. RubyFaq 표에 임베딩 컬럼이 없어 임베딩 갱신은 건너뛰었습니다(기존 화면과 동일).', 'Saved. RubyFaq has no embedding columns, so the embedding refresh was skipped (as on the legacy page).'), { tone: 'warn' });
+}
 
 type Form = { question: string; answer: string; intent: string; keywords: string; status: string; priority: string };
 const empty = (): Form => ({ question: '', answer: '', intent: 'general', keywords: '', status: 'published', priority: '70' });
 
 /** ruby_faq.php + ruby_faq_script.php — list, create/edit form, delete. */
-export default function RubyFaqPage() {
+function RubyFaqPageInner() {
   const [p, setP, reset] = useSearchState(DEFAULTS);
   const [form, setForm] = useState({ q: p.q, status: p.status });
   const { toast } = useToast();
@@ -35,8 +41,8 @@ export default function RubyFaqPage() {
   useEffect(() => { const d = detail.data; if (edit?.mode === 'edit' && d) { setF({ question: d.question, answer: d.answer, intent: d.intent ?? 'general', keywords: d.keywords ?? '', status: d.status, priority: String(d.priority) }); setErrors({}); } }, [detail.data, edit]);
   const onErr = (err: unknown) => { if (isAppError(err) && Array.isArray(err.details)) { const e: Record<string, string> = {}; for (const d of err.details as { path?: string; message?: string }[]) if (d.path) e[d.path] = d.message ?? ''; setErrors(e); } toast(isAppError(err) ? err.message : adm.common.failed, { tone: 'danger' }); };
   const inv = [['admin', 'ruby', 'faq']];
-  const create = useAdminMutation({ fn: (b: Record<string, unknown>) => adminRubyOpsApi.createFaq(b), invalidate: inv, success: adm.common.created, onSuccess: () => setEdit(null), onError: onErr });
-  const patch = useAdminMutation({ fn: (b: Record<string, unknown>) => adminRubyOpsApi.patchFaq((edit as { idx: number }).idx, b), invalidate: inv, success: adm.common.saved, onSuccess: () => setEdit(null), onError: onErr });
+  const create = useAdminMutation({ fn: (b: Record<string, unknown>) => adminRubyOpsApi.createFaq(b), invalidate: inv, success: adm.common.created, onSuccess: (r) => { setEdit(null); embeddingToast(r, toast); }, onError: onErr });
+  const patch = useAdminMutation({ fn: (b: Record<string, unknown>) => adminRubyOpsApi.patchFaq((edit as { idx: number }).idx, b), invalidate: inv, success: adm.common.saved, onSuccess: (r) => { setEdit(null); embeddingToast(r, toast); }, onError: onErr });
   const [delOpen, setDelOpen] = useState(false);
   const del = useAdminMutation({ fn: () => adminRubyOpsApi.deleteFaq((edit as { idx: number }).idx), invalidate: inv, success: adm.common.deleted, onSuccess: () => { setDelOpen(false); setEdit(null); } });
   const submit = () => {
@@ -76,10 +82,14 @@ export default function RubyFaqPage() {
           <FieldRow label={tr('상태', 'Status')} htmlFor="rf-status" help="draft / published / archived"><ASelect id="rf-status" value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })} options={RUBY_STATUS_OPTIONS} /></FieldRow>
           <FieldRow label={tr('우선순위', 'Priority')} htmlFor="rf-prio"><AInput id="rf-prio" type="number" style={{ width: 120 }} value={f.priority} onChange={(e) => setF({ ...f, priority: e.target.value })} /></FieldRow>
           {edit?.mode === 'edit' && detail.data ? <p className="muted" style={{ fontSize: 12, margin: 0 }}>{tr('수정일', 'Updated')} {detail.data.updatedAt} · v{detail.data.version} · {detail.data.locale}</p> : null}
-          <Callout tone="warn">{EMBEDDING_NOTE}</Callout>
+          <Callout>{EMBEDDING_NOTE}</Callout>
         </div>
       </DetailDrawer>
       <ConfirmDialog open={delOpen} title={tr('FAQ 삭제', 'Delete FAQ')} tone="danger" loading={del.isPending} onCancel={() => setDelOpen(false)} onConfirm={() => del.mutate(undefined as never)} body={<p>{tr('행을 삭제합니다(기존 화면과 동일). 되돌릴 수 없습니다.', 'Deletes the row (as the legacy page did). This cannot be undone.')}</p>} />
     </AdminPage>
   );
+}
+
+export default function RubyFaqPage() {
+  return <RubyGate><RubyFaqPageInner /></RubyGate>;
 }

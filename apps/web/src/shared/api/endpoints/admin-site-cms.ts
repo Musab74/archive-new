@@ -58,6 +58,12 @@ export type BackupRow = z.infer<typeof BackupRowSchema>;
 export const VisitStatsSchema = z.object({ year: z.number(), month: z.number(), days: z.array(z.object({ day: z.number(), total: z.number(), hours: z.array(z.number()) })), totals: z.object({ total: z.number(), hours: z.array(z.number()) }) });
 export type VisitStats = z.infer<typeof VisitStatsSchema>;
 
+// 접속 통계 카운터 (POST /v1/visits, public)
+export const VisitRecordSchema = z.object({ ok: z.boolean(), counted: z.boolean() }).passthrough();
+export type VisitRecord = z.infer<typeof VisitRecordSchema>;
+/** include_bottom.php 접속 통계: one call per browser session from the public app shell (see useSiteVisitCounter). */
+export const recordSiteVisit = () => api.post<VisitRecord>('/visits', {}, { schema: VisitRecordSchema });
+
 // 정보수정 (StaffInfo)
 export const MyInfoSchema = z.object({ id: z.string(), dept: nstr, deptIdx: z.number(), deptName: nstr, deptPath: z.string(), name: nstr, team: nstr, mobile: nstr, phone: nstr, email: nstr, bankName: nstr, bankNumber: nstr, useYN: nstr, lastLogin: nstr, lastLoginIp: nstr, showBank: z.boolean() });
 export type MyInfo = z.infer<typeof MyInfoSchema>;
@@ -77,13 +83,29 @@ export async function fetchAdminBlobUrl(path: string, query: Q = {}): Promise<st
 
 const formOf = (file: File) => { const fd = new FormData(); fd.append('file', file, file.name); return fd; };
 
+export const EdudataSavedSchema = OkSchema.extend({ idx: z.number(), updated: z.number().optional(), files: z.array(EdudataFileSchema).default([]) });
+export type EdudataSaved = z.infer<typeof EdudataSavedSchema>;
+export type EdudataFiles = Partial<Record<number, File | null | undefined>>;
+/** edudata_write.php form as one multipart body: text fields + file1..file5 (+ clearFiles "1,3" on edit). */
+export function edudataFormData(body: Record<string, string>, files: EdudataFiles = {}, clearFiles: number[] = []): FormData {
+  const fd = new FormData();
+  for (const [k, v] of Object.entries(body)) fd.append(k, v);
+  if (clearFiles.length) fd.append('clearFiles', [...new Set(clearFiles)].sort().join(','));
+  for (const n of [1, 2, 3, 4, 5]) { const f = files[n]; if (f && !clearFiles.includes(n)) fd.append(`file${n}`, f, f.name); }
+  return fd;
+}
+export const EditorPhotoSchema = OkSchema.extend({ fileName: z.string(), url: z.string(), html: z.string() });
+export type EditorPhoto = z.infer<typeof EditorPhotoSchema>;
+
 /** /admin/* for 커뮤니티관리(수강후기·아카이빙·학습자료실·이벤트) + 사이트관리(팝업·백업·접속통계) + 정보수정. */
 export const adminSiteCmsApi = {
   // 수강후기 F4
   reviews: (query: Q, signal?: AbortSignal) => api.get<Page<ReviewRow>>('/admin/reviews', { query, schema: pageOf(ReviewRowSchema), signal }),
   review: (idx: number, signal?: AbortSignal) => api.get<ReviewDetail>(`/admin/reviews/${idx}`, { schema: ReviewDetailSchema, signal }),
   deleteReview: (idx: number) => api.delete<Ok>(`/admin/reviews/${idx}`, { schema: OkSchema }),
-  downloadReviewsCsv: (query: Q) => downloadAdminFile('/admin/reviews/export', query, 'reviews.csv'),
+  /** survey_excel.php: .xlsx (수강후기_YYYYMMDD.xlsx), same filters, no row cap; an empty result still downloads the header row. */
+  downloadReviewsXlsx: (query: Q) => downloadAdminFile('/admin/reviews/export', { ...query, format: 'xlsx' }, 'reviews.xlsx'),
+  downloadReviewsCsv: (query: Q) => downloadAdminFile('/admin/reviews/export', { ...query, format: 'csv' }, 'reviews.csv'),
 
   // 아카이빙 F5
   archiving: (query: Q, signal?: AbortSignal) => api.get<Page<ArchivingRow>>('/admin/archiving', { query, schema: pageOf(ArchivingRowSchema), signal }),
@@ -99,6 +121,10 @@ export const adminSiteCmsApi = {
   createEdudata: (body: Record<string, unknown>) => api.post<Ok & { idx: number }>('/admin/edudata', body, { schema: OkSchema.extend({ idx: z.number() }) }),
   patchEdudata: (idx: number, body: Record<string, unknown>) => api.patch<Ok>(`/admin/edudata/${idx}`, body, { schema: OkSchema }),
   deleteEdudata: (idx: number) => api.delete<Ok>(`/admin/edudata/${idx}`, { schema: OkSchema }),
+  /** edudata_script.php mode=new in one request: files are checked (checkFileSecure) before the row is written; a rejection writes nothing. */
+  createEdudataForm: (body: Record<string, string>, files: EdudataFiles) => api.post<EdudataSaved>('/admin/edudata/form', edudataFormData(body, files), { schema: EdudataSavedSchema }),
+  /** edudata_script.php mode=edit in one request (FileDelN wins over a new file in that slot, like the PHP). */
+  patchEdudataForm: (idx: number, body: Record<string, string>, files: EdudataFiles, clearFiles: number[]) => api.patch<EdudataSaved>(`/admin/edudata/${idx}/form`, edudataFormData(body, files, clearFiles), { schema: EdudataSavedSchema }),
   uploadEdudataFile: (idx: number, slot: number, file: File) => api.post<Ok>(`/admin/edudata/${idx}/files/${slot}`, formOf(file), { schema: OkSchema }),
   downloadEdudataFile: (idx: number, slot: number, name: string) => downloadAdminFile(`/admin/edudata/${idx}/files/${slot}`, {}, name),
 
@@ -106,7 +132,9 @@ export const adminSiteCmsApi = {
   lectureEvents: (query: Q, signal?: AbortSignal) => api.get<Page<LectureEventRow>>('/admin/lecture-events', { query, schema: pageOf(LectureEventRowSchema), signal }),
   lectureEvent: (idx: number, signal?: AbortSignal) => api.get<LectureEventDetail>(`/admin/lecture-events/${idx}`, { schema: LectureEventDetailSchema, signal }),
   setLectureEventStatus: (idx: number, body: { Status: 'A' | 'B'; StatusName: string }) => api.patch<Ok>(`/admin/lecture-events/${idx}/status`, body, { schema: OkSchema }),
-  downloadLectureEventsCsv: (query: Q) => downloadAdminFile('/admin/lecture-events/export', query, 'lecture_events.csv'),
+  downloadLectureEventsCsv: (query: Q) => downloadAdminFile('/admin/lecture-events/export', { ...query, format: 'csv' }, 'lecture_events.csv'),
+  /** lecture_event_excel.php: .xlsx (이벤트리스트_YYYYMMDD.xlsx), same filters, no row cap, header-only when empty. */
+  downloadLectureEventsXlsx: (query: Q) => downloadAdminFile('/admin/lecture-events/export', { ...query, format: 'xlsx' }, 'lecture_events.xlsx'),
 
   // 팝업 G2
   popups: (query: Q, signal?: AbortSignal) => api.get<PopupPage>('/admin/popups', { query, schema: PopupPageSchema, signal }),
@@ -121,7 +149,12 @@ export const adminSiteCmsApi = {
 
   // 백업 목록 G3
   backups: (query: Q, signal?: AbortSignal) => api.get<Page<BackupRow>>('/admin/backups', { query, schema: pageOf(BackupRowSchema), signal }),
-  downloadBackupsCsv: (query: Q) => downloadAdminFile('/admin/backups/export', query, 'backups.csv'),
+  downloadBackupsCsv: (query: Q) => downloadAdminFile('/admin/backups/export', { ...query, format: 'csv' }, 'backups.csv'),
+  /** backup_list_excel.php: .xlsx (백업리스트_YYYYMMDD.xlsx), no row cap, header-only when empty. */
+  downloadBackupsXlsx: (query: Q) => downloadAdminFile('/admin/backups/export', { ...query, format: 'xlsx' }, 'backups.xlsx'),
+
+  // HTML 에디터 사진 첨부 (SmartEditor2 photo_uploader) — 아카이빙 답변(F5) · 학습자료 내용(F7)
+  uploadEditorPhoto: (file: File) => api.post<EditorPhoto>('/admin/site-cms/editor-photo', formOf(file), { schema: EditorPhotoSchema }),
 
   // 접속통계 G3
   visitStats: (query: Q, signal?: AbortSignal) => api.get<VisitStats>('/admin/visit-stats', { query, schema: VisitStatsSchema, signal }),

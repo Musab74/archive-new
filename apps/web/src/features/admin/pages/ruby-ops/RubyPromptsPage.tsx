@@ -8,12 +8,13 @@ import { tr } from '../../../../shared/i18n/adminLang';
 import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
 import { adm } from '../../strings';
+import { RubyGate } from './rubyAccess';
 
 type Form = { promptKey: string; title: string; content: string; version: string; isActive: boolean; note: string };
 const empty = (): Form => ({ promptKey: 'ruby_system', title: '', content: '', version: '1', isActive: false, note: '' });
 
 /** ruby_prompt.php + ruby_prompt_script.php — RubyPromptConfig list (key asc, version desc) and the save form. */
-export default function RubyPromptsPage() {
+function RubyPromptsPageInner() {
   const { toast } = useToast();
   const { canWrite, readOnlyTitle } = useWriteGate();
   const list = useQuery({ queryKey: ['admin', 'ruby', 'prompts'], queryFn: ({ signal }) => adminRubyOpsApi.prompts(signal) });
@@ -61,4 +62,8 @@ export default function RubyPromptsPage() {
       </DetailDrawer>
     </AdminPage>
   );
+}
+
+export default function RubyPromptsPage() {
+  return <RubyGate><RubyPromptsPageInner /></RubyGate>;
 }

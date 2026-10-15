@@ -1,9 +1,10 @@
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import styles from '../Admin.module.css';
 import { adminSupportParityApi } from '../../../shared/api/endpoints/admin-support-parity';
 import { useAdminSession } from '../../../shared/auth/useAdminSession';
-import { buildAdminMenu } from '../../../shared/auth/adminMenu';
+import { buildPhpParityMenu } from './support-menu-parity';
 import { AButton, AdminPage, Card, DescList, Kpi } from '../../../shared/ui/admin';
 import { Icon } from '../../../shared/ui/Icon';
 import { IconTile } from '../../../shared/ui/IconTile';
@@ -26,17 +27,26 @@ export default function DashboardPage() {
   const q = useQuery({ queryKey: ['admin', 'dashboard'], queryFn: ({ signal }) => adminSupportParityApi.dashboard(signal), refetchInterval: 60_000 });
   const d = q.data;
   const c = adm.dashboard;
-  const menu = buildAdminMenu(admin);
+  // include_top.php / include_submenu.php visibility (exact sub-grants), not the wider API rule
+  const menu = buildPhpParityMenu(admin);
   const w = d?.welcome;
   const ruby = d?.rubyShortcuts ?? (admin ? admin.dept === 'A' || admin.subGrants.includes('F2') : false);
+  // include_top.php <title><?=$SiteName?> (<?=$ServerIP?>)</title>; set after AdminShell's title effect
+  const title = d?.browserTitle;
+  useEffect(() => {
+    if (!title) return undefined;
+    const t = setTimeout(() => { document.title = title; }, 0);
+    return () => clearTimeout(t);
+  }, [title]);
   return (
     <AdminPage title={c.title} lead={c.lead} actions={<AButton icon="refresh" onClick={() => void q.refetch()} loading={q.isFetching && !q.isPending}>{adm.common.refresh}</AButton>}>
       {q.isError ? <StateBlock code="LIST_ERROR" center onRetry={() => void q.refetch()} /> : (
         <>
           {/* main.php welcome box */}
           <Card icon="user" title={<span><strong>{w?.name ?? admin?.name ?? ''}</strong> {tr('님 반갑습니다!', ', welcome!')}</span>}>
+            {w?.greeting ? <p style={{ margin: '0 0 4px' }}><b>{w.greeting}</b></p> : null}
             <p className="muted" style={{ margin: '0 0 8px' }}>{tr('상단의 메뉴를 눌러 이동하시기 바랍니다.', 'Use the menu above to move around.')}</p>
-            <DescList cols={2} items={[[tr('로그인 시간', 'Signed in at'), w?.loginAt ?? null], [tr('접속 IP', 'Your IP'), w?.clientIp ?? null], [tr('연결된 서버 IP', 'Server IP'), w?.serverIp ?? null], [tr('부서', 'Department'), w?.deptName ?? admin?.deptName ?? null]]} />
+            <DescList cols={2} items={[[tr('로그인 시간', 'Signed in at'), w?.loginAt ?? null], [tr('접속 IP', 'Your IP'), w?.clientIp ?? null], [tr('연결된 서버 IP', 'Server IP'), w?.serverIp ?? null], [tr('부서', 'Department'), w?.deptName ?? admin?.deptName ?? null], [tr('부서명(팀)', 'Team'), w?.team ?? null]]} />
           </Card>
           <div className={styles.kpis} aria-busy={q.isPending}>
             <Kpi icon="user" iconTone="blue" label={c.logins} value={d?.logins.today} unit={tr('회', '')} hint={d ? tr(`${c.uniqueUsers} ${d.logins.uniqueUsers ?? '—'}명`, `${c.uniqueUsers}: ${d.logins.uniqueUsers ?? '—'}`) : undefined} />

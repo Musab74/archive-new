@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { adminMembersParityApi, MEMBER_SEARCH_COLS, type MemberParityRow } from '../../../../shared/api/endpoints/admin-members-parity';
 import { useSearchState } from '../../../../shared/utils/useSearchState';
@@ -10,15 +10,18 @@ import { tr } from '../../../../shared/i18n/adminLang';
 import { useWriteGate } from '../../GrantGate';
 import { errorMessage } from '../../useAdminMutation';
 import { MemberFormDrawer, TestAccountDialog } from './members-parity-form';
+import { rememberMembersSearch } from './members-parity-nav';
 
 const DEFAULTS = { col: 'name_id', sw: '', q: '', useYN: '', eduManager: '', companyCode: '', page: 1 };
-const SIZE = 20;
+/** include_top.php $page_size = 30 (member.php paging and descending row numbers). */
+const SIZE = 30;
 
 /** 회원관리 › 수강생 관리 (member.php): 탈퇴·휴면 제외, 이름순, 17개 열, 신규 등록 / 테스트 계정 생성 / 검색항목 엑셀 출력. */
 export default function MembersPage() {
   const [p, setP, reset] = useSearchState(DEFAULTS);
   const [form, setForm] = useState({ col: p.col, sw: p.sw });
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { admin } = useAdminSession();
   const { canWrite, readOnlyTitle } = useWriteGate();
@@ -31,7 +34,9 @@ export default function MembersPage() {
   const query = useMemo(() => ({ ...filters, page: p.page, size: SIZE }), [filters, p.page]);
   const list = useQuery({ queryKey: ['admin', 'members', 'parity', query], queryFn: ({ signal }) => adminMembersParityApi.members(query, signal), placeholderData: keepPreviousData });
   const total = list.data?.total ?? 0;
-  const open = (r: MemberParityRow) => navigate(`/admin/members/${encodeURIComponent(r.id)}`);
+  // 목록 on the detail page returns here with the same pg/col/sw (member_read.php keeps them in the list link).
+  useEffect(() => { rememberMembersSearch(location.search); }, [location.search]);
+  const open = (r: MemberParityRow) => navigate(`/admin/members/${encodeURIComponent(r.id)}`, { state: { from: location.search } });
   const link = (r: MemberParityRow, text: string | null | undefined) => <a href={`/admin/members/${encodeURIComponent(r.id)}`} onClick={(e) => { e.preventDefault(); e.stopPropagation(); open(r); }}>{text ?? ''}</a>;
   const columns: Column<MemberParityRow>[] = [
     { key: 'no', header: tr('번호', 'No.'), align: 'right', width: 60, render: (_r, i) => total - (p.page - 1) * SIZE - i },

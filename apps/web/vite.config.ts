@@ -28,5 +28,6 @@ export default defineConfig({
       '/upload': { target: 'https://127.0.0.1', secure: false, changeOrigin: false, headers: { host: 'timeless.uz' } },
     },
   },
-  test: { environment: 'jsdom', globals: true, setupFiles: ['./src/test/setup.ts'] },
+  // testTimeout: the parity pages render large legacy tables; under a full parallel run jsdom needs more than the 5 s default.
+  test: { environment: 'jsdom', globals: true, setupFiles: ['./src/test/setup.ts'], testTimeout: 20_000 },
 });

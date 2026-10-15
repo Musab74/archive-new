@@ -2,17 +2,20 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminSupportParityApi, type NoticeRow } from '../../../../shared/api/endpoints/admin-support-parity';
 import { useSearchState } from '../../../../shared/utils/useSearchState';
-import { AButton, AdminPage, AInput, ASelect, ATextarea, Callout, Card, ConfirmDialog, DataTable, DescList, DetailDrawer, FieldRow, FilterBar, FilterField, StatusBadge, type Column } from '../../../../shared/ui/admin';
+import { AButton, AdminPage, AInput, ASelect, Callout, Card, ConfirmDialog, DataTable, DescList, DetailDrawer, FieldRow, FilterBar, FilterField, StatusBadge, type Column } from '../../../../shared/ui/admin';
 import { isAppError } from '../../../../shared/api/client';
 import { useToast } from '../../../../app/providers/ToastProvider';
 import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
 import { tr } from '../../../../shared/i18n/adminLang';
 import { adm } from '../../strings';
-import { rowNo, tooShort } from './support-parity.helpers';
+import { PHP_PAGE_SIZE, rowNo, toEditorHtml, tooShort } from './support-parity.helpers';
+import { SupportRichEditor } from './SupportRichEditor';
+import { SupportSubmitConfirm, useSubmitConfirm } from './SupportSubmitConfirm';
 
 const DEFAULTS = { col: 'Title', q: '', page: 1 };
-const SIZE = 20;
+/** include_top.php $page_size = 30. */
+const SIZE = PHP_PAGE_SIZE;
 const SLOTS = [1, 2, 3, 4, 5] as const;
 interface Form { Notice: 'Y' | 'N'; UseYN: 'Y' | 'N'; Title: string; Content: string }
 const EMPTY: Form = { Notice: 'N', UseYN: 'Y', Title: '', Content: '' };
@@ -41,7 +44,7 @@ export default function NoticesPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   useEffect(() => {
     if (editing === 'new') setF(EMPTY);
-    if (editing === 'edit' && d) setF({ Notice: d.pinned ? 'Y' : 'N', UseYN: d.useYN === 'N' ? 'N' : 'Y', Title: d.title, Content: d.content ?? '' });
+    if (editing === 'edit' && d) setF({ Notice: d.pinned ? 'Y' : 'N', UseYN: d.useYN === 'N' ? 'N' : 'Y', Title: d.title, Content: toEditorHtml(d.content) });
     setFiles({}); setClear([]); setErrors({});
   }, [editing, d]);
   const inv = [['admin', 'notices'], ['admin', 'notice'], ['support']];
@@ -63,8 +66,10 @@ export default function NoticesPage() {
     if (!f.Title.trim()) e.Title = tr('제목을 입력하세요.', 'Enter a title.');
     if (tooShort(f.Content)) e.Content = tr('내용을 입력해주세요', 'Enter the content (15+ characters).');
     setErrors(e); if (Object.keys(e).length) return;
-    if (editing === 'new') create.mutate(undefined as never); else update.mutate(undefined as never);
+    confirmSave.ask(); // notice_write.php SubmitOk(): confirm("등록하시겠습니까?")
   };
+  const confirmSave = useSubmitConfirm();
+  const doSave = () => (editing === 'new' ? create : update).mutate(undefined as never, { onSettled: confirmSave.close });
   const download = async (idx: number, slot: number, name: string) => { try { await adminSupportParityApi.downloadNoticeFile(idx, slot, name); } catch (e) { toast(isAppError(e) ? e.message : adm.common.failed, { tone: 'danger' }); } };
 
   const columns: Column<NoticeRow>[] = [
@@ -115,14 +120,15 @@ export default function NoticesPage() {
           {SLOTS.map((s) => {
             const existing = editing === 'edit' ? d?.files.find((x) => x.slot === s) : undefined;
             return (
-              <FieldRow key={s} label={`${tr('첨부파일', 'File')} ${s}`} htmlFor={`nf-file-${s}`} help={existing ? <span>{existing.realFileName} <label style={{ marginLeft: 8 }}><input type="checkbox" checked={clear.includes(s)} onChange={(e) => setClear(e.target.checked ? [...clear, s] : clear.filter((x) => x !== s))} disabled={!canWrite} /> {tr('파일 삭제', 'Delete file')}</label></span> : undefined}>
+              <FieldRow key={s} label={`${tr('첨부파일', 'File')} ${s}`} htmlFor={`nf-file-${s}`} help={existing ? <span><AButton variant="link" size="sm" onClick={() => void download(d!.idx, s, existing.realFileName)}><b>{existing.realFileName}</b></AButton> <label style={{ marginLeft: 8 }}><input type="checkbox" checked={clear.includes(s)} onChange={(e) => setClear(e.target.checked ? [...clear, s] : clear.filter((x) => x !== s))} disabled={!canWrite} /> {tr('파일 삭제', 'Delete file')}</label></span> : undefined}>
                 <input id={`nf-file-${s}`} type="file" accept=".hwp,.hwpx,.xlsx,.xls,.txt,.jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.zip" disabled={!uploadOk || !canWrite} onChange={(e) => setFiles({ ...files, [s]: e.target.files?.[0] ?? null })} />
               </FieldRow>
             );
           })}
-          <FieldRow label={tr('내 용', 'Content')} htmlFor="nf-content" required error={errors.Content} help={tr('HTML 사용 가능(기존 에디터 내용 그대로 저장), 15자 이상', 'HTML allowed (saved as-is), 15+ characters')}><ATextarea id="nf-content" rows={16} value={f.Content} onChange={(e) => setF({ ...f, Content: e.target.value })} disabled={!canWrite} /></FieldRow>
+          <FieldRow label={tr('내 용', 'Content')} htmlFor="nf-content" required error={errors.Content} help={tr('Editor / HTML / TEXT 모드(기존 스마트에디터와 같음), 15자 이상', 'Editor / HTML / TEXT modes (as SmartEditor), 15+ characters')}><SupportRichEditor id="nf-content" ariaLabel={tr('내 용', 'Content')} value={f.Content} onChange={(html) => setF((x) => ({ ...x, Content: html }))} disabled={!canWrite} invalid={!!errors.Content} /></FieldRow>
         </div>
       </DetailDrawer>
+      <SupportSubmitConfirm open={confirmSave.open} loading={create.isPending || update.isPending} onCancel={confirmSave.close} onConfirm={doSave} />
       <ConfirmDialog open={delOpen} title={tr('공지사항 삭제', 'Delete notice')} body={tr('현재 글을 삭제하시겠습니까?', 'Delete this post?')} tone="danger" confirmLabel={tr('삭 제', 'Delete')} loading={remove.isPending} onCancel={() => setDelOpen(false)} onConfirm={() => remove.mutate(undefined as never)} />
     </AdminPage>
   );

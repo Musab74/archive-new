@@ -8,6 +8,7 @@ import { isAppError } from '../../../../shared/api/client';
 import { useAdminSession } from '../../../../shared/auth/useAdminSession';
 import { tr } from '../../../../shared/i18n/adminLang';
 import { useAdminMutation } from '../../useAdminMutation';
+import { openMemberPostcode } from './members-parity-postcode';
 
 /** include/function.js fn_jumin_validate: 내국인(1~4) weights 2..9,2..5 → (11 − sum%11)%10; 외국인(5~8) registration-number rule. */
 export function residentNoValid(front: string, back: string): boolean {
@@ -46,7 +47,9 @@ export function validateMemberForm(f: Form, mode: 'new' | 'edit'): Record<string
     if (!f.Pwd) e.Pwd = tr('비밀번호를 입력하세요.', 'Enter a password.');
   }
   if (!f.Name.trim()) e.Name = tr('이름을 입력하세요.', 'Enter a name.');
-  if (mode === 'new' || f.ResNo) {
+  // member_write.php SubmitOk(): 주민번호 is required in both modes (alert 주민번호를 입력하세요).
+  if (!f.ResNo) e.ResNo = tr('주민번호를 입력하세요.', 'Enter the resident number.');
+  else {
     if (f.ResNo.length !== 14 || !/^\d{6}-\d{7}$/.test(f.ResNo)) e.ResNo = tr('주민번호를 정확하게 입력하세요. ex)820304-1172917', 'Enter the resident number as 820304-1172917.');
     else {
       const [a, b] = f.ResNo.split('-') as [string, string];
@@ -96,6 +99,16 @@ export function MemberFormDrawer({ open, mode, initial, onClose, onSaved }: { op
     onError: (err) => { onErr(err); },
   });
   const submit = () => { const e = validateMemberForm(f, mode); setErrors(e); if (!Object.keys(e).length && window.confirm(mode === 'new' ? tr('등록 하시겠습니까?', 'Register?') : tr('수정 하시겠습니까?', 'Save changes?'))) save.mutate(undefined); };
+  // member_write.php ZipcodeFind(): Daum 우편번호 → Zipcode / Address01 = data.address (the clicked 도로명 or 지번) / Address02 = 건물명, then focus Address02.
+  const [postErr, setPostErr] = useState('');
+  const findZip = async () => {
+    setPostErr('');
+    try {
+      const r = await openMemberPostcode();
+      if (r) { setF((cur) => ({ ...cur, Zipcode: r.zonecode, Address01: r.address, Address02: r.buildingName })); setTimeout(() => document.getElementById('mf-addr2')?.focus(), 0); }
+    }
+    catch { setPostErr(tr('우편번호 서비스를 불러오지 못했습니다. 직접 입력하세요.', 'The postcode service could not be loaded; type the address.')); }
+  };
   const toggle = (k: 'Etc01' | 'Etc02', v: string, on: boolean) => setF({ ...f, [k]: on ? [...f[k], v] : f[k].filter((x) => x !== v) });
   const checkId = async () => { if (!/^[A-Za-z0-9]{4,20}$/.test(f.ID)) { setIdMsg({ ok: false, text: tr('아이디는 4자이상 20자 이내 영문/숫자로 입력하세요.', 'ID: 4–20 letters/digits.') }); return; } const r = await adminMembersParityApi.checkId(f.ID); setIdMsg({ ok: r.available, text: r.message }); };
   return (
@@ -106,14 +119,14 @@ export function MemberFormDrawer({ open, mode, initial, onClose, onSaved }: { op
         <FieldRow label={tr('아이디', 'ID')} htmlFor="mf-id" required={mode === 'new'} error={errors.ID}>{mode === 'new' ? <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}><AInput id="mf-id" value={f.ID} maxLength={20} onChange={(e) => { setF({ ...f, ID: e.target.value.trim() }); setIdMsg(null); }} /><AButton onClick={() => void checkId()} disabled={!f.ID}>{tr('중복 검색', 'Check')}</AButton>{idMsg ? <span style={{ fontSize: 12, color: idMsg.ok ? 'var(--ok, #1f7a3a)' : 'var(--danger, #c0392b)' }}>[ {idMsg.text} ]</span> : null}</div> : <div style={{ paddingTop: 6 }}><b>{f.ID}</b></div>}</FieldRow>
         {mode === 'new' ? <FieldRow label={tr('비밀번호', 'Password')} htmlFor="mf-pw" required error={errors.Pwd}><AInput id="mf-pw" value={f.Pwd} onChange={(e) => setF({ ...f, Pwd: e.target.value })} maxLength={64} /></FieldRow> : null}
         <FieldRow label={tr('이름', 'Name')} htmlFor="mf-name" required error={errors.Name}><AInput id="mf-name" value={f.Name} maxLength={50} onChange={(e) => setF({ ...f, Name: e.target.value })} /></FieldRow>
-        <FieldRow label={tr('주민번호', 'Resident no.')} htmlFor="mf-res" required={mode === 'new'} error={errors.ResNo} help={tr('유효성 체크를 하지 않더라도 앞자리 생년월일과 뒷자리의 첫번째 숫자는 정확하게 입력하세요. (내국인 : 1~4, 외국인 : 5~8)', 'Even without the check, enter the birth date and the 7th digit correctly (1–4 citizens, 5–8 foreigners).')}>
+        <FieldRow label={tr('주민번호', 'Resident no.')} htmlFor="mf-res" required error={errors.ResNo} help={tr('유효성 체크를 하지 않더라도 앞자리 생년월일과 뒷자리의 첫번째 숫자는 정확하게 입력하세요. (내국인 : 1~4, 외국인 : 5~8)', 'Even without the check, enter the birth date and the 7th digit correctly (1–4 citizens, 5–8 foreigners).')}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}><AInput id="mf-res" style={{ width: 170 }} value={f.ResNo} maxLength={14} autoComplete="off" onChange={(e) => setF({ ...f, ResNo: e.target.value.replace(/[^0-9-]/g, '') })} /><ACheckbox label={tr('주민번호 유효성 체크하기', 'Validate checksum')} checked={f.checkResNo} onChange={(e) => setF({ ...f, checkResNo: e.target.checked })} /></div>
         </FieldRow>
         <FieldRow label={tr('성별', 'Gender')} htmlFor="mf-gender"><ASelect id="mf-gender" value={f.Gender} onChange={(e) => setF({ ...f, Gender: e.target.value })} options={[{ value: 'M', label: tr('남성', 'Male') }, { value: 'F', label: tr('여성', 'Female') }]} placeholder={tr('-- 성별 선택 --', '-- gender --')} /></FieldRow>
         <FieldRow label={tr('이메일', 'Email')} htmlFor="mf-email" error={errors.Email}><AInput id="mf-email" value={f.Email} maxLength={100} onChange={(e) => setF({ ...f, Email: e.target.value })} /></FieldRow>
         <FieldRow label={tr('전화번호', 'Phone')} htmlFor="mf-tel"><PhoneParts id="mf-tel" label={tr('전화번호', 'Phone')} value={f.Tel} onChange={(v) => setF({ ...f, Tel: v })} /></FieldRow>
         <FieldRow label={tr('휴대폰', 'Mobile')} htmlFor="mf-mob" required error={errors.Mobile}><PhoneParts id="mf-mob" label={tr('휴대폰', 'Mobile')} value={f.Mobile} onChange={(v) => setF({ ...f, Mobile: v })} /></FieldRow>
-        <FieldRow label={tr('주소', 'Address')} htmlFor="mf-zip"><div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><AInput id="mf-zip" style={{ width: 120 }} placeholder={tr('우편번호', 'Zip')} value={f.Zipcode} maxLength={10} onChange={(e) => setF({ ...f, Zipcode: e.target.value })} /><AInput aria-label={tr('주소', 'Address')} placeholder={tr('주소', 'Address')} value={f.Address01} maxLength={250} onChange={(e) => setF({ ...f, Address01: e.target.value })} /><AInput aria-label={tr('나머지 주소', 'Address line 2')} placeholder={tr('나머지 주소', 'Address line 2')} value={f.Address02} maxLength={250} onChange={(e) => setF({ ...f, Address02: e.target.value })} /></div></FieldRow>
+        <FieldRow label={tr('주소', 'Address')} htmlFor="mf-zip" error={postErr || undefined}><div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}><div style={{ display: 'flex', gap: 6, alignItems: 'center' }}><AInput id="mf-zip" style={{ width: 120 }} placeholder={tr('우편번호', 'Zip')} value={f.Zipcode} maxLength={10} onChange={(e) => setF({ ...f, Zipcode: e.target.value })} /><AButton icon="search" onClick={() => void findZip()}>{tr('주소 찾기', 'Find address')}</AButton></div><AInput aria-label={tr('주소', 'Address')} placeholder={tr('주소', 'Address')} value={f.Address01} maxLength={250} onChange={(e) => setF({ ...f, Address01: e.target.value })} /><AInput id="mf-addr2" aria-label={tr('나머지 주소', 'Address line 2')} placeholder={tr('나머지 주소', 'Address line 2')} value={f.Address02} maxLength={250} onChange={(e) => setF({ ...f, Address02: e.target.value })} /></div></FieldRow>
         <FieldRow label={tr('영문이름', 'English name')} htmlFor="mf-eng"><AInput id="mf-eng" value={f.NameEng} maxLength={250} onChange={(e) => setF({ ...f, NameEng: e.target.value })} /></FieldRow>
         <FieldRow label={tr('회사명', 'Company')} htmlFor="mf-cname" help={f.CompanyCode ? `${tr('사업자번호', 'Biz no.')}: ${f.CompanyCode}` : undefined}><CompanyPicker idPrefix="mf" name={f.CompanyName} onName={(v) => setF({ ...f, CompanyName: v })} onPick={(code, name) => setF({ ...f, CompanyCode: code, CompanyName: name })} /></FieldRow>
         <FieldRow label={tr('부서', 'Department')} htmlFor="mf-dep"><AInput id="mf-dep" value={f.Depart} maxLength={250} onChange={(e) => setF({ ...f, Depart: e.target.value })} /></FieldRow>

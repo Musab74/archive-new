@@ -25,7 +25,7 @@ function Views() {
   const total = list.data?.total ?? 0;
   const cat1 = useMemo(() => [{ value: '', label: tr('-- 대분류 선택 --', '-- main category --') }, ...(opts.data?.category1 ?? []).map((c) => ({ value: String(c.idx), label: c.name }))], [opts.data]);
   const cat2 = useMemo(() => [{ value: '', label: tr('-- 소분류 선택 --', '-- sub category --') }, ...(opts.data?.category2 ?? []).filter((c) => String(c.parent) === form.category1).map((c) => ({ value: String(c.idx), label: c.name }))], [opts.data, form.category1]);
-  const kw2 = useMemo(() => [{ value: '', label: adm.common.all }, ...(opts.data?.keyword2 ?? []).map((k) => ({ value: String(k.idx), label: k.name }))], [opts.data]);
+  const kw2 = useMemo(() => [{ value: '', label: adm.common.all }, ...(opts.data?.keyword2 ?? []).map((k) => ({ value: String(k.idx), label: k.del ? tr(`${k.name} (삭제)`, `${k.name} (deleted)`) : k.name }))], [opts.data]);
   const columns: Column<CourseViewRow>[] = [
     { key: 'no', header: tr('번호', 'No.'), align: 'right', width: 60, render: (_r, i) => noOf(total, p.page, SIZE, i) },
     { key: 'category', header: tr('과정분류', 'Category'), render: (r) => r.category },

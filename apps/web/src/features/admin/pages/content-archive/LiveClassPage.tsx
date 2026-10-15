@@ -2,25 +2,24 @@ import { AButton, AdminPage, Callout, Card, DescList } from '../../../../shared/
 import { Icon } from '../../../../shared/ui/Icon';
 import { tr } from '../../../../shared/i18n/adminLang';
 import { legacyUrl } from '../../../../shared/auth/adminMenu';
-import { GrantGate } from '../../GrantGate';
-
-const LIVE_INSTRUCTOR_URL = 'https://live.hrdeedu.co.kr/instructor';
+import { LIVE_INSTRUCTOR_URL } from './shared';
 
 /**
- * live_class.php (+ live_class_search_result.php) — 실시간 강의 관리 (dept C, grant L1).
+ * live_class.php (+ live_class_search_result.php) — 실시간 강의 관리. The PHP only runs include_admin_check.php (any logged-in admin;
+ * the menu is meant for dept C tutors) and no 'L'/'L1' grant exists in the dept grant editor, so this page has no grant gate.
  * Every list on the PHP page comes from MongoDB `HrdeLive` (meetings / members) which the API does not connect to;
  * there is no MariaDB table behind it. This screen keeps the menu usable: it explains the state and opens the live platform
  * and the legacy page in a new tab.
  */
 export default function LiveClassPage() {
-  return <GrantGate grant="L1"><LiveClass /></GrantGate>;
+  return <LiveClass />;
 }
 
 function LiveClass() {
   const legacy = legacyUrl('live_class.php');
   return (
     <AdminPage title={tr('실시간 강의 관리', 'Live class management')} lead={tr('실시간/예정 강의를 관리하고 참여할 수 있습니다.', 'Manage and join live / scheduled classes.')}
-      actions={<><AButton variant="primary" onClick={() => window.open(LIVE_INSTRUCTOR_URL, '_blank', 'noopener')}><Icon name="video" size={16} />{tr('실시간 강의 생성', 'Create live class')}</AButton><AButton onClick={() => window.open(legacy, '_blank', 'noopener')}><Icon name="external" size={16} />{tr('기존 관리자 페이지에서 열기', 'Open in the legacy admin')}</AButton></>}>
+      actions={<><AButton variant="primary" onClick={() => window.open(LIVE_INSTRUCTOR_URL, '_blank', 'noopener')}><Icon name="video" size={16} />{tr('실시간 강의 생성', 'Create live class')}</AButton><AButton onClick={() => window.open(LIVE_INSTRUCTOR_URL, '_blank', 'noopener')}><Icon name="calendar" size={16} />{tr('예정 강의 등록', 'Schedule a class')}</AButton><AButton onClick={() => window.open(legacy, '_blank', 'noopener')}><Icon name="external" size={16} />{tr('기존 관리자 페이지에서 열기', 'Open in the legacy admin')}</AButton></>}>
       <Callout tone="warn">
         {tr('강의 목록(진행중/예정/종료), 접속 회원, Excel 내보내기는 라이브 플랫폼의 MongoDB(HrdeLive: meetings, participants, members)에서 읽습니다. 새 API는 hrdeArchive(MariaDB)만 연결되어 있어 이 화면의 목록은 아직 옮겨지지 않았습니다. 아래 링크의 기존 화면에서 그대로 사용하세요.', 'The class list (live / scheduled / ended), connected members and the Excel export are read from the live platform\'s MongoDB (HrdeLive: meetings, participants, members). The new API only connects to hrdeArchive (MariaDB), so these lists are not ported yet. Use the legacy screen below.')}
       </Callout>

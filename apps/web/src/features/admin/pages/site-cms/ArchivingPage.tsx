@@ -3,17 +3,18 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { adminSiteCmsApi } from '../../../../shared/api/endpoints/admin-site-cms';
 import type { ArchivingRow } from '../../../../shared/api/endpoints/admin-site-cms';
 import { useSearchState } from '../../../../shared/utils/useSearchState';
-import { AButton, AdminPage, AInput, ASelect, ATextarea, Card, ConfirmDialog, DataTable, DescList, DetailDrawer, FieldRow, FilterBar, FilterField, StatusBadge, type Column } from '../../../../shared/ui/admin';
+import { AButton, AdminPage, AInput, ASelect, Card, ConfirmDialog, DataTable, DescList, DetailDrawer, FieldRow, FilterBar, FilterField, StatusBadge, type Column } from '../../../../shared/ui/admin';
 import { isAppError } from '../../../../shared/api/client';
 import { useToast } from '../../../../app/providers/ToastProvider';
 import { tr } from '../../../../shared/i18n/adminLang';
 import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
 import { adm } from '../../strings';
-import { COUNSEL_STATUS, rowNumber } from './siteCms.helpers';
+import { COUNSEL_STATUS, LEGACY_PAGE_SIZE, rowNumber } from './siteCms.helpers';
+import { SiteCmsHtmlEditor } from './SiteCmsHtmlEditor';
 
 const DEFAULTS = { col: 'ID', q: '', page: 1 };
-const SIZE = 20;
+const SIZE = LEGACY_PAGE_SIZE; // include_top.php $page_size = 30
 
 /** archiving.php / archiving_read.php / archiving_script.php — 커뮤니티관리 > 아카이빙 (F5). */
 export default function ArchivingPage() {
@@ -30,7 +31,8 @@ export default function ArchivingPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   useEffect(() => { const d = detail.data; if (d) { setReply({ Status: d.status === 'B' ? 'B' : 'A', Name2: d.name2 ?? '', Contents2: d.contents2 ?? '' }); setErrors({}); } }, [detail.data]);
   const inv = [['admin', 'archiving'], ['admin', 'archiving-detail']];
-  const save = useAdminMutation({ fn: () => adminSiteCmsApi.archivingReply(sel!.idx, { ...reply, Name2: reply.Name2.trim(), Contents2: reply.Contents2.trim() }), invalidate: inv, success: tr('처리되었습니다.', 'Saved.') });
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const save = useAdminMutation({ fn: () => adminSiteCmsApi.archivingReply(sel!.idx, { ...reply, Name2: reply.Name2.trim(), Contents2: reply.Contents2.trim() }), invalidate: inv, success: tr('처리되었습니다.', 'Saved.'), onSuccess: () => setConfirmOpen(false), onError: (err) => { setConfirmOpen(false); toast(isAppError(err) ? err.message : adm.common.failed, { tone: 'danger' }); } });
   const [delOpen, setDelOpen] = useState(false);
   const del = useAdminMutation({ fn: () => adminSiteCmsApi.deleteArchiving(sel!.idx), invalidate: inv, success: adm.common.deleted, onSuccess: () => { setDelOpen(false); setSel(null); } });
   const submit = () => {
@@ -38,7 +40,7 @@ export default function ArchivingPage() {
     if (!reply.Name2.trim()) e.Name2 = tr('작성자를 입력하세요.', 'Enter the author.');
     if (reply.Contents2.trim().length < 15) e.Contents2 = tr('답변 내용을 15자 이상 입력해주세요', 'Enter at least 15 characters.');
     setErrors(e); if (Object.keys(e).length) return;
-    save.mutate(undefined as never);
+    setConfirmOpen(true); // archiving_read.php: confirm("등록하시겠습니까?")
   };
   const download = async () => {
     const d = detail.data; if (!d) return;
@@ -74,12 +76,13 @@ export default function ArchivingPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <FieldRow label={tr('처리 상태', 'Status')} htmlFor="ar-status"><ASelect id="ar-status" value={reply.Status} onChange={(e) => setReply({ ...reply, Status: e.target.value as 'A' | 'B' })} options={COUNSEL_STATUS} /></FieldRow>
                 <FieldRow label={tr('작성자', 'Author')} htmlFor="ar-name2" required error={errors.Name2}><AInput id="ar-name2" value={reply.Name2} onChange={(e) => setReply({ ...reply, Name2: e.target.value })} maxLength={50} disabled={!canWrite} /></FieldRow>
-                <FieldRow label={tr('답변 내용', 'Reply')} htmlFor="ar-contents2" required error={errors.Contents2} help={tr('HTML 사용 가능, 15자 이상', 'HTML allowed, 15+ characters')}><ATextarea id="ar-contents2" rows={12} value={reply.Contents2} onChange={(e) => setReply({ ...reply, Contents2: e.target.value })} disabled={!canWrite} /></FieldRow>
+                <FieldRow label={tr('답변 내용', 'Reply')} htmlFor="ar-contents2" required error={errors.Contents2} help={tr('15자 이상 (Editor | HTML | TEXT 모드)', '15+ characters (Editor | HTML | TEXT)')}><SiteCmsHtmlEditor id="ar-contents2" label={tr('답변 내용', 'Reply')} value={reply.Contents2} onChange={(html) => setReply((r) => ({ ...r, Contents2: html }))} disabled={!canWrite} invalid={!!errors.Contents2} height={300} /></FieldRow>
               </div>
             </Card>
           </div>
         ) : detail.isError ? <p className="muted">{adm.common.failed}</p> : <p className="muted">{adm.common.loading}</p>}
       </DetailDrawer>
+      <ConfirmDialog open={confirmOpen} title={tr('답변 등록', 'Save reply')} tone="info" loading={save.isPending} onCancel={() => setConfirmOpen(false)} onConfirm={() => save.mutate(undefined as never)} confirmLabel={tr('등록', 'Save')} body={<p>{tr('등록하시겠습니까?', 'Save this reply?')}</p>} />
       <ConfirmDialog open={delOpen} title={tr('아카이빙 삭제', 'Delete')} tone="danger" loading={del.isPending} onCancel={() => setDelOpen(false)} onConfirm={() => del.mutate(undefined as never)} body={<p>{tr('현재 글을 삭제하시겠습니까? (Del=Y 처리)', 'Delete this post? (Del=Y)')}</p>} />
     </AdminPage>
   );

@@ -8,7 +8,9 @@ import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
 import { tr } from '../../../../shared/i18n/adminLang';
 import { adm } from '../../strings';
-import { Multiline, ReadButtons, menuName, useFormErrors, useYnOptions, won } from './courses-parity.shared';
+import { Multiline, ReadButtons, listHref, menuName, useFormErrors, useYnOptions, won } from './courses-parity.shared';
+import { isAppError } from '../../../../shared/api/client';
+import type { CpCourseFileSlot } from '../../../../shared/api/endpoints/admin-courses-parity';
 
 // ====================================================================== course_read.php
 
@@ -18,7 +20,10 @@ export function CourseReadView({ d, onEdit }: { d: CpCourseDetail; onEdit: () =>
   const navigate = useNavigate();
   const [testIds, setTestIds] = useState(false);
   const [del, setDel] = useState(false);
-  const remove = useAdminMutation({ fn: () => cp.deleteCourse(d.idx), invalidate: [['admin', 'courses'], ['admin', 'course', d.idx]], success: tr('처리되었습니다.', 'Done.'), onSuccess: () => navigate(`/admin/courses?ctype=${d.ctype ?? 'X'}`) });
+  const { toast } = useToast();
+  const listTo = listHref(`courses:${d.ctype ?? 'X'}`, '/admin/courses', `?ctype=${d.ctype ?? 'X'}`);
+  const download = async (slot: CpCourseFileSlot, name: string) => { try { await cp.downloadCourseFile(d.idx, slot, name); } catch (err) { toast(isAppError(err) ? err.message : tr('파일을 내려받지 못했습니다.', 'Download failed.'), { tone: 'danger' }); } };
+  const remove = useAdminMutation({ fn: () => cp.deleteCourse(d.idx), invalidate: [['admin', 'courses'], ['admin', 'course', d.idx]], success: tr('처리되었습니다.', 'Done.'), onSuccess: () => navigate(listTo) });
   const img = (f: string | null | undefined, h: number) => (f ? <span style={{ display: 'inline-flex', flexDirection: 'column', gap: 4 }}><img src={`${d.fileBase}${f}`} alt="" style={{ maxHeight: h, maxWidth: 160 }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} /><span className="mono" style={{ fontSize: 11 }}>{f}</span></span> : null);
   const rows: [ReactNode, ReactNode][] = [
     [tr('등급 / 과정코드', 'Grade / code'), <>{d.classGradeLabel} / <b className="mono" style={{ color: 'var(--danger, #c00)' }}>{d.lectureCode}</b></>],
@@ -43,7 +48,7 @@ export function CourseReadView({ d, onEdit }: { d: CpCourseDetail; onEdit: () =>
     [tr('모바일 지원', 'Mobile'), d.mobileLabel],
     [tr('교재비', 'Textbook price'), won(d.bookPrice)],
     [tr('교육비용', 'Price'), <>{won(d.prices.normal)} | <b>{tr('환급비용', 'Refund')}</b> : {tr('우선지원', 'Priority')} {won(d.prices.priority)} / {tr('대규모 1000인 미만', 'Large <1000')} {won(d.prices.large1)} / {tr('대규모 1000인 이상', 'Large ≥1000')} {won(d.prices.large2)}</>],
-    [tr('학습자료 등록', 'Study material'), d.attachFile ? <span className="mono">{d.attachFile}</span> : ''],
+    [tr('학습자료 등록', 'Study material'), d.attachFile ? <a href="#download" className="mono" onClick={(e) => { e.preventDefault(); void download('attachFile', d.attachFile!); }}><b>{d.attachFile}</b></a> : ''],
     [tr('과정 이미지', 'Course image'), img(d.previewImage, 100)],
     [tr('교재 이미지', 'Textbook image'), img(d.bookImage, 100)],
   ];
@@ -52,7 +57,7 @@ export function CourseReadView({ d, onEdit }: { d: CpCourseDetail; onEdit: () =>
       {canWrite ? (
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, alignItems: 'center' }}>
           <a href="#test-ids" onClick={(e) => { e.preventDefault(); setTestIds(true); }}>{tr(`[등록된 심사용 테스트 아이디 ${d.testIdCount}건 보기]`, `[View ${d.testIdCount} review test IDs]`)}</a>
-          <AButton size="sm" disabled title={tr('테스트 아이디 생성은 가짜 진도(Progress 100%) 행을 만들기 때문에 기존 사이트에서만 합니다.', 'Creating test IDs writes synthetic progress rows, so it stays on the previous site.')}>{tr('심사용 테스트 아이디 생성', 'Create review test IDs')}</AButton>
+          <AButton size="sm" disabled title={tr('심사용 테스트 아이디 생성(course_testid_creat.php)은 차시마다 진도 100%·학습시간 1800초를 만들어 넣는 기능입니다. 학습시간을 만들어 넣는 쓰기는 HRD/EMON 규칙상 새 콘솔에서 하지 않으므로 기존 사이트에서만 합니다.', 'Creating review test IDs inserts 100% progress and 1800 s of study time per chapter; inventing study time is not allowed in the new console (HRD/EMON rule), so it stays on the previous site.')}>{tr('심사용 테스트 아이디 생성', 'Create review test IDs')}</AButton>
         </div>
       ) : null}
       {d.deleted ? <Callout tone="warn">{tr('삭제된(Del=Y) 컨텐츠입니다. 기존 사이트 상세 화면에서는 보이지 않습니다.', 'This content is deleted (Del=Y); the previous site no longer shows it.')}</Callout> : null}
@@ -65,7 +70,7 @@ export function CourseReadView({ d, onEdit }: { d: CpCourseDetail; onEdit: () =>
       <ReadButtons
         left={canWrite ? <AButton variant="danger" onClick={() => setDel(true)} disabled={d.deleted}>{tr('컨텐츠 삭제', 'Delete')}</AButton> : null}
         center={canWrite ? <AButton variant="primary" onClick={onEdit} title={readOnlyTitle}>{tr('컨텐츠 수정', 'Edit')}</AButton> : null}
-        right={<AButton to={`/admin/courses?ctype=${d.ctype ?? 'X'}`}>{tr('목록', 'List')}</AButton>} />
+        right={<AButton to={listTo}>{tr('목록', 'List')}</AButton>} />
       {testIds ? <TestIdsDrawer idx={d.idx} lectureCode={d.lectureCode} onClose={() => setTestIds(false)} /> : null}
       <ConfirmDialog open={del} tone="danger" title={tr('컨텐츠 삭제', 'Delete content')} body={<p>{tr('현재 컨텐츠를 삭제하시겠습니까? (Del=Y로 표시되고 수강 기록은 남습니다)', 'Delete this content? (marked Del=Y; enrollments stay)')}</p>} loading={remove.isPending} onCancel={() => setDel(false)} onConfirm={() => remove.mutate()} />
     </div>
@@ -263,11 +268,11 @@ export function CourseForm({ ctype, detail, onDone, onCancel }: { ctype: string;
           <div style={grid2}>
             <FieldRow label={tr('모바일 지원', 'Mobile')}><div style={{ width: 120 }}><ASelect aria-label={tr('모바일 지원', 'Mobile')} value={f.Mobile} onChange={(e) => set({ Mobile: e.target.value })} options={yn} disabled={dis} /></div></FieldRow>
             <FieldRow label={tr('교재비', 'Textbook price')} htmlFor="cf-BookPrice" error={errors.BookPrice}><span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{num('BookPrice', 110, 6)} {tr('원', 'KRW')}</span></FieldRow>
-            <FieldRow label={tr('학습자료 등록', 'Study material')}><div className="mono" style={{ paddingTop: 6, fontSize: 12 }}>{f.attachFile || <span className="muted">{adm.common.none}</span>}</div></FieldRow>
-            <FieldRow label={tr('과정 이미지', 'Course image')}><div className="mono" style={{ paddingTop: 6, fontSize: 12 }}>{f.PreviewImage || <span className="muted">{adm.common.none}</span>}</div></FieldRow>
-            <FieldRow label={tr('교재 이미지', 'Textbook image')}><div className="mono" style={{ paddingTop: 6, fontSize: 12 }}>{f.BookImage || <span className="muted">{adm.common.none}</span>}</div></FieldRow>
+            <FieldRow label={tr('학습자료 등록', 'Study material')}><FileSlot slot="attachFile" kind="text" value={f.attachFile} courseIdx={detail?.idx} savedValue={detail?.attachFile} fileBase={m?.fileBase} disabled={dis} onChange={(v) => set({ attachFile: v })} /></FieldRow>
+            <FieldRow label={tr('과정 이미지', 'Course image')}><FileSlot slot="PreviewImage" kind="img" value={f.PreviewImage} courseIdx={detail?.idx} savedValue={detail?.previewImage} fileBase={m?.fileBase} disabled={dis} onChange={(v) => set({ PreviewImage: v })} /></FieldRow>
+            <FieldRow label={tr('교재 이미지', 'Textbook image')}><FileSlot slot="BookImage" kind="img" value={f.BookImage} courseIdx={detail?.idx} savedValue={detail?.bookImage} fileBase={m?.fileBase} disabled={dis} onChange={(v) => set({ BookImage: v })} /></FieldRow>
           </div>
-          <Callout>{tr('학습자료·과정 이미지·교재 이미지의 파일 첨부/삭제는 서버 업로드 폴더를 쓰므로 아직 기존 사이트에서 합니다. 여기서는 저장된 파일명이 그대로 유지됩니다.', 'File upload/delete for material and images writes the server upload folder, so it still runs on the previous site. Stored file names are kept as they are.')}</Callout>
+          <p className="muted" style={{ fontSize: 12, margin: 0 }}>{tr('파일은 "파일 첨부" 즉시 서버(upload/Course)에 저장되고, 열 값은 "등록/수정"을 눌러야 저장됩니다. "파일 삭제"는 서버 파일을 지우고(다른 컨텐츠가 쓰는 파일은 남김) 값을 비웁니다.', 'Files are stored in upload/Course right away; the column is saved with Register/Save. "Delete file" removes the server file (unless another content uses it) and clears the value.')}</p>
           <FieldRow label={tr('과정소개', 'Introduction')} htmlFor="cf-Intro"><ATextarea id="cf-Intro" rows={7} value={f.Intro} onChange={(e) => set({ Intro: e.target.value })} disabled={dis} /></FieldRow>
           <FieldRow label={tr('교육대상', 'Audience')} htmlFor="cf-EduTarget"><ATextarea id="cf-EduTarget" rows={7} value={f.EduTarget} onChange={(e) => set({ EduTarget: e.target.value })} disabled={dis} /></FieldRow>
           <FieldRow label={tr('교육목표', 'Goals')} htmlFor="cf-EduGoal"><ATextarea id="cf-EduGoal" rows={7} value={f.EduGoal} onChange={(e) => set({ EduGoal: e.target.value })} disabled={dis} /></FieldRow>
@@ -302,5 +307,44 @@ function CopyPicker({ ctype, onPick, onClose }: { ctype: string; onPick: (idx: n
       </form>
       <DataTable columns={cols} rows={list.data?.items} rowKey={(r) => r.idx} loading={list.isPending || list.isFetching} error={list.error} page={pg} size={10} total={list.data?.total} onPageChange={setPg} dense />
     </DetailDrawer>
+  );
+}
+
+/**
+ * 학습자료 / 과정 이미지 / 교재 이미지 slot of course_write.php: "파일 첨부" (upload_file.php → upload_file_ok.php) and
+ * "파일 삭제" (UploadFileDelete → file_delete.php), each with the PHP confirm; images are previewed like the PHP page.
+ */
+function FileSlot({ slot, kind, value, savedValue, courseIdx, fileBase, disabled, onChange }: { slot: CpCourseFileSlot; kind: 'text' | 'img'; value: string; savedValue?: string | null; courseIdx?: number; fileBase?: string; disabled: boolean; onChange: (v: string) => void }) {
+  const { toast } = useToast();
+  const [busy, setBusy] = useState(false);
+  const pickerId = `cf-file-${slot}`;
+  const upload = async (file: File | undefined) => {
+    if (!file) { toast(tr('파일을 선택하세요.', 'Choose a file.'), { tone: 'danger' }); return; }
+    if (!window.confirm(tr('업로드 하시겠습니까?', 'Upload?'))) return;
+    setBusy(true);
+    try { const r = await cp.uploadCourseFile(kind, file); onChange(r.fileName); toast(tr('첨부되었습니다. 저장해야 반영됩니다.', 'Attached. Save to keep it.'), { tone: 'ok' }); }
+    catch (err) { toast(isAppError(err) ? err.message : adm.common.failed, { tone: 'danger' }); }
+    finally { setBusy(false); }
+  };
+  const remove = async () => {
+    if (!window.confirm(tr('파일을 서버에서 삭제 하시겠습니까?', 'Delete the file from the server?'))) return;
+    setBusy(true);
+    try { const r = await cp.deleteCourseFile(value, courseIdx); toast(r.removed ? tr('삭제되었습니다.', 'Deleted.') : r.reason ?? tr('삭제되었습니다.', 'Deleted.'), { tone: 'ok' }); onChange(''); }
+    catch (err) { toast(isAppError(err) ? err.message : adm.common.failed, { tone: 'danger' }); }
+    finally { setBusy(false); }
+  };
+  const saved = !!courseIdx && !!value && value === savedValue;
+  return (
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', paddingTop: 4 }}>
+      {value ? (kind === 'img'
+        ? <img src={`${fileBase ?? '/upload/Course/'}${value}`} alt={value} title={value} style={{ width: 150, maxHeight: 120, objectFit: 'contain' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+        : saved ? <a href="#download" className="mono" style={{ fontSize: 12 }} onClick={(e) => { e.preventDefault(); void cp.downloadCourseFile(courseIdx!, slot, value).catch(() => toast(tr('파일을 내려받지 못했습니다.', 'Download failed.'), { tone: 'danger' })); }}><b>{value}</b></a> : <b className="mono" style={{ fontSize: 12 }}>{value}</b>)
+        : <span className="muted" style={{ fontSize: 12 }}>{adm.common.none}</span>}
+      {value && kind === 'img' ? <span className="mono" style={{ fontSize: 11 }}>{value}</span> : null}
+      {value ? <AButton size="xs" disabled={disabled || busy} onClick={() => void remove()}>{tr('파일 삭제', 'Delete file')}</AButton> : null}
+      <input id={pickerId} type="file" accept={kind === 'img' ? '.jpg,.jpeg,.png,.gif' : undefined} style={{ display: 'none' }} aria-label={tr('첨부할 파일', 'File to attach')} disabled={disabled || busy}
+        onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ''; void upload(file); }} />
+      <AButton size="xs" disabled={disabled} loading={busy} onClick={() => document.getElementById(pickerId)?.click()}>{tr('파일 첨부', 'Attach file')}</AButton>
+    </div>
   );
 }

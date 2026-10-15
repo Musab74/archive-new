@@ -3,17 +3,17 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { adminSiteCmsApi } from '../../../../shared/api/endpoints/admin-site-cms';
 import type { LectureEventRow } from '../../../../shared/api/endpoints/admin-site-cms';
 import { useSearchState } from '../../../../shared/utils/useSearchState';
-import { AButton, AdminPage, AInput, ASelect, Card, DataTable, DescList, DetailDrawer, FieldRow, FilterBar, FilterField, StatusBadge, type Column } from '../../../../shared/ui/admin';
+import { AButton, AdminPage, AInput, ASelect, Card, ConfirmDialog, DataTable, DescList, DetailDrawer, FieldRow, FilterBar, FilterField, StatusBadge, type Column } from '../../../../shared/ui/admin';
 import { isAppError } from '../../../../shared/api/client';
 import { useToast } from '../../../../app/providers/ToastProvider';
 import { tr } from '../../../../shared/i18n/adminLang';
 import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
 import { adm } from '../../strings';
-import { COUNSEL_STATUS, rowNumber } from './siteCms.helpers';
+import { COUNSEL_STATUS, LEGACY_PAGE_SIZE, rowNumber } from './siteCms.helpers';
 
 const DEFAULTS = { col: 'ID', q: '', page: 1 };
-const SIZE = 20;
+const SIZE = LEGACY_PAGE_SIZE; // include_top.php $page_size = 30
 
 /** lecture_event.php / _read / _script / _excel — 커뮤니티관리 > 이벤트관리 (F7). */
 export default function LectureEventsPage() {
@@ -29,11 +29,13 @@ export default function LectureEventsPage() {
   const [st, setSt] = useState<{ Status: 'A' | 'B'; StatusName: string }>({ Status: 'A', StatusName: '' });
   const [err, setErr] = useState('');
   useEffect(() => { const d = detail.data; if (d) { setSt({ Status: d.status === 'B' ? 'B' : 'A', StatusName: d.statusName ?? '' }); setErr(''); } }, [detail.data]);
-  const save = useAdminMutation({ fn: () => adminSiteCmsApi.setLectureEventStatus(sel!.idx, { ...st, StatusName: st.StatusName.trim() }), invalidate: [['admin', 'lecture-events'], ['admin', 'lecture-event']], success: tr('처리되었습니다.', 'Saved.') });
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const save = useAdminMutation({ fn: () => adminSiteCmsApi.setLectureEventStatus(sel!.idx, { ...st, StatusName: st.StatusName.trim() }), invalidate: [['admin', 'lecture-events'], ['admin', 'lecture-event']], success: tr('처리되었습니다.', 'Saved.'), onSuccess: () => setConfirmOpen(false), onError: (e) => { setConfirmOpen(false); toast(isAppError(e) ? e.message : adm.common.failed, { tone: 'danger' }); } });
   const [exporting, setExporting] = useState(false);
-  const exportCsv = async () => {
+  /** *_excel.php: .xlsx with the current search, no row cap; a search with no rows still downloads the header row. */
+  const exportXlsx = async () => {
     setExporting(true);
-    try { await adminSiteCmsApi.downloadLectureEventsCsv({ col: query.col, q: query.q }); }
+    try { await adminSiteCmsApi.downloadLectureEventsXlsx({ col: query.col, q: query.q }); }
     catch (e) { toast(isAppError(e) ? e.message : adm.common.failed, { tone: 'danger' }); }
     finally { setExporting(false); }
   };
@@ -51,14 +53,14 @@ export default function LectureEventsPage() {
   return (
     <AdminPage title={tr('이벤트관리', 'Events')} lead={tr('학습 이벤트(스테이지) 참여 내역입니다. 행을 누르면 처리 상태를 변경할 수 있습니다.', 'Learning event (stage) participation. Click a row to change its status.')}>
       <FilterBar onSubmit={() => setP(form, true)} onReset={() => { setForm({ col: 'ID', q: '' }); reset(); }}
-        extra={<AButton onClick={() => void exportCsv()} loading={exporting} disabled={!canWrite || !list.data || total === 0} title={readOnlyTitle}>{tr('검색항목 엑셀 출력', 'Export CSV')}</AButton>}>
+        extra={<AButton onClick={() => void exportXlsx()} loading={exporting} disabled={!canWrite} title={readOnlyTitle}>{tr('검색항목 엑셀 출력', 'Export to Excel')}</AButton>}>
         <FilterField label={tr('검색 항목', 'Search in')} htmlFor="le-col" width={130}><ASelect id="le-col" value={form.col} onChange={(e) => setForm({ ...form, col: e.target.value })} options={[{ value: 'ID', label: tr('아이디', 'User ID') }, { value: 'Name', label: tr('이름', 'Name') }]} /></FilterField>
         <FilterField label={tr('검색어', 'Keyword')} htmlFor="le-q" width={260}><AInput id="le-q" value={form.q} onChange={(e) => setForm({ ...form, q: e.target.value })} /></FilterField>
       </FilterBar>
       <DataTable columns={columns} rows={list.data?.items} rowKey={(r) => r.idx} loading={list.isPending || list.isFetching} error={list.error} onRetry={() => void list.refetch()} page={p.page} size={SIZE} total={total} onPageChange={(n) => setP({ page: n })} onRowClick={setSel} selectedKey={sel?.idx ?? null} emptyTitle={tr('등록된 내용이 없습니다.', 'Nothing registered.')} dense />
 
       <DetailDrawer open={!!sel} onClose={() => setSel(null)} title={sel ? `${sel.name ?? ''} (${sel.id ?? ''})` : ''} subtitle={sel?.stageLabel}
-        footer={<><AButton onClick={() => setSel(null)}>{adm.common.close}</AButton><AButton variant="primary" disabled={!canWrite} title={readOnlyTitle} loading={save.isPending} onClick={() => { if (!st.StatusName.trim()) { setErr(tr('작성자를 입력하세요.', 'Enter the author.')); return; } setErr(''); save.mutate(undefined as never); }}>{tr('상태 변경', 'Change status')}</AButton></>}>
+        footer={<><AButton onClick={() => setSel(null)}>{adm.common.close}</AButton><AButton variant="primary" disabled={!canWrite} title={readOnlyTitle} loading={save.isPending} onClick={() => { if (!st.StatusName.trim()) { setErr(tr('작성자를 입력하세요.', 'Enter the author.')); return; } setErr(''); setConfirmOpen(true); /* lecture_event_read.php: confirm("등록하시겠습니까?") */ }}>{tr('상태 변경', 'Change status')}</AButton></>}>
         {d ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <Card title={tr('참여 정보', 'Participation')}>
@@ -74,6 +76,7 @@ export default function LectureEventsPage() {
           </div>
         ) : detail.isError ? <p className="muted">{adm.common.failed}</p> : <p className="muted">{adm.common.loading}</p>}
       </DetailDrawer>
+      <ConfirmDialog open={confirmOpen} title={tr('상태 변경', 'Change status')} tone="info" loading={save.isPending} onCancel={() => setConfirmOpen(false)} onConfirm={() => save.mutate(undefined as never)} confirmLabel={tr('등록', 'Save')} body={<p>{tr('등록하시겠습니까?', 'Save this status?')}</p>} />
     </AdminPage>
   );
 }

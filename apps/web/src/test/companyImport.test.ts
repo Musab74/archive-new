@@ -52,8 +52,8 @@ describe('CompanyForm helpers', () => {
   });
   it('validateCompanyForm: required fields and formats', () => {
     const e = validateCompanyForm(emptyValues(), 'create');
-    expect(Object.keys(e).sort()).toEqual(['CompanyCode', 'CompanyName', 'SalesManager']);
-    const ok = { ...emptyValues(), CompanyName: 'A', CompanyCode: '123-45-67890', SalesManager: 'B032', Email: 'bad' };
+    expect(Object.keys(e).sort()).toEqual(['CompanyCode', 'CompanyID', 'CompanyName', 'SalesManager']); // company_write.php: 사업주 아이디 is required on create
+    const ok = { ...emptyValues(), CompanyName: 'A', CompanyCode: '123-45-67890', CompanyID: 'abcd01', SalesManager: 'B032', Email: 'bad' };
     expect(validateCompanyForm(ok, 'create')).toEqual({ Email: '이메일 형식을 확인하세요.' });
     expect(validateCompanyForm({ ...ok, Email: '', HomePage: '한글' }, 'edit')).toEqual({ HomePage: '영문/숫자/_/- 2~50자' });
   });

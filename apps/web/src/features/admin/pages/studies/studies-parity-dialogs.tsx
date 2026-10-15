@@ -71,13 +71,14 @@ export function DayTimeDialog({ seq, onClose }: { seq: number | null; onClose: (
 export function CertificateDialog({ seq, onClose }: { seq: number | null; onClose: () => void }) {
   const q = useQuery({ queryKey: ['admin', 'study-certificate', seq], queryFn: ({ signal }) => adminStudiesParityApi.certificate(seq!, signal), enabled: !!seq, retry: false });
   const d = q.data;
-  const printHref = d && d.companyCode ? `/admin/learning/certificates/print?companyCode=${encodeURIComponent(d.companyCode)}&lectureStart=${d.lectureStart}&lectureEnd=${d.lectureEnd}` : null;
+  const batchHref = d && d.companyCode ? `/admin/learning/certificates/print?companyCode=${encodeURIComponent(d.companyCode)}&lectureStart=${d.lectureStart}&lectureEnd=${d.lectureEnd}` : null;
   return (
-    <Modal open={!!seq} onClose={onClose} title={tr('수료증 출력', 'Certificate of completion')} actions={<>{printHref ? <AButton variant="primary" to={printHref}>{tr('수료증 출력 화면', 'Print page')}</AButton> : null}<CloseBtn onClose={onClose} /></>}>
+    <Modal open={!!seq} onClose={onClose} title={tr('수료증 출력', 'Certificate of completion')}
+      actions={<>{d ? <AButton variant="primary" to={`/admin/studies/${d.studySeq}?print=certificate`}>{tr('수료증 PDF로 출력하기', 'Print certificate (PDF)')}</AButton> : null}{batchHref ? <AButton to={batchHref}>{tr('같은 사업주·기간 일괄 출력', 'Print all of this company & term')}</AButton> : null}<CloseBtn onClose={onClose} /></>}>
       {q.isError ? <Callout tone="warn">{errText(q.error, tr('수료여부를 확인하세요.', 'Check the completion status.'))}</Callout> : !d ? <p className="muted">…</p> : (
         <>
           <DescList items={[[tr('성명', 'Name'), d.name], [tr('생년월일', 'Birth date'), d.birthDay], [tr('소속', 'Company'), d.companyName], [tr('훈련과정', 'Course'), d.courseName], [tr('훈련기간', 'Period'), d.periodLabel]]} />
-          <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>{tr('PDF 출력은 수료증 출력 화면에서 같은 사업주·기간의 수료자와 함께 인쇄합니다.', 'Printing happens on the certificate page (all completers of this company and period).')}</p>
+          <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>{tr('“수료증 PDF로 출력하기”는 이 수강 1건의 수료증(certificate_pdf01)을 A4로 열어 브라우저 인쇄/PDF 저장합니다.', '“Print certificate” opens this enrollment’s certificate as an A4 page for print / PDF.')}</p>
         </>
       )}
     </Modal>

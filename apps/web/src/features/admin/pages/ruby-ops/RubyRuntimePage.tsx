@@ -6,12 +6,13 @@ import { tr } from '../../../../shared/i18n/adminLang';
 import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
 import { adm } from '../../strings';
+import { RubyGate } from './rubyAccess';
 
 const TYPES = ['string', 'number', 'boolean', 'json'].map((v) => ({ value: v, label: v }));
 type Draft = { configValue: string; valueType: string; isActive: boolean; note: string };
 
 /** ruby_runtime.php + ruby_runtime_script.php — every RubyRuntimeConfig row editable in place, one 저장 for all. */
-export default function RubyRuntimePage() {
+function RubyRuntimePageInner() {
   const { canWrite, readOnlyTitle } = useWriteGate();
   const list = useQuery({ queryKey: ['admin', 'ruby', 'runtime'], queryFn: ({ signal }) => adminRubyOpsApi.runtime(signal) });
   const [draft, setDraft] = useState<Record<string, Draft>>({});
@@ -37,4 +38,8 @@ export default function RubyRuntimePage() {
       <DataTable columns={columns} rows={list.data?.items} rowKey={(r) => r.configKey} loading={list.isPending} error={list.error} onRetry={() => void list.refetch()} emptyTitle={tr('설정 행이 없습니다.', 'No settings.')} dense />
     </AdminPage>
   );
+}
+
+export default function RubyRuntimePage() {
+  return <RubyGate><RubyRuntimePageInner /></RubyGate>;
 }

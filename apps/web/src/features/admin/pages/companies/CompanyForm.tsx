@@ -16,10 +16,12 @@ export function emptyValues(): CompanyFormValues {
   const v = Object.fromEntries(TEXT_KEYS.map((k) => [k, ''])) as Record<(typeof TEXT_KEYS)[number], string>;
   return { ...v, CompanyScale: 'C', CSEnabled: false, CyberEnabled: false, SendSMS: true };
 }
+/** company_script.php saved an empty 3-part phone as "--"; the form shows it as empty. */
+const phoneIn = (v: string | null | undefined) => (v && !/^-+$/.test(v) ? v : '');
 export function fromCompany(c: CompanyInfo): CompanyFormValues {
   return {
     CompanyScale: c.scale ?? 'C', CompanyName: c.companyName, CompanyCode: c.companyCode, CompanyID: c.companyId ?? '', HRD: c.hrd ?? '', Ceo: c.ceo ?? '', Uptae: c.uptae ?? '', Upjong: c.upjong ?? '', Zipcode: c.zipcode ?? '', Address01: c.address01 ?? '', Address02: c.address02 ?? '',
-    Tel: c.tel ?? '', Tel2: c.tel2 ?? '', Fax: c.fax ?? '', Fax2: c.fax2 ?? '', Email: c.email ?? '', BankName: c.bankName ?? '', BankNumber: c.bankNumber ?? '', HomePage: c.manageCode ?? '', CyberURL: c.cyberUrl ?? '', EduManager: c.eduManager ?? '', EduManagerPhone: c.eduManagerPhone ?? '', EduManagerEmail: c.eduManagerEmail ?? '',
+    Tel: phoneIn(c.tel), Tel2: phoneIn(c.tel2), Fax: phoneIn(c.fax), Fax2: phoneIn(c.fax2), Email: c.email ?? '', BankName: c.bankName ?? '', BankNumber: c.bankNumber ?? '', HomePage: c.manageCode ?? '', CyberURL: c.cyberUrl ?? '', EduManager: c.eduManager ?? '', EduManagerPhone: c.eduManagerPhone ?? '', EduManagerEmail: c.eduManagerEmail ?? '',
     SalesManager: c.salesManager ?? '', Remark: c.remark ?? '', CSEnabled: c.csEnabled, CyberEnabled: c.cyberEnabled, SendSMS: c.sendSMS !== 'N',
   };
 }
@@ -44,10 +46,16 @@ export function validateCompanyForm(v: CompanyFormValues, mode: 'create' | 'edit
   const f = adm.companies.form;
   if (!v.CompanyName.trim()) e.CompanyName = f.required;
   if (mode === 'create') {
+    // function.js CompanyCodeCheck(): 숫자 10자리 (hyphens/spaces are stripped first, as the API does)
     const code = v.CompanyCode.replace(/[\s-]/g, '');
-    if (!code) e.CompanyCode = f.required; else if (!/^[A-Za-z0-9_]{2,20}$/.test(code)) e.CompanyCode = tr('영문/숫자 2~20자', 'Letters/digits, 2–20 chars');
+    if (!code) e.CompanyCode = tr('사업자번호를 입력하세요.', 'Enter the business number.');
+    else if (!/^\d+$/.test(code)) e.CompanyCode = tr('사업자번호는 숫자만 입력하세요.', 'Digits only.');
+    else if (code.length !== 10) e.CompanyCode = tr('사업자번호는 10자리 숫자만 입력하세요.', 'The business number has 10 digits.');
+    // company_write.php: '사업주 아이디를 입력하세요.' + ID_Validity(): 4~20자, 영문/숫자
     const id = v.CompanyID.replace(/\s/g, '');
-    if (id && !/^[A-Za-z0-9_-]{2,50}$/.test(id)) e.CompanyID = tr('영문/숫자/_/- 2~50자', 'Letters/digits/_/-, 2–50 chars');
+    if (!id) e.CompanyID = tr('사업주 아이디를 입력하세요.', 'Enter the company ID.');
+    else if (id.length < 4 || id.length > 20) e.CompanyID = tr('사업주 아이디는 4자이상 20자 이내로 입력하세요.', 'Company ID: 4–20 characters.');
+    else if (!/^[A-Za-z0-9]+$/.test(id)) e.CompanyID = tr('사업주 아이디는 영문/숫자만 입력 가능합니다.', 'Company ID: letters and digits only.');
   }
   const hp = v.HomePage.replace(/\s/g, '');
   if (hp && !/^[A-Za-z0-9_-]{2,50}$/.test(hp)) e.HomePage = tr('영문/숫자/_/- 2~50자', 'Letters/digits/_/-, 2–50 chars');
@@ -115,8 +123,8 @@ export function CompanyForm({ mode, values: v, onChange, meta, errors, excludeId
       <FieldRow label={f.name} htmlFor="cf-name" required error={errors.CompanyName}><AInput id="cf-name" value={v.CompanyName} onChange={(e) => set({ CompanyName: e.target.value })} maxLength={150} invalid={!!errors.CompanyName} disabled={disabled} /></FieldRow>
       {mode === 'create' ? (
         <>
-          <FieldRow label={f.code} htmlFor="cf-code" required help={f.codeHelp} error={errors.CompanyCode}><div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}><AInput id="cf-code" value={v.CompanyCode} onChange={(e) => set({ CompanyCode: e.target.value })} maxLength={20} invalid={!!errors.CompanyCode || codeA.status === 'taken'} disabled={disabled} autoComplete="off" /><Avail s={codeA} /></div></FieldRow>
-          <FieldRow label={f.companyId} htmlFor="cf-id" help={f.companyIdHelp} error={errors.CompanyID}><div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}><AInput id="cf-id" value={v.CompanyID} onChange={(e) => set({ CompanyID: e.target.value })} maxLength={50} invalid={!!errors.CompanyID || idA.status === 'taken'} disabled={disabled} autoComplete="off" /><Avail s={idA} /></div></FieldRow>
+          <FieldRow label={f.code} htmlFor="cf-code" required help={tr('숫자 10자리 (하이픈은 자동으로 제거됩니다)', '10 digits (hyphens are removed)')} error={errors.CompanyCode}><div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}><AInput id="cf-code" value={v.CompanyCode} onChange={(e) => set({ CompanyCode: e.target.value })} maxLength={12} invalid={!!errors.CompanyCode || codeA.status === 'taken'} disabled={disabled} autoComplete="off" /><Avail s={codeA} /></div></FieldRow>
+          <FieldRow label={f.companyId} htmlFor="cf-id" required help={tr('영문/숫자 4~20자', 'Letters/digits, 4–20 chars')} error={errors.CompanyID}><div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}><AInput id="cf-id" value={v.CompanyID} onChange={(e) => set({ CompanyID: e.target.value })} maxLength={20} invalid={!!errors.CompanyID || idA.status === 'taken'} disabled={disabled} autoComplete="off" /><Avail s={idA} /></div></FieldRow>
         </>
       ) : (
         <FieldRow label={`${f.code} · ${f.companyId}`}><div style={{ fontSize: 13, paddingTop: 8 }}><b className="mono">{v.CompanyCode}</b> · <span className="mono">{v.CompanyID || '—'}</span></div></FieldRow>

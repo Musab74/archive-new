@@ -2,6 +2,7 @@
  * 엑셀 일괄 수강등록 — browser-side mapping of pasted Excel rows (TSV) or a CSV/TSV file into the rows POST /admin/enrollments/import expects.
  * Same column order as the legacy sheet (lecture_reg_excel_upload.php columns A..U). Pure functions; tested in src/test/ruby-ops.test.tsx.
  */
+import type { EnrollImportPlanRow, EnrollImportResult } from '../../../../shared/api/endpoints/admin-ruby-ops';
 export { parseDelimited, downloadText } from '../companies/companyImport';
 
 export const ENROLL_KEYS = ['LectureCode', 'ContentsName', 'Tutor', 'Name', 'ResNo', 'Mobile', 'Email', 'CompanyCode', 'CompanyName', 'Depart', 'LectureStart', 'LectureEnd', 'ServiceType', 'UserID', 'Pwd', 'nwIno', 'trneeSe', 'IrglbrSe', 'OpenChapter', 'SalesID', 'EduManager'] as const;
@@ -40,6 +41,49 @@ export function mapEnrollRows(table: string[][]): MappedEnrollImport {
   return { rows, headerDetected, columns: columns.filter((c): c is EnrollKey => !!c), unknownHeaders };
 }
 
+/**
+ * Uploaded sheet (lecture_reg_excel_upload.php reads from row 2): row 1 is always the header row and is skipped. When it carries the
+ * legacy labels the columns are mapped by name, otherwise by the A..U position. Rows without any value are dropped.
+ */
+export function mapEnrollFileTable(table: string[][]): MappedEnrollImport {
+  if (!table.length) return { rows: [], headerDetected: false, columns: [], unknownHeaders: [] };
+  const first = table[0]!;
+  const matched = first.map((h) => ALIASES[normHeader(h)] ?? null);
+  const headerDetected = matched.filter(Boolean).length >= 3;
+  const m = headerDetected ? mapEnrollRows(table) : mapEnrollRows(table.slice(1));
+  return { ...m, rows: m.rows.filter((r) => Object.values(r).some((v) => v !== null)), headerDetected };
+}
+
+/** $TRNEE_SE_array / $IRGLBR_SE_array labels (include_function_cron.php) for the 훈련생구분 / 비정규직구분 columns. */
+export const TRNEE_SE_LABELS: Record<string, string> = { '002': '구직자', '003': '채용예정자', '006': '전직/이직예정자', '007': '자사근로자', '008': '타사근로자', '013': '일용근로자', '983': '취득예정자(일용포함)', '984': '고용유지훈련', '985': '적용제외근로자' };
+export const IRGLBR_SE_LABELS: Record<string, string> = { '000': '비정규직해당없음', '012': '파견근로자', '013': '일용근로자', '014': '기간제근로자', '020': '단기간근로자', '021': '무급휴업/휴직자', '022': '임의가입자영업자', '987': '분류불능' };
+/** $ServiceType2_array */
+export const SERVICE_TYPE2_LABELS: Record<string, string> = { A: '패키지', X: '이러닝', Y: '숏폼', Z: '마이크로닝', W: '비환급' };
+
+/** ID_Validity() + hanCheck() of hrd_manager/include/function.js: 4–20 characters, letters and digits only. Returns the alert or null. */
+export function idValidityError(v: string): string | null {
+  if (v.length < 4 || v.length > 20) return '아이디는 4자이상 20자 이내로 입력하세요.';
+  if (!/^[A-Za-z0-9]+$/.test(v)) return '아이디는 영문/숫자만 입력 가능합니다.';
+  return null;
+}
+
+/**
+ * lecture_reg_edit.php LectureEditSubmitOk(): the alerts, in the PHP order. Returns the first message or null.
+ */
+export function editRowError(r: EnrollRow): string | null {
+  const v = (k: EnrollKey) => String(r[k] ?? '').trim();
+  if (!v('Tutor')) return '첨삭강사 아이디를 입력하세요.';
+  if (!v('Name')) return '수강생 이름을 입력하세요.';
+  if (!v('ResNo')) return '주민등록번호를 입력하세요.';
+  if (!v('Mobile')) return '휴대폰을 입력하세요.';
+  if (!v('CompanyCode')) return '사업자번호를 입력하세요.';
+  if (!v('LectureStart') || !v('LectureEnd')) return '수강 기간을 입력하세요.';
+  if (!v('SalesID')) return '영업담당자 아이디를 입력하세요.';
+  if (v('UserID')) { const e = idValidityError(v('UserID')); if (e) return e; }
+  if (v('OpenChapter') && !/^\d+$/.test(v('OpenChapter'))) return '실시회차는 숫자만 입력하세요.';
+  return null;
+}
+
 /** Header row (+ optional sample) for the template download. */
 export function buildEnrollTemplateCsv(withSample: boolean): string {
   const header = ENROLL_KEYS.map((k) => ENROLL_LABELS[k]);
@@ -54,4 +98,55 @@ export function maskResNo(v: string | null | undefined): string {
   if (!s) return '';
   const digits = s.replace(/-/g, '');
   return digits.length >= 7 ? `${digits.slice(0, 6)}-${digits.slice(6, 7)}******` : `${s.slice(0, 6)}…`;
+}
+
+// ---------------------------------------------------------------- 수강 등록하기 — one row per request (lecture_reg_complete.php)
+
+type Applied = NonNullable<EnrollImportResult['applied']>;
+/** A row as the console shows it after one row-by-row request (its own sheet line, "엑셀 N번" label). */
+const atLine = (r: EnrollImportPlanRow, line: number): EnrollImportPlanRow => ({ ...r, line, rowLabel: !r.rowLabel || /^엑셀 \d+번$/.test(r.rowLabel) ? (r.userId && !r.generatedId ? r.userId : r.name || `엑셀 ${line}번`) : r.rowLabel });
+
+/**
+ * LectureRegistSubmitOk() of the PHP page: registers the checked batch ROW BY ROW — each 'enroll' row is sent alone
+ * (POST /admin/enrollments/import, mode commit, firstLine = its sheet line) and its 상태 changes 대기 → 처리중 → 등록/오류
+ * as soon as that row's request returns, like the per-idx lecture_reg_complete.php calls. Error rows of the check are never
+ * sent (they stay 오류). A failed request marks that row 오류 and the loop continues with the next row.
+ * Returns the batch in the commit shape (summary of the check + summed `applied`).
+ */
+export async function registerRowByRow(opts: {
+  plan: EnrollImportResult;
+  rows: EnrollRow[];
+  send: (row: EnrollRow, line: number) => Promise<EnrollImportResult>;
+  onRow: (line: number, state: 'processing' | EnrollImportPlanRow) => void;
+  errorText?: (err: unknown) => string;
+}): Promise<EnrollImportResult> {
+  const { plan, rows, send, onRow } = opts;
+  const applied: Applied = { enrolled: 0, membersCreated: 0, membersUpdated: 0, termsCreated: 0, skipped: plan.summary.error + plan.summary.skip, failed: 0, studySeqs: [] };
+  const out = plan.rows.map((r) => ({ ...r }));
+  for (let i = 0; i < out.length; i++) {
+    const p = out[i]!;
+    if (p.action !== 'enroll') continue;
+    const input = rows[p.line - 1];
+    if (!input) continue;
+    onRow(p.line, 'processing');
+    let next: EnrollImportPlanRow;
+    try {
+      const res = await send(input, p.line);
+      const got = res.rows[0];
+      next = got ? atLine(got, p.line) : { ...p, action: 'error', status: 'error', errors: [...p.errors, '응답에 결과 행이 없습니다.'] };
+      const a = res.applied;
+      if (a) {
+        applied.enrolled += a.enrolled; applied.membersCreated += a.membersCreated; applied.membersUpdated += a.membersUpdated; applied.termsCreated += a.termsCreated;
+        applied.failed += a.failed; applied.studySeqs.push(...a.studySeqs);
+      }
+      // the row failed the re-check at registration time (e.g. a study created meanwhile) — counted as an error, not a skip
+      if (next.status === 'error' && !(a?.failed)) applied.failed++;
+    } catch (err) {
+      next = { ...p, action: 'error', status: 'error', errors: [...p.errors, opts.errorText ? opts.errorText(err) : '등록 요청이 실패했습니다.'] };
+      applied.failed++;
+    }
+    out[i] = next;
+    onRow(p.line, next);
+  }
+  return { mode: 'commit', summary: plan.summary, rows: out, applied };
 }

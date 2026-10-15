@@ -19,7 +19,7 @@ const EMPTY: Form = { UseYN: 'Y', EndDate: '', Title: '', ImgWidth: '', ImgHeigh
 const fromRow = (r: PopupRow): Form => ({ UseYN: r.useYN === 'N' ? 'N' : 'Y', EndDate: r.endDate ?? '', Title: r.title ?? '', ImgWidth: r.imgWidth ?? '', ImgHeight: r.imgHeight ?? '', PopupLeft: r.popupLeft ?? '', PopupTop: r.popupTop ?? '', ImgWidthMobile: r.mobile.imgWidth, ImgHeightMobile: r.mobile.imgHeight, PopupLeftMobile: r.mobile.popupLeft, PopupTopMobile: r.mobile.popupTop });
 
 /** Authenticated preview image (the API streams the file from upload/upload_popup). */
-function PopupImage({ idx, kind, width, alt }: { idx: number; kind: 'pc' | 'mobile'; width?: number; alt: string }) {
+function PopupImage({ idx, kind, width, exactWidth, alt }: { idx: number; kind: 'pc' | 'mobile'; width?: number; /** popup.php PreviewSend(): popupimg.width = ImgWidth */ exactWidth?: number; alt: string }) {
   const [url, setUrl] = useState<string | null>(null);
   const [err, setErr] = useState(false);
   useEffect(() => {
@@ -29,6 +29,7 @@ function PopupImage({ idx, kind, width, alt }: { idx: number; kind: 'pc' | 'mobi
   }, [idx, kind]);
   if (err) return <span className="muted">{tr('이미지 없음', 'No image')}</span>;
   if (!url) return <span className="muted">{adm.common.loading}</span>;
+  if (exactWidth && exactWidth > 0) return <img src={url} alt={alt} width={exactWidth} style={{ width: exactWidth, maxWidth: 'none', height: 'auto', display: 'block' }} />;
   return <img src={url} alt={alt} style={{ maxWidth: width ?? '100%', height: 'auto', border: '1px solid var(--c-line, #ddd)' }} />;
 }
 
@@ -106,7 +107,7 @@ export default function PopupsPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr auto', gap: 8, marginTop: 10, alignItems: 'end' }}>
                 <FieldRow label={tr('이미지맵 영역', 'Map area')} htmlFor="pl-area"><AInput id="pl-area" value={link.ImgArea} onChange={(e) => setLink({ ...link, ImgArea: e.target.value })} maxLength={50} placeholder="0,0,100,100" /></FieldRow>
                 <FieldRow label={tr('링크 URL', 'Link URL')} htmlFor="pl-url"><AInput id="pl-url" value={link.LinkURL} onChange={(e) => setLink({ ...link, LinkURL: e.target.value })} maxLength={100} placeholder="https://" /></FieldRow>
-                <AButton variant="primary" disabled={!canWrite || !link.LinkURL.trim()} loading={addLink.isPending} onClick={() => addLink.mutate(undefined as never)}>{tr('등록 하기', 'Add')}</AButton>
+                <AButton variant="primary" disabled={!canWrite || !link.LinkURL.trim()} loading={addLink.isPending} onClick={() => { if (window.confirm(tr('등록합니까?', 'Add this link?'))) addLink.mutate(undefined as never); }}>{tr('등록 하기', 'Add')}</AButton>
               </div>
             </Card>
           </div>
@@ -129,8 +130,19 @@ export default function PopupsPage() {
         </div>
       </DetailDrawer>
 
-      <DetailDrawer open={!!preview} onClose={() => setPreview(null)} title={preview?.title ?? ''} subtitle={preview ? `${preview.imgWidth}(W) X ${preview.imgHeight}(H)` : ''}>
-        {preview ? <PopupImage idx={preview.idx} kind="pc" alt={preview.title ?? 'popup'} /> : null}
+      {/* popup.php PreviewSend(): the image at the row's ImgWidth with the site's "오늘 하루 창 열지 않기 / 닫기" bar */}
+      <DetailDrawer open={!!preview} onClose={() => setPreview(null)} title={preview?.title ?? ''} subtitle={preview ? `${preview.imgWidth}(W) X ${preview.imgHeight}(H)` : ''} wide>
+        {preview ? (
+          <div style={{ overflow: 'auto', maxWidth: '100%' }}>
+            <div data-testid="popup-preview" style={{ display: 'inline-block', border: '1px solid var(--c-line-2, #ccc)', boxShadow: 'var(--shadow-xs, 0 1px 3px rgba(0,0,0,.15))', background: '#fff' }}>
+              <PopupImage idx={preview.idx} kind="pc" exactWidth={Number(preview.imgWidth) || undefined} alt={preview.title ?? 'popup'} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '6px 10px', background: '#222', color: '#fff', fontSize: 12 }}>
+                <span>{tr('오늘 하루 창 열지 않기', "Don't show again today")}</span>
+                <button type="button" onClick={() => setPreview(null)} style={{ background: 'transparent', border: 0, color: '#fff', cursor: 'pointer', fontSize: 12 }}>{tr('닫기', 'Close')}</button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </DetailDrawer>
       <ConfirmDialog open={!!delTarget} title={tr('팝업 삭제', 'Delete pop-up')} tone="danger" loading={del.isPending} onCancel={() => setDelTarget(null)} onConfirm={() => delTarget && del.mutate(delTarget.idx)} body={<p>{tr('선택한 팝업을 삭제하시겠습니까? 삭제된 내용은 복구되지 않습니다.', 'Delete this pop-up? This cannot be undone.')} <b>{delTarget?.title}</b></p>} />
     </AdminPage>

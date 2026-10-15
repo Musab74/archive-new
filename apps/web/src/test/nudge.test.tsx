@@ -64,17 +64,20 @@ describe('독려 관리 pages', () => {
     expect(screen.getByRole('columnheader', { name: /실시회차/ })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: /영업담당자/ })).toBeInTheDocument();
     expect(screen.getByText(/첨삭완료 : 2027-01-06/)).toBeInTheDocument();
-    const start = await screen.findByRole('radio', { name: /학습시작/ });
+    expect(await screen.findByRole('radio', { name: /학습시작/ })).toBeInTheDocument();
     expect(screen.getByText('(UA_0001)')).toBeInTheDocument();
+    expect(screen.getByText('(템플릿 없음)')).toBeInTheDocument();
     expect(screen.queryByRole('radio', { name: /교육담당자/ })).not.toBeInTheDocument(); // only when 교육담당자 여부 = Y
-    const view = screen.getByRole('button', { name: '내용보기' });
-    expect(view).toBeDisabled();
-    fireEvent.click(start);
-    expect(view).toBeEnabled();
+    // one 내용보기 per stage column, usable without picking a radio (study_sms_search_result.php StudySmsEASend(Seq, mode))
+    const view = screen.getByRole('button', { name: '학습시작 내용보기 user01' });
+    expect(screen.getByRole('button', { name: '최종독려 내용보기 user01' })).toBeEnabled();
     fireEvent.click(view);
     expect(await screen.findByDisplayValue('[에이치알디이] 학습자일님 학습을 시작하세요.')).toBeInTheDocument();
     expect(screen.getByText('010-****-3333')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '발송 하기' }));
+    expect(await screen.findByText('발송하시겠습니까?')).toBeInTheDocument();
+    expect(calls.some((c) => c.method === 'POST' && c.url.endsWith('/admin/nudge/targets/2/send'))).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: '확인' }));
     await waitFor(() => expect(calls.some((c) => c.method === 'POST' && c.url.endsWith('/admin/nudge/targets/2/send'))).toBe(true));
     const send = calls.find((c) => c.method === 'POST' && c.url.endsWith('/admin/nudge/targets/2/send'))!;
     expect(send.body).toMatchObject({ mode: 'start', sendMode: 'sms', message: '[에이치알디이] 학습자일님 학습을 시작하세요.' });
@@ -92,6 +95,7 @@ describe('독려 관리 pages', () => {
     fireEvent.click(await screen.findByRole('button', { name: '확인' }));
     await waitFor(() => expect(calls.find((c) => c.method === 'POST' && c.url.endsWith('/admin/nudge/send'))?.body).toEqual({ seqs: [2], mode: 'start', sendMode: 'sms' }));
     expect(await screen.findByText('로그만 기록')).toBeInTheDocument();
+    expect(await screen.findByText(/발송처리가 완료되었습니다/)).toBeInTheDocument();
   });
 
   it('예약문자발송: legacy columns, drawer with the message, delete checked rows', async () => {
@@ -138,7 +142,9 @@ describe('독려 관리 pages', () => {
     mount(<TemplatesPage />);
     expect(await screen.findByRole('heading', { level: 1, name: '문자/템플릿 관리' })).toBeInTheDocument();
     expect(await screen.findByText('UA_0001')).toBeInTheDocument();
-    expect(screen.getByText('#{이름}')).toBeInTheDocument();
+    expect(screen.getByText('{이름}')).toBeInTheDocument(); // smsdata.php keyword table: 키워드 | 설명 | 예
+    expect(screen.getByRole('columnheader', { name: '설명' })).toBeInTheDocument();
+    expect(screen.getByText('본문 #{이름}')).toBeInTheDocument(); // full message in the cell
     expect(screen.getByText('미연동')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '등록' }));
     await waitFor(() => expect(document.getElementById('tp-mode')).not.toBeNull());
@@ -148,6 +154,8 @@ describe('독려 관리 pages', () => {
     fireEvent.change(document.getElementById('tp-code')!, { target: { value: 'UA_9' } });
     fireEvent.change(document.getElementById('tp-msg')!, { target: { value: '최종 독려 #{이름}' } });
     fireEvent.click(screen.getAllByRole('button', { name: '등록' }).at(-1)!);
+    expect(await screen.findByText('등록하시겠습니까?')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '확인' }));
     await waitFor(() => expect(calls.find((c) => c.method === 'POST' && c.url.endsWith('/admin/nudge/templates'))?.body).toEqual({ MessageMode: 'final', TemplateCode: 'UA_9', TemplateMessage: '최종 독려 #{이름}' }));
     fireEvent.click(screen.getByRole('button', { name: '삭제' }));
     fireEvent.click(await screen.findByRole('button', { name: '확인' }));

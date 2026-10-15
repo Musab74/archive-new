@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { adminNudgeApi, type TemplateRow } from '../../../../shared/api/endpoints/admin-nudge';
 import { useSearchState } from '../../../../shared/utils/useSearchState';
@@ -9,10 +9,10 @@ import { tr } from '../../../../shared/i18n/adminLang';
 import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
 import { adm } from '../../strings';
-import { MessageBlock, clip } from './nudgeShared';
+import { MessageBlock } from './nudgeShared';
 
 const DEFAULTS = { q: '', page: 1 };
-const SIZE = 20;
+const SIZE = 30; // include_top.php $page_size
 type Form = { MessageMode: string; TemplateCode: string; TemplateMessage: string };
 const empty = (): Form => ({ MessageMode: '', TemplateCode: '', TemplateMessage: '' });
 
@@ -43,14 +43,21 @@ export default function TemplatesPage() {
     if (!f.TemplateMessage.trim()) e.TemplateMessage = tr('카카오톡 메시지를 입력하세요.', 'Enter the message.');
     setErrors(e); if (Object.keys(e).length) return;
     const body = { MessageMode: f.MessageMode.trim(), TemplateCode: f.TemplateCode.trim(), TemplateMessage: f.TemplateMessage };
-    if (editOpen === 'create') create.mutate(body); else patch.mutate(body);
+    setConfirmSave(body); // smsdata_write.php: confirm('등록하시겠습니까?') for both new and edit
   };
+  const [confirmSave, setConfirmSave] = useState<Form | null>(null);
+  const doSave = () => { if (!confirmSave) return; const body = confirmSave; setConfirmSave(null); if (editOpen === 'create') create.mutate(body); else patch.mutate(body); };
   const modes = list.data?.modes ?? [];
+  const keywordColumns: Column<{ key: string; label: string; example: string }>[] = [
+    { key: 'key', header: tr('키워드', 'Keyword'), nowrap: true, render: (v) => <b>{v.key}</b> },
+    { key: 'label', header: tr('설명', 'Meaning') },
+    { key: 'example', header: tr('예', 'Example') },
+  ];
   const columns: Column<TemplateRow>[] = [
     { key: 'no', header: tr('번호', 'No.'), align: 'right', width: 60, render: (_r, i) => firstNo - i },
     { key: 'messageMode', header: tr('모드', 'Mode'), nowrap: true, render: (r) => <><b>{r.messageMode}</b>{r.modeLabel !== r.messageMode ? <span className="muted"> ({r.modeLabel})</span> : null}</> },
     { key: 'templateCode', header: tr('템플릿코드', 'Template code'), nowrap: true, render: (r) => <span className="mono">{r.templateCode}</span> },
-    { key: 'templateMessage', header: tr('메시지', 'Message'), render: (r) => <span title={r.templateMessage ?? ''}>{clip(r.templateMessage, 90)}</span> },
+    { key: 'templateMessage', header: tr('메시지', 'Message'), render: (r) => <div style={{ whiteSpace: 'pre-wrap', textAlign: 'left', maxWidth: 360, wordBreak: 'break-word' }}>{r.templateMessage ?? ''}</div> },
     { key: 'aligoStatus', header: tr('알리고상태', 'Aligo status'), align: 'center', nowrap: true, render: (r) => r.aligoStatus ? <StatusBadge tone="ok">{r.aligoStatus}</StatusBadge> : <StatusBadge tone="neutral" title={tr('알리고 템플릿 비교는 기존 관리자 사이트에서 확인하세요.', 'Compare with Aligo on the legacy admin.')}>{tr('미연동', 'not linked')}</StatusBadge> },
     { key: 'actions', header: tr('사용 유무', 'Actions'), align: 'center', nowrap: true, render: (r) => <span style={{ display: 'inline-flex', gap: 6 }}><AButton size="xs" disabled={!canWrite} title={readOnlyTitle} onClick={(e) => { e.stopPropagation(); setSel(r); setEditOpen('edit'); }}>{tr('수정', 'Edit')}</AButton><AButton size="xs" variant="danger" disabled={!canWrite} title={readOnlyTitle} onClick={(e) => { e.stopPropagation(); setSel(r); setDelOpen(true); }}>{tr('삭제', 'Delete')}</AButton></span> },
   ];
@@ -58,7 +65,8 @@ export default function TemplatesPage() {
     <AdminPage title={tr('문자/템플릿 관리', 'SMS / Kakao templates')} lead={tr('학습참여독려 단계별 알림톡 템플릿(SendMessage)입니다. 아래 키워드를 본문에 넣으면 발송 시 수강생 정보로 치환됩니다.', 'Alimtalk templates per nudge stage (SendMessage). Keywords below are substituted per learner when sending.')}
       actions={<AButton variant="primary" disabled={!canWrite} title={readOnlyTitle} onClick={() => { setSel(null); setEditOpen('create'); }}>{tr('등록', 'New')}</AButton>}>
       <Card title={tr('아래 키워드를 사용하면 해당 메시지가 적용됩니다.', 'Keywords replaced at send time')}>
-        <DescList cols={2} items={(list.data?.variables ?? []).map((v) => [<b key={v.key}>#{v.key}</b>, `${v.label} · ${v.example}`] as [ReactNode, ReactNode])} />
+        {/* smsdata.php keyword table: 키워드 | 설명 | 예 (the sender substitutes them written as #{키워드}) */}
+        <DataTable dense rows={list.data?.variables} rowKey={(v) => v.key} columns={keywordColumns} emptyTitle={tr('키워드 없음', 'No keywords')} />
       </Card>
       <FilterBar onSubmit={() => setP({ q }, true)} onReset={() => { setQ(''); reset(); }}>
         <FilterField label={tr('메시지 검색', 'Search message')} htmlFor="tp-q" width={300}><AInput id="tp-q" value={q} onChange={(e) => setQ(e.target.value)} /></FilterField>
@@ -79,6 +87,7 @@ export default function TemplatesPage() {
         </div>
       </DetailDrawer>
 
+      <ConfirmDialog open={!!confirmSave} title={editOpen === 'create' ? tr('문자/템플릿 관리 등록', 'New template') : tr('문자/템플릿 관리 수정', 'Edit template')} body={<p>{tr('등록하시겠습니까?', 'Save this template?')}</p>} loading={create.isPending || patch.isPending} onCancel={() => setConfirmSave(null)} onConfirm={doSave} />
       <ConfirmDialog open={delOpen} title={tr('템플릿 삭제', 'Delete template')} tone="danger" loading={del.isPending} onCancel={() => setDelOpen(false)} onConfirm={() => del.mutate(undefined as never)} body={<p>{tr('현재 글을 삭제하시겠습니까? 기존 사이트와 같이 행이 바로 삭제됩니다.', 'Delete this template? The row is removed immediately, as on the legacy site.')} <b>{sel?.messageMode} · {sel?.templateCode}</b></p>} />
     </AdminPage>
   );

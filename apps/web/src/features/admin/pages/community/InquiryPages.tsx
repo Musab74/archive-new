@@ -5,7 +5,7 @@ import {
   type CheatingRow, type CounselRow, type InquiryRow,
 } from '../../../../shared/api/endpoints/admin-support-parity';
 import { useSearchState } from '../../../../shared/utils/useSearchState';
-import { AButton, ACheckbox, AdminPage, AInput, ASelect, ATextarea, Callout, Card, ConfirmDialog, DataTable, DescList, DetailDrawer, FieldRow, FilterBar, FilterField, type Column } from '../../../../shared/ui/admin';
+import { AButton, ACheckbox, AdminPage, AInput, ASelect, Callout, Card, ConfirmDialog, DataTable, DescList, DetailDrawer, FieldRow, FilterBar, FilterField, type Column } from '../../../../shared/ui/admin';
 import { isAppError } from '../../../../shared/api/client';
 import { useToast } from '../../../../app/providers/ToastProvider';
 import { useAdminSession } from '../../../../shared/auth/useAdminSession';
@@ -13,9 +13,14 @@ import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
 import { tr } from '../../../../shared/i18n/adminLang';
 import { adm } from '../../strings';
-import { nl2br, revealReasonError, rowNo, statusChecks, statusFilterOf, tooShort } from './support-parity.helpers';
+import { PHP_PAGE_SIZE, nl2br, revealReasonError, rowNo, statusChecks, statusFilterOf, toEditorHtml, tooShort } from './support-parity.helpers';
+import { SupportRichEditor } from './SupportRichEditor';
+import { SupportSubmitConfirm, useSubmitConfirm } from './SupportSubmitConfirm';
 
-const SIZE = 20;
+/** include_top.php $page_size = 30 for inquiry.php, qna.php and cheating_report.php (each page keeps its own constant). */
+const INQUIRY_SIZE = PHP_PAGE_SIZE;
+const COUNSEL_SIZE = PHP_PAGE_SIZE;
+const CHEATING_SIZE = PHP_PAGE_SIZE;
 const DONE = () => tr('처리되었습니다.', 'Done.');
 const box = { whiteSpace: 'normal' as const, fontSize: 13, lineHeight: 1.6, padding: 12, background: 'var(--c-soft)', borderRadius: 6 };
 const Html = ({ html }: { html: string | null | undefined }) => <div style={box} dangerouslySetInnerHTML={{ __html: html ?? '' }} />;
@@ -27,7 +32,7 @@ export function InquiriesPage() {
   const { canWrite, readOnlyTitle } = useWriteGate();
   const [p, setP, reset] = useSearchState({ col: 'CompanyName', q: '', page: 1 });
   const [form, setForm] = useState({ col: p.col, q: p.q });
-  const query = useMemo(() => ({ col: p.col, q: p.q || undefined, page: p.page, size: SIZE }), [p]);
+  const query = useMemo(() => ({ col: p.col, q: p.q || undefined, page: p.page, size: INQUIRY_SIZE }), [p]);
   const list = useQuery({ queryKey: ['admin', 'inquiries', query], queryFn: ({ signal }) => adminSupportParityApi.inquiries(query, signal), placeholderData: keepPreviousData });
   const total = list.data?.total ?? 0;
   const [sel, setSel] = useState<number | null>(null);
@@ -35,7 +40,7 @@ export function InquiriesPage() {
   const d = detail.data;
   const [ans, setAns] = useState<{ Status: 'A' | 'B'; Name2: string; Contents2: string }>({ Status: 'A', Name2: '', Contents2: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  useEffect(() => { if (d) setAns({ Status: d.status === 'B' ? 'B' : 'A', Name2: d.answer.name ?? '', Contents2: d.answer.contents ?? '' }); setErrors({}); }, [d]);
+  useEffect(() => { if (d) setAns({ Status: d.status === 'B' ? 'B' : 'A', Name2: d.answer.name ?? '', Contents2: toEditorHtml(d.answer.contents) }); setErrors({}); }, [d]);
   const inv = [['admin', 'inquiries'], ['admin', 'inquiry'], ['admin', 'dashboard']];
   const firstAnswer = !d?.answer.regDate;
   const save = useAdminMutation({ fn: () => adminSupportParityApi.answerInquiry(sel!, { Status: ans.Status, Contents2: ans.Contents2, ...(firstAnswer ? { Name2: ans.Name2.trim() } : {}) }), invalidate: inv, success: DONE(), onSuccess: () => setSel(null) });
@@ -45,10 +50,11 @@ export function InquiriesPage() {
     const e: Record<string, string> = {};
     if (firstAnswer && !ans.Name2.trim()) e.Name2 = tr('작성자를 입력하세요.', 'Enter the author.');
     if (tooShort(ans.Contents2)) e.Contents2 = tr('답변 내용을 15자 이상 입력해주세요', 'Enter at least 15 characters.');
-    setErrors(e); if (!Object.keys(e).length) save.mutate(undefined as never);
+    setErrors(e); if (!Object.keys(e).length) confirmSave.ask(); // inquiry_read.php SubmitOk(): confirm("등록하시겠습니까?")
   };
+  const confirmSave = useSubmitConfirm();
   const columns: Column<InquiryRow>[] = [
-    { key: 'no', header: tr('번호', 'No.'), align: 'center', width: 80, render: (_r, i) => rowNo(total, p.page, SIZE, i) },
+    { key: 'no', header: tr('번호', 'No.'), align: 'center', width: 80, render: (_r, i) => rowNo(total, p.page, INQUIRY_SIZE, i) },
     { key: 'serviceTypeLabel', header: tr('문의종류', 'Type'), width: 150, render: (r) => r.serviceTypeLabel || r.serviceType || '' },
     { key: 'companyName', header: tr('회사명', 'Company'), render: (r) => <b>{r.companyName ?? ''}</b> },
     { key: 'name', header: tr('문의자 이름', 'Name'), render: (r) => r.name ?? '' },
@@ -61,7 +67,7 @@ export function InquiriesPage() {
         <FilterField label={tr('검색 항목', 'Search in')} htmlFor="iq-col" width={140}><ASelect id="iq-col" value={form.col} onChange={(e) => setForm({ ...form, col: e.target.value })} options={[{ value: 'CompanyName', label: tr('회사명', 'Company') }, { value: 'Name', label: tr('문의자 이름', 'Name') }]} /></FilterField>
         <FilterField label={tr('검색어', 'Keyword')} htmlFor="iq-q" width={300}><AInput id="iq-q" value={form.q} onChange={(e) => setForm({ ...form, q: e.target.value })} /></FilterField>
       </FilterBar>
-      <DataTable columns={columns} rows={list.data?.items} rowKey={(r) => r.idx} loading={list.isPending || list.isFetching} error={list.error} onRetry={() => void list.refetch()} page={p.page} size={SIZE} total={total} onPageChange={(x) => setP({ page: x })} onRowClick={(r) => setSel(r.idx)} selectedKey={sel} emptyTitle={tr('등록된 내용이 없습니다.', 'Nothing registered.')} dense />
+      <DataTable columns={columns} rows={list.data?.items} rowKey={(r) => r.idx} loading={list.isPending || list.isFetching} error={list.error} onRetry={() => void list.refetch()} page={p.page} size={INQUIRY_SIZE} total={total} onPageChange={(x) => setP({ page: x })} onRowClick={(r) => setSel(r.idx)} selectedKey={sel} emptyTitle={tr('등록된 내용이 없습니다.', 'Nothing registered.')} dense />
       <DetailDrawer open={sel !== null} onClose={() => setSel(null)} title={tr('수강신청관리', 'Enrolment request')} subtitle={d ? `${d.companyName ?? ''} · ${d.name ?? ''}` : ''} wide
         footer={<><AButton variant="danger" disabled={!canWrite || !d} title={readOnlyTitle} onClick={() => setDelOpen(true)}>{tr('삭 제', 'Delete')}</AButton><AButton variant="primary" disabled={!canWrite || !d} title={readOnlyTitle} loading={save.isPending} onClick={submit}>{tr('답변 하기', 'Save answer')}</AButton><AButton onClick={() => setSel(null)}>{tr('목록', 'List')}</AButton></>}>
         {d ? (
@@ -76,12 +82,13 @@ export function InquiriesPage() {
                 <FieldRow label={tr('처리 상태', 'Status')} htmlFor="iq-status"><ASelect id="iq-status" value={ans.Status} onChange={(e) => setAns({ ...ans, Status: e.target.value as 'A' | 'B' })} options={d.statuses.length ? d.statuses : statusOptions} disabled={!canWrite} style={{ width: 120 }} /></FieldRow>
                 <FieldRow label={tr('작성자', 'Author')} htmlFor="iq-name2" required={firstAnswer} error={errors.Name2}>{firstAnswer ? <AInput id="iq-name2" value={ans.Name2} onChange={(e) => setAns({ ...ans, Name2: e.target.value })} maxLength={50} style={{ width: 240 }} disabled={!canWrite} /> : <span>{d.answer.name}</span>}</FieldRow>
                 <DescList cols={2} items={[[tr('답변등록 일시', 'Answered'), d.answer.regDate || '-'], [tr('답변수정 일시', 'Edited'), d.answer.mdfDate || '-']]} />
-                <FieldRow label={tr('답변 내용', 'Answer')} htmlFor="iq-answer" required error={errors.Contents2}><ATextarea id="iq-answer" rows={10} value={ans.Contents2} onChange={(e) => setAns({ ...ans, Contents2: e.target.value })} disabled={!canWrite} /></FieldRow>
+                <FieldRow label={tr('답변 내용', 'Answer')} htmlFor="iq-answer" required error={errors.Contents2}><SupportRichEditor id="iq-answer" ariaLabel={tr('답변 내용', 'Answer')} height={320} value={ans.Contents2} onChange={(html) => setAns((x) => ({ ...x, Contents2: html }))} disabled={!canWrite} invalid={!!errors.Contents2} /></FieldRow>
               </div>
             </Section>
           </div>
         ) : detail.isError ? <p className="muted">{adm.common.failed}</p> : <p className="muted">{adm.common.loading}</p>}
       </DetailDrawer>
+      <SupportSubmitConfirm open={confirmSave.open} loading={save.isPending} onCancel={confirmSave.close} onConfirm={() => save.mutate(undefined as never, { onSettled: confirmSave.close })} />
       <ConfirmDialog open={delOpen} title={tr('문의 삭제', 'Delete request')} body={tr('현재 글을 삭제하시겠습니까?', 'Delete this post?')} tone="danger" confirmLabel={tr('삭 제', 'Delete')} loading={remove.isPending} onCancel={() => setDelOpen(false)} onConfirm={() => remove.mutate(undefined as never)} />
     </AdminPage>
   );
@@ -96,13 +103,14 @@ export function CounselPage() {
   const [p, setP, reset] = useSearchState({ status: '', category: '', col: 'Title', q: '', page: 1 });
   const [form, setForm] = useState({ status: p.status, category: p.category, col: p.col, q: p.q });
   const checks = statusChecks(form.status);
-  const query = useMemo(() => ({ status: p.status || undefined, category: p.category || undefined, col: p.col, q: p.q || undefined, page: p.page, size: SIZE }), [p]);
+  const query = useMemo(() => ({ status: p.status || undefined, category: p.category || undefined, col: p.col, q: p.q || undefined, page: p.page, size: COUNSEL_SIZE }), [p]);
   const list = useQuery({ queryKey: ['admin', 'counsel', query], queryFn: ({ signal }) => adminSupportParityApi.counsel(query, signal), placeholderData: keepPreviousData });
   const meta = useQuery({ queryKey: ['admin', 'counsel', 'meta'], queryFn: ({ signal }) => adminSupportParityApi.counselMeta(signal) });
   const categories = meta.data?.categories ?? COUNSEL_CATEGORIES;
   const total = list.data?.total ?? 0;
 
-  const [sel, setSel] = useState<number | null>(null);
+  // ?open=<idx> (수강생 상세 / 학습내역 → 1:1 상담문의에서 답변하기) opens that question straight away, like qna_read.php?idx=.
+  const [sel, setSel] = useState<number | null>(() => Number(new URLSearchParams(window.location.search).get('open')) || null);
   const detail = useQuery({ queryKey: ['admin', 'counsel-detail', sel], queryFn: ({ signal }) => adminSupportParityApi.counselDetail(sel!, signal), enabled: sel !== null });
   const d = detail.data;
   const [ans, setAns] = useState<{ Status: 'A' | 'B'; Name2: string; Contents2: string }>({ Status: 'A', Name2: '', Contents2: '' });
@@ -110,7 +118,7 @@ export function CounselPage() {
   const [clear, setClear] = useState<number[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [revealed, setRevealed] = useState<Partial<Record<'Mobile' | 'Email', string>>>({});
-  useEffect(() => { if (d) setAns({ Status: d.status === 'B' ? 'B' : 'A', Name2: d.name2 ?? '', Contents2: d.contents2 ?? '' }); setFiles({}); setClear([]); setErrors({}); }, [d]);
+  useEffect(() => { if (d) setAns({ Status: d.status === 'B' ? 'B' : 'A', Name2: d.name2 ?? '', Contents2: toEditorHtml(d.contents2) }); setFiles({}); setClear([]); setErrors({}); }, [d]);
   useEffect(() => { setRevealed({}); }, [sel]);
   const inv = [['admin', 'counsel'], ['admin', 'counsel-detail'], ['admin', 'dashboard']];
 
@@ -130,8 +138,9 @@ export function CounselPage() {
     const e: Record<string, string> = {};
     if (!ans.Name2.trim()) e.Name2 = tr('작성자를 입력하세요.', 'Enter the author.');
     if (tooShort(ans.Contents2)) e.Contents2 = tr('답변 내용을 15자 이상 입력해주세요', 'Enter at least 15 characters.');
-    setErrors(e); if (!Object.keys(e).length) save.mutate(undefined as never);
+    setErrors(e); if (!Object.keys(e).length) confirmSave.ask(); // qna_read.php SubmitOk(): confirm("등록하시겠습니까?")
   };
+  const confirmSave = useSubmitConfirm();
 
   // 개인정보 열람사유 (Information_protection_regist2.php)
   const [reveal, setReveal] = useState<'Mobile' | 'Email' | null>(null);
@@ -144,11 +153,11 @@ export function CounselPage() {
   const maskedLink = (field: 'Mobile' | 'Email', masked: string | null | undefined, has: boolean) => revealed[field] ?? (has ? <AButton variant="link" size="sm" onClick={() => { setGubun(REVEAL_GUBUN[0]!); setReveal(field); }} title={tr('열람 사유를 남기고 전체 값을 봅니다', 'Log a reason to view the full value')}>{masked}</AButton> : null);
 
   const download = async (slot: number | 'student', name: string) => { try { await adminSupportParityApi.downloadCounselFile(sel!, slot, name); } catch (e) { toast(isAppError(e) ? e.message : adm.common.failed, { tone: 'danger' }); } };
-  const exportCsv = async () => { try { await adminSupportParityApi.downloadCounselCsv({ status: p.status || undefined, category: p.category || undefined, col: p.col, q: p.q || undefined }); } catch (e) { toast(isAppError(e) ? e.message : adm.common.failed, { tone: 'danger' }); } };
+  const exportXlsx = async () => { try { await adminSupportParityApi.downloadCounselXlsx({ status: p.status || undefined, category: p.category || undefined, col: p.col, q: p.q || undefined }); } catch (e) { toast(isAppError(e) ? e.message : adm.common.failed, { tone: 'danger' }); } };
 
   const wait = (r: CounselRow) => (r.status === 'A' ? { color: '#ff9700', fontWeight: 700 } : undefined);
   const columns: Column<CounselRow>[] = [
-    { key: 'no', header: tr('번호', 'No.'), align: 'center', width: 70, render: (r, i) => <span style={wait(r)}>{rowNo(total, p.page, SIZE, i)}</span> },
+    { key: 'no', header: tr('번호', 'No.'), align: 'center', width: 70, render: (r, i) => <span style={wait(r)}>{rowNo(total, p.page, COUNSEL_SIZE, i)}</span> },
     { key: 'categoryLabel', header: tr('문의종류', 'Type'), width: 140, render: (r) => <span style={wait(r)}>{r.categoryLabel}</span> },
     { key: 'id', header: 'ID', width: 120, render: (r) => <span style={wait(r)}>{r.id ?? ''}</span> },
     { key: 'name', header: tr('이름', 'Name'), width: 100, render: (r) => <span style={wait(r)}>{r.name ?? ''}</span> },
@@ -159,7 +168,7 @@ export function CounselPage() {
   ];
   const uploadOk = d?.uploadEnabled ?? meta.data?.uploadEnabled ?? true;
   return (
-    <AdminPage title={tr('1:1 상담문의 / 학습상담', '1:1 questions')} actions={<AButton icon="download" onClick={() => void exportCsv()}>{tr('검색항목 엑셀 출력', 'Export (CSV)')}</AButton>}>
+    <AdminPage title={tr('1:1 상담문의 / 학습상담', '1:1 questions')} actions={<AButton icon="download" onClick={() => void exportXlsx()}>{tr('검색항목 엑셀 출력', 'Export (Excel)')}</AButton>}>
       <FilterBar onSubmit={() => setP(form, true)} onReset={() => { setForm({ status: '', category: '', col: 'Title', q: '' }); reset(); }}>
         <FilterField label={tr('처리상태', 'Status')} width={240}>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', minHeight: 40 }}>
@@ -172,7 +181,7 @@ export function CounselPage() {
         <FilterField label={tr('검색 항목', 'Search in')} htmlFor="cs-col" width={110}><ASelect id="cs-col" value={form.col} onChange={(e) => setForm({ ...form, col: e.target.value })} options={[{ value: 'Title', label: tr('제목', 'Title') }, { value: 'Contents', label: tr('내용', 'Content') }, { value: 'ID', label: 'ID' }, { value: 'Name', label: tr('이름', 'Name') }]} /></FilterField>
         <FilterField label={tr('검색어', 'Keyword')} htmlFor="cs-q" width={260}><AInput id="cs-q" value={form.q} onChange={(e) => setForm({ ...form, q: e.target.value })} /></FilterField>
       </FilterBar>
-      <DataTable columns={columns} rows={list.data?.items} rowKey={(r) => r.idx} loading={list.isPending || list.isFetching} error={list.error} onRetry={() => void list.refetch()} page={p.page} size={SIZE} total={total} onPageChange={(x) => setP({ page: x })} onRowClick={(r) => setSel(r.idx)} selectedKey={sel} emptyTitle={tr('등록된 내용이 없습니다.', 'Nothing registered.')} dense />
+      <DataTable columns={columns} rows={list.data?.items} rowKey={(r) => r.idx} loading={list.isPending || list.isFetching} error={list.error} onRetry={() => void list.refetch()} page={p.page} size={COUNSEL_SIZE} total={total} onPageChange={(x) => setP({ page: x })} onRowClick={(r) => setSel(r.idx)} selectedKey={sel} emptyTitle={tr('등록된 내용이 없습니다.', 'Nothing registered.')} dense />
 
       <DetailDrawer open={sel !== null} onClose={() => setSel(null)} title={tr('1:1 상담문의 / 학습상담', '1:1 question')} subtitle={d ? `${d.categoryLabel} · ${d.id ?? ''}` : ''} wide
         footer={<><AButton variant="danger" disabled={!canWrite || !d} title={readOnlyTitle} onClick={() => setDelOpen(true)}>{tr('삭 제', 'Delete')}</AButton><AButton variant="primary" disabled={!canWrite || !d} title={readOnlyTitle} loading={save.isPending} onClick={submit}>{tr('답변 하기', 'Save answer')}</AButton><AButton onClick={() => setSel(null)}>{tr('목록', 'List')}</AButton></>}>
@@ -203,12 +212,13 @@ export function CounselPage() {
                     </FieldRow>
                   );
                 })}
-                <FieldRow label={tr('답변 내용', 'Answer')} htmlFor="cs-answer" required error={errors.Contents2} help={tr('HTML 사용 가능(기존 에디터 내용 그대로 저장), 15자 이상', 'HTML allowed, 15+ characters')}><ATextarea id="cs-answer" rows={10} value={ans.Contents2} onChange={(e) => setAns({ ...ans, Contents2: e.target.value })} disabled={!canWrite} /></FieldRow>
+                <FieldRow label={tr('답변 내용', 'Answer')} htmlFor="cs-answer" required error={errors.Contents2} help={tr('Editor / HTML / TEXT 모드(기존 스마트에디터와 같음), 15자 이상', 'Editor / HTML / TEXT modes (as SmartEditor), 15+ characters')}><SupportRichEditor id="cs-answer" ariaLabel={tr('답변 내용', 'Answer')} height={320} value={ans.Contents2} onChange={(html) => setAns((x) => ({ ...x, Contents2: html }))} disabled={!canWrite} invalid={!!errors.Contents2} /></FieldRow>
               </div>
             </Section>
           </div>
         ) : detail.isError ? <p className="muted">{adm.common.failed}</p> : <p className="muted">{adm.common.loading}</p>}
       </DetailDrawer>
+      <SupportSubmitConfirm open={confirmSave.open} loading={save.isPending} onCancel={confirmSave.close} onConfirm={() => save.mutate(undefined as never, { onSettled: confirmSave.close })} />
       <ConfirmDialog open={delOpen} title={tr('문의 삭제', 'Delete question')} body={tr('현재 글을 삭제하시겠습니까?', 'Delete this post?')} tone="danger" confirmLabel={tr('삭 제', 'Delete')} loading={remove.isPending} onCancel={() => setDelOpen(false)} onConfirm={() => remove.mutate(undefined as never)} />
       <ConfirmDialog open={!!reveal} title={tr('개인정보 열람사유 작성', 'Reason for viewing personal data')} tone="info" confirmLabel={tr('등록 하기', 'Submit')} reason reasonRequired reasonLabel={tr('사유', 'Reason')} reasonPlaceholder={tr('한글, 영문, 숫자, 공백만 입력 가능합니다.', 'Letters, digits and spaces only.')} loading={doReveal.isPending} onCancel={() => setReveal(null)} onConfirm={confirmReveal}
         body={<div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -224,7 +234,7 @@ export function CheatingPage() {
   const { canWrite, readOnlyTitle } = useWriteGate();
   const [p, setP, reset] = useSearchState({ col: 'Title', q: '', page: 1 });
   const [form, setForm] = useState({ col: p.col, q: p.q });
-  const query = useMemo(() => ({ col: p.col, q: p.q || undefined, page: p.page, size: SIZE }), [p]);
+  const query = useMemo(() => ({ col: p.col, q: p.q || undefined, page: p.page, size: CHEATING_SIZE }), [p]);
   const list = useQuery({ queryKey: ['admin', 'cheating', query], queryFn: ({ signal }) => adminSupportParityApi.cheating(query, signal), placeholderData: keepPreviousData });
   const total = list.data?.total ?? 0;
   const [sel, setSel] = useState<number | null>(null);
@@ -237,9 +247,11 @@ export function CheatingPage() {
   const save = useAdminMutation({ fn: () => adminSupportParityApi.setCheatingStatus(sel!, { Status: st.Status, Name2: st.Name2.trim() }), invalidate: inv, success: DONE(), onSuccess: () => setSel(null) });
   const [delOpen, setDelOpen] = useState(false);
   const remove = useAdminMutation({ fn: () => adminSupportParityApi.deleteCheating(sel!), invalidate: inv, success: DONE(), onSuccess: () => { setDelOpen(false); setSel(null); } });
-  const submit = () => { if (!st.Name2.trim()) { setErr(tr('작성자를 입력하세요.', 'Enter the author.')); return; } save.mutate(undefined as never); };
+  const confirmSave = useSubmitConfirm();
+  /** cheating_report_read.php SubmitOk(): 작성자 required, then confirm("등록하시겠습니까?"). */
+  const submit = () => { if (!st.Name2.trim()) { setErr(tr('작성자를 입력하세요.', 'Enter the author.')); return; } setErr(''); confirmSave.ask(); };
   const columns: Column<CheatingRow>[] = [
-    { key: 'no', header: tr('번호', 'No.'), align: 'center', width: 80, render: (_r, i) => rowNo(total, p.page, SIZE, i) },
+    { key: 'no', header: tr('번호', 'No.'), align: 'center', width: 80, render: (_r, i) => rowNo(total, p.page, CHEATING_SIZE, i) },
     { key: 'categoryLabel', header: tr('문의종류', 'Type'), width: 150, render: (r) => r.categoryLabel },
     { key: 'name', header: tr('이름', 'Name'), width: 150, render: (r) => r.name ?? '' },
     { key: 'title', header: tr('제목', 'Title'), render: (r) => <b>{r.title ?? ''}</b> },
@@ -253,7 +265,7 @@ export function CheatingPage() {
         <FilterField label={tr('검색 항목', 'Search in')} htmlFor="ch-col" width={120}><ASelect id="ch-col" value={form.col} onChange={(e) => setForm({ ...form, col: e.target.value })} options={[{ value: 'Title', label: tr('제목', 'Title') }, { value: 'Contents', label: tr('내용', 'Content') }]} /></FilterField>
         <FilterField label={tr('검색어', 'Keyword')} htmlFor="ch-q" width={300}><AInput id="ch-q" value={form.q} onChange={(e) => setForm({ ...form, q: e.target.value })} /></FilterField>
       </FilterBar>
-      <DataTable columns={columns} rows={list.data?.items} rowKey={(r) => r.idx} loading={list.isPending || list.isFetching} error={list.error} onRetry={() => void list.refetch()} page={p.page} size={SIZE} total={total} onPageChange={(x) => setP({ page: x })} onRowClick={(r) => setSel(r.idx)} selectedKey={sel} emptyTitle={tr('등록된 내용이 없습니다.', 'Nothing registered.')} dense />
+      <DataTable columns={columns} rows={list.data?.items} rowKey={(r) => r.idx} loading={list.isPending || list.isFetching} error={list.error} onRetry={() => void list.refetch()} page={p.page} size={CHEATING_SIZE} total={total} onPageChange={(x) => setP({ page: x })} onRowClick={(r) => setSel(r.idx)} selectedKey={sel} emptyTitle={tr('등록된 내용이 없습니다.', 'Nothing registered.')} dense />
       <DetailDrawer open={sel !== null} onClose={() => setSel(null)} title={tr('부정제보', 'Misconduct report')} subtitle={d?.regDate ?? ''} wide
         footer={<><AButton variant="danger" disabled={!canWrite || !d} title={readOnlyTitle} onClick={() => setDelOpen(true)}>{tr('삭 제', 'Delete')}</AButton><AButton variant="primary" disabled={!canWrite || !d} title={readOnlyTitle} loading={save.isPending} onClick={submit}>{tr('상태 변경', 'Change status')}</AButton><AButton onClick={() => setSel(null)}>{tr('목록', 'List')}</AButton></>}>
         {d ? (
@@ -274,6 +286,7 @@ export function CheatingPage() {
           </div>
         ) : detail.isError ? <p className="muted">{adm.common.failed}</p> : <p className="muted">{adm.common.loading}</p>}
       </DetailDrawer>
+      <SupportSubmitConfirm open={confirmSave.open} loading={save.isPending} onCancel={confirmSave.close} onConfirm={() => save.mutate(undefined as never, { onSettled: confirmSave.close })} />
       <ConfirmDialog open={delOpen} title={tr('제보 삭제', 'Delete report')} body={tr('현재 글을 삭제하시겠습니까?', 'Delete this post?')} tone="danger" confirmLabel={tr('삭 제', 'Delete')} loading={remove.isPending} onCancel={() => setDelOpen(false)} onConfirm={() => remove.mutate(undefined as never)} />
     </AdminPage>
   );

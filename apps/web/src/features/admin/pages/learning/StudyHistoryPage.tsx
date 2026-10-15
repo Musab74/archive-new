@@ -6,10 +6,12 @@ import { AButton, AdminPage, AInput, ASelect, DataTable, FilterBar, FilterField,
 import { useAdminSession } from '../../../../shared/auth/useAdminSession';
 import { tr } from '../../../../shared/i18n/adminLang';
 import { adm } from '../../strings';
-import { MemberLink, PendingHint, SERVICE_TYPE_OPTIONS, StudyLink, TERM_PARAM_DEFAULTS, TermSearchFields, YN_OPTIONS, termFromParams, termQuery, termToParams, useCsvDownload, useLearningOptions } from './learningShared';
+import { EXPORT_CONFIRM, MemberLink, PendingHint, SERVICE_TYPE_OPTIONS, StudyLink, TERM_PARAM_DEFAULTS, TermSearchFields, YN_OPTIONS, progressValidationError, termFromParams, termQuery, termToParams, termValidationError, useCsvDownload, useLearningOptions, type TermForm } from './learningShared';
+import { SearchableSelect } from './learningPickers';
+import { useToast } from '../../../../app/providers/ToastProvider';
 
 const DEFAULTS = { ...TERM_PARAM_DEFAULTS, openChapter: '', serviceType: '', id: '', salesId: '', progress1: '', progress2: '', tutorStatus: '', lectureCode: '', eduManager: '', tutor: '', passOk: '', certCount: '', size: 30, page: 1, go: 0 };
-const SIZES = [10, 30, 50, 70, 100].map((n) => ({ value: String(n), label: tr(`${n}개`, `${n} rows`) }));
+const SIZES = [10, 30, 50, 70, 100, 120, 150, 200].map((n) => ({ value: String(n), label: tr(`${n}개`, `${n} rows`) }));
 
 /** study2.php — 학습내역관리 (B5): learner × content rows with stored progress / study seconds. */
 export default function StudyHistoryPage() {
@@ -23,7 +25,13 @@ export default function StudyHistoryPage() {
   const query = useMemo(() => ({ ...filters, page: p.page, size: p.size }), [filters, p.page, p.size]);
   const list = useQuery({ queryKey: ['admin', 'learning', 'history', query], queryFn: ({ signal }) => adminLearningApi.history(query, signal), placeholderData: keepPreviousData, enabled: p.go === 1 });
   const total = list.data?.total ?? 0; const firstNo = total - (p.page - 1) * p.size;
-  const submit = () => setP({ ...termToParams(term), ...form, size: Number(form.size) || 30, go: 1 }, true);
+  const { toast } = useToast();
+  /** function.js Study2Search(): 사업주명 required in 사업주 검색, 진도율 both digits or both empty. */
+  const validate = (t: TermForm) => { const err = termValidationError(t) ?? progressValidationError(form.progress1, form.progress2); if (err) toast(err, { tone: 'danger' }); return !err; };
+  const submit = (t: TermForm = term) => { if (!validate(t)) return; setP({ ...termToParams(t), ...form, size: Number(form.size) || 30, go: 1 }, true); };
+  /** Picking a 기간 / 사업주 searches at once (SubmitFunction=Study2Search(1)). */
+  const commit = (t: TermForm) => { setTerm(t); if (t.searchGubun === 'A' || t.companyName) submit(t); };
+  const exportCsv = () => { if (!list.data || total === 0) { toast(tr('검색된 학습현황이 없습니다.', 'Nothing to export.'), { tone: 'danger' }); return; } if (!EXPORT_CONFIRM()) return; void download(() => adminLearningApi.downloadHistoryCsv(filters)); };
   const courseOptions = useMemo(() => [{ value: '', label: tr('-- 과정 전체 --', '-- all courses --') }, ...(options.data?.packageCourses ?? []).map((c) => ({ value: c.lectureCode, label: `${c.name} | ${c.lectureCode}` }))], [options.data]);
   const tutorOptions = useMemo(() => [{ value: '', label: adm.common.all }, ...(options.data?.tutors ?? []).map((t) => ({ value: t.id, label: `${t.name} | ${t.id}` }))], [options.data]);
 
@@ -40,16 +48,16 @@ export default function StudyHistoryPage() {
   ];
   return (
     <AdminPage title={tr('학습내역관리', 'Study history')} lead={tr('아카이브 패키지/비패키지 과정 세부 수강 데이터를 확인합니다. 수강시간 = 저장된 Progress.StudyTime 합계.', 'Per-learner, per-content study records. Study time = stored Progress.StudyTime sum.')}>
-      <FilterBar onSubmit={submit} onReset={() => { setTerm(termFromParams(DEFAULTS)); setForm({ openChapter: '', serviceType: '', id: '', salesId: '', progress1: '', progress2: '', tutorStatus: '', lectureCode: '', eduManager: '', tutor: '', passOk: '', certCount: '', size: '30' }); reset(); }}
-        extra={<AButton onClick={() => void download(() => adminLearningApi.downloadHistoryCsv(filters))} loading={exporting} disabled={!list.data || total === 0}>{tr('검색 결과 엑셀(CSV) 출력', 'Export CSV')}</AButton>}>
-        <TermSearchFields value={term} onChange={setTerm} options={options.data} idPrefix="sh" />
+      <FilterBar onSubmit={() => submit()} onReset={() => { setTerm(termFromParams(DEFAULTS)); setForm({ openChapter: '', serviceType: '', id: '', salesId: '', progress1: '', progress2: '', tutorStatus: '', lectureCode: '', eduManager: '', tutor: '', passOk: '', certCount: '', size: '30' }); reset(); }}
+        extra={<AButton onClick={exportCsv} loading={exporting} disabled={!list.data || total === 0}>{tr('검색 결과 엑셀(CSV) 출력', 'Export CSV')}</AButton>}>
+        <TermSearchFields value={term} onChange={setTerm} onCommit={commit} options={options.data} idPrefix="sh" />
         <FilterField label={tr('실시회차', 'Round')} htmlFor="sh-oc" width={100}><AInput id="sh-oc" value={form.openChapter} inputMode="numeric" onChange={(e) => setForm({ ...form, openChapter: e.target.value.replace(/\D/g, '') })} /></FilterField>
         <FilterField label={tr('개설용도', 'Purpose')} htmlFor="sh-st" width={150}><ASelect id="sh-st" value={form.serviceType} onChange={(e) => setForm({ ...form, serviceType: e.target.value })} options={SERVICE_TYPE_OPTIONS} /></FilterField>
         <FilterField label={tr('이름, ID', 'Name / ID')} htmlFor="sh-id" width={150}><AInput id="sh-id" value={form.id} onChange={(e) => setForm({ ...form, id: e.target.value })} /></FilterField>
         <FilterField label={tr('영업자 이름, ID', 'Sales rep')} htmlFor="sh-sales" width={150}><AInput id="sh-sales" value={form.salesId} onChange={(e) => setForm({ ...form, salesId: e.target.value })} /></FilterField>
         <FilterField label={tr('진도율 (%)', 'Progress (%)')} width={180}><div style={{ display: 'flex', gap: 6, alignItems: 'center' }}><AInput aria-label={tr('진도율 시작', 'Progress from')} value={form.progress1} inputMode="numeric" style={{ width: 64 }} onChange={(e) => setForm({ ...form, progress1: e.target.value.replace(/\D/g, '') })} /> ~ <AInput aria-label={tr('진도율 끝', 'Progress to')} value={form.progress2} inputMode="numeric" style={{ width: 64 }} onChange={(e) => setForm({ ...form, progress2: e.target.value.replace(/\D/g, '') })} /></div></FilterField>
         <FilterField label={tr('첨삭정렬', 'Tutoring')} htmlFor="sh-ts" width={150}><ASelect id="sh-ts" value={form.tutorStatus} onChange={(e) => setForm({ ...form, tutorStatus: e.target.value })} options={[{ value: '', label: adm.common.all }, { value: 'N', label: tr('미첨삭만 보기', 'Not yet closed') }]} /></FilterField>
-        <FilterField label={tr('과정명', 'Course')} htmlFor="sh-lc" width={300}><ASelect id="sh-lc" value={form.lectureCode} onChange={(e) => setForm({ ...form, lectureCode: e.target.value })} options={courseOptions} loading={options.isPending} /></FilterField>
+        <FilterField label={tr('과정명', 'Course')} htmlFor="sh-lc" width={300}><SearchableSelect id="sh-lc" value={form.lectureCode} onChange={(v) => setForm({ ...form, lectureCode: v })} options={courseOptions} loading={options.isPending} /></FilterField>
         <FilterField label={tr('교육담당자 여부', 'Training manager')} htmlFor="sh-em" width={140}><ASelect id="sh-em" value={form.eduManager} onChange={(e) => setForm({ ...form, eduManager: e.target.value })} options={[{ value: '', label: adm.common.all }, { value: 'Y', label: tr('교육담당자', 'Manager') }, { value: 'N', label: tr('일반회원', 'Member') }]} /></FilterField>
         {admin?.dept === 'A' || admin?.dept === 'B' ? <FilterField label={tr('교강사', 'Tutor')} htmlFor="sh-tutor" width={160}><ASelect id="sh-tutor" value={form.tutor} onChange={(e) => setForm({ ...form, tutor: e.target.value })} options={tutorOptions} /></FilterField> : null}
         <FilterField label={tr('수료여부', 'Passed')} htmlFor="sh-po" width={130}><ASelect id="sh-po" value={form.passOk} onChange={(e) => setForm({ ...form, passOk: e.target.value })} options={[{ value: '', label: adm.common.all }, { value: 'Y', label: tr('수료', 'Passed') }, { value: 'N', label: tr('미수료', 'Not passed') }]} /></FilterField>

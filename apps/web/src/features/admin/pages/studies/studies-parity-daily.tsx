@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { adminStudiesParityApi, type DailyTimeRow } from '../../../../shared/api/endpoints/admin-studies-parity';
 import { useSearchState } from '../../../../shared/utils/useSearchState';
-import { AButton, AInput, ASelect, Callout, DataTable, DateField, FilterBar, FilterField, StatusBadge, toIsoDate, type Column } from '../../../../shared/ui/admin';
+import { AButton, AInput, ASelect, Callout, ConfirmDialog, DataTable, DateField, FilterBar, FilterField, StatusBadge, toIsoDate, type Column } from '../../../../shared/ui/admin';
 import { tr } from '../../../../shared/i18n/adminLang';
 import { PendingHint, useCsvDownload } from '../learning/learningShared';
+import { CompanyPicker } from './studies-pickers';
+import { DAILY_EXCEL_CONFIRM } from './studies-shared';
 
 /** hrd_manager study_time.php + study_time_search_result.php + study_time_search_excel.php — 일자별 학습시간 관리 (B3). */
 
@@ -13,29 +15,6 @@ const DEFAULTS = { from: '', to: '', companyCode: '', companyName: '', status: '
 const STATUS = [{ value: 'all', label: tr('전체', 'All') }, { value: 'ge8', label: tr('8시간 이상', '≥ 8 h') }, { value: 'over', label: tr('8시간 초과', '> 8 h') }, { value: 'cap', label: tr('8시간 도달', '= 8 h') }, { value: 'ok', label: tr('정상', 'Normal') }];
 const MIN_SEC = [{ value: '0', label: tr('전체', 'All') }, { value: '3600', label: tr('1시간 이상', '≥ 1 h') }, { value: '14400', label: tr('4시간 이상', '≥ 4 h') }, { value: '21600', label: tr('6시간 이상', '≥ 6 h') }, { value: '28800', label: tr('8시간 이상', '≥ 8 h') }];
 const SIZE = 30;
-
-/** study_company_search_autocomplete.php — pick a company (typing clears the code; the search needs a picked code). */
-function CompanyPicker({ id, name, code, onPick }: { id: string; name: string; code: string; onPick: (v: { name: string; code: string }) => void }) {
-  const [q, setQ] = useState(name); const [open, setOpen] = useState(false); const [debounced, setDebounced] = useState('');
-  const box = useRef<HTMLDivElement>(null);
-  useEffect(() => { setQ(name); }, [name]);
-  useEffect(() => { const t = setTimeout(() => setDebounced(q.trim()), 250); return () => clearTimeout(t); }, [q]);
-  useEffect(() => { const h = (e: MouseEvent) => { if (box.current && !box.current.contains(e.target as Node)) setOpen(false); }; document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h); }, []);
-  const sug = useQuery({ queryKey: ['admin', 'studies', 'companies', debounced], queryFn: ({ signal }) => adminStudiesParityApi.companies(debounced, signal), enabled: open && debounced.length > 0 && debounced !== name, staleTime: 60_000 });
-  return (
-    <div ref={box} style={{ position: 'relative' }}>
-      <AInput id={id} value={q} autoComplete="off" placeholder={tr('사업주명 검색 후 선택', 'Search and pick a company')} title={code ? `${tr('사업주 코드', 'Company code')}: ${code}` : undefined}
-        onChange={(e) => { setQ(e.target.value); setOpen(true); onPick({ name: e.target.value, code: '' }); }} onFocus={() => setOpen(true)} />
-      {open && debounced && sug.data ? (
-        <ul role="listbox" style={{ position: 'absolute', zIndex: 20, left: 0, right: 0, top: '100%', margin: 0, padding: 4, listStyle: 'none', background: 'var(--c-paper, #fff)', border: '1px solid var(--c-line, #ddd)', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.12)', maxHeight: 260, overflow: 'auto' }}>
-          {sug.data.items.length ? sug.data.items.map((c, i) => (
-            <li key={c.companyCode}><button type="button" role="option" aria-selected={c.companyCode === code} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '6px 8px', background: 'none', border: 0, cursor: 'pointer', font: 'inherit' }} onClick={() => { onPick({ name: c.companyName ?? c.companyCode, code: c.companyCode }); setQ(c.companyName ?? c.companyCode); setOpen(false); }}>{i + 1}. {c.companyName} <span className="muted mono" style={{ fontSize: 12 }}>{c.companyCode}</span></button></li>
-          )) : <li className="muted" style={{ padding: '6px 8px' }}>{tr('검색 결과가 없습니다.', 'No match.')}</li>}
-        </ul>
-      ) : null}
-    </div>
-  );
-}
 
 /** hrde_daily_study_sort_th(): click toggles asc/desc, first click direction per column. */
 function SortTh({ label, col, order, prefer, onSort }: { label: ReactNode; col: string; order: string; prefer: 'asc' | 'desc'; onSort: (o: string) => void }) {
@@ -55,11 +34,22 @@ export function StudyTimePage() {
   const q = useQuery({ queryKey: ['admin', 'studies', 'daily-time', filters, p.page], queryFn: ({ signal }) => adminStudiesParityApi.dailyTime({ ...filters, page: p.page }, signal), placeholderData: keepPreviousData, enabled: p.go === 1 && !!p.from && !!p.companyCode });
   const d = q.data;
   const firstNo = (d?.total ?? 0) - (p.page - 1) * SIZE;
-  const submit = () => {
-    if (!form.from || !form.to) { setErr(tr('학습날짜를 선택하세요.', 'Choose the study dates.')); return; }
-    if (form.from > form.to) { setErr(tr('종료일이 시작일보다 이전입니다. 학습날짜를 다시 선택하세요.', 'The end date is before the start date.')); return; }
-    if (!form.companyCode) { setErr(tr('회사명을 검색 후 목록에서 선택하세요.', 'Search for the company and pick it from the list.')); return; }
-    setErr(null); setP({ ...form, go: 1 }, true);
+  const [confirmExport, setConfirmExport] = useState(false);
+  /** function.js StudyTimeValidateRequired(). */
+  const validate = () => {
+    if (!form.from || !form.to) { setErr(tr('학습날짜를 선택하세요.', 'Choose the study dates.')); return false; }
+    if (form.from > form.to) { setErr(tr('종료일이 시작일보다 이전입니다. 학습날짜를 다시 선택하세요.', 'The end date is before the start date.')); return false; }
+    if (!form.companyCode) { setErr(tr('회사명을 검색 후 목록에서 선택하세요.', 'Search for the company and pick it from the list.')); return false; }
+    setErr(null); return true;
+  };
+  const submit = () => { if (validate()) setP({ ...form, go: 1 }, true); };
+  /** function.js StudyTimeExcel(): validate the CURRENT form, confirm, then export those values (study_time_search_excel.php, one .xlsx). */
+  const startExport = () => { if (exporting) return; if (validate()) setConfirmExport(true); };
+  const runExport = () => {
+    setConfirmExport(false);
+    setP({ ...form, go: 1 }, true);
+    const cur = { from: form.from, to: form.to || undefined, companyCode: form.companyCode, status: form.status, minSec: form.minSec, keyword: form.keyword || undefined, salesKeyword: form.salesKeyword || undefined, order: p.order };
+    void download(() => adminStudiesParityApi.downloadDailyTimeExcel(cur));
   };
   const sort = (o: string) => setP({ order: o }, true);
   const red = { color: '#c0392b', fontWeight: 700 }; const green = { color: '#1e8449', fontWeight: 700 };
@@ -85,11 +75,10 @@ export function StudyTimePage() {
   ];
   return (
     <>
+      <ConfirmDialog open={confirmExport} tone="warn" onCancel={() => setConfirmExport(false)} onConfirm={runExport} title={tr('검색 결과 엑셀 출력', 'Export to Excel')} confirmLabel={tr('출력', 'Export')}
+        body={<p style={{ whiteSpace: 'pre-line' }}>{tr(DAILY_EXCEL_CONFIRM, 'Export the results of the current search (sheets 일자별학습시간 + 15시간충족)? Large results take a while; do not click again until it finishes.')}</p>} />
       <FilterBar onSubmit={submit} onReset={() => { setForm({ from: today, to: today, companyCode: '', companyName: '', status: 'all', minSec: '0', salesKeyword: '', keyword: '' }); setErr(null); reset(); }}
-        extra={<>
-          <AButton onClick={() => void download(() => adminStudiesParityApi.downloadDailyTimeCsv(filters, 'daily'))} loading={exporting} disabled={!d || d.total === 0}>{tr('검색 결과 엑셀(CSV) 출력', 'Export CSV')}</AButton>
-          <AButton onClick={() => void download(() => adminStudiesParityApi.downloadDailyTimeCsv(filters, 'person'))} loading={exporting} disabled={!d || d.total === 0}>{tr('15시간충족 시트(CSV)', '15 h sheet (CSV)')}</AButton>
-        </>}>
+        extra={<AButton onClick={startExport} loading={exporting}>{tr('검색 결과 엑셀 출력', 'Export to Excel')}</AButton>}>
         <FilterField label={tr('학습날짜 *', 'Study dates *')} width={280}><div style={{ display: 'flex', gap: 6, alignItems: 'center' }}><DateField id="st-from" value={form.from} onChange={(v) => setForm({ ...form, from: v })} /> ~ <DateField id="st-to" value={form.to} onChange={(v) => setForm({ ...form, to: v })} min={form.from || undefined} /></div></FilterField>
         <FilterField label={tr('회사명 *', 'Company *')} htmlFor="st-co" width={280}><CompanyPicker id="st-co" name={form.companyName} code={form.companyCode} onPick={(v) => setForm({ ...form, companyName: v.name, companyCode: v.code })} /></FilterField>
         <FilterField label={tr('판정', 'Status')} htmlFor="st-status" width={140}><ASelect id="st-status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} options={STATUS} /></FilterField>

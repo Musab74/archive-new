@@ -7,6 +7,7 @@ import { useAdminMutation } from '../../useAdminMutation';
 import { tr } from '../../../../shared/i18n/adminLang';
 import { adm } from '../../strings';
 import { ReadButtons, useFormErrors } from './courses-parity.shared';
+import { useToast } from '../../../../app/providers/ToastProvider';
 
 // ====================================================================== contents_write.php
 
@@ -52,7 +53,7 @@ export function ContentsForm({ detail, onDone, onCancel }: { detail?: CpContent;
 
 // ====================================================================== contents_detail.php (popup) → drawer
 
-type DetailForm = {
+export type DetailForm = {
   ContentsType: string; ContentsPage: string; ContentsMobilePage: string; ContentsURLSelect: string; ContentsURL: string; ContentsURL2: string; MobileURL: string; MobileURL2: string; Question: string;
   Example01: string; Example02: string; Example03: string; Example04: string; Example05: string; Answer: string; Comment: string; Teacher: string; OrderByNum: string; UseYN: string; Caption: string;
 };
@@ -69,8 +70,35 @@ export function detailSections(type: string) {
   return { common: type === 'A' || type === 'B', flash: type === 'A', movie: type === 'B', exam: type === 'C' || type === 'D', examSelect: type === 'C', teacher: type === 'F' };
 }
 
+/**
+ * ContentsDetailSubmitOk() (function.js): A/B 컨텐츠 경로; C 질문, 보기1–4, 정답, 해답 설명; D 질문, 해답 설명; F 강사; 정렬순서 required + numeric.
+ * Same order and messages; the API runs the same rules (ContentsDetailBody).
+ */
+export function detailFormError(f: DetailForm): { field: string; message: string } | null {
+  const t = (v: string) => v.trim();
+  const type = f.ContentsType;
+  if (!type) return { field: 'ContentsType', message: '컨텐츠 유형을 선택하세요.' };
+  if ((type === 'A' || type === 'B') && !t(f.ContentsURL)) return { field: 'ContentsURL', message: '컨텐츠 경로를 입력하세요.' };
+  if (type === 'C') {
+    if (!t(f.Question)) return { field: 'Question', message: '질문 내용을 입력하세요.' };
+    const ex: [keyof DetailForm, string][] = [['Example01', '보기1을 입력하세요.'], ['Example02', '보기2를 입력하세요.'], ['Example03', '보기3을 입력하세요.'], ['Example04', '보기4를 입력하세요.']];
+    for (const [k, m] of ex) if (!t(f[k])) return { field: k, message: m };
+    if (!t(f.Answer)) return { field: 'Answer', message: '보기중 정답을 선택하세요.' };
+    if (!t(f.Comment)) return { field: 'Comment', message: '해답 설명을 입력하세요.' };
+  }
+  if (type === 'D') {
+    if (!t(f.Question)) return { field: 'Question', message: '질문 내용을 입력하세요.' };
+    if (!t(f.Comment)) return { field: 'Comment', message: '해답 설명을 입력하세요.' };
+  }
+  if (type === 'F' && (!f.Teacher || f.Teacher === '0')) return { field: 'Teacher', message: '강사를 선택하세요.' };
+  if (!t(f.OrderByNum)) return { field: 'OrderByNum', message: '정렬순서를 입력하세요.' };
+  if (!/^\d+$/.test(t(f.OrderByNum))) return { field: 'OrderByNum', message: '정렬순서는 숫자만 입력하세요.' };
+  return null;
+}
+
 export function ContentDetailDrawer({ contentsIdx, row, nextOrder, onClose }: { contentsIdx: number; row: CpContentDetailRow | null; nextOrder: number; onClose: () => void }) {
   const { canWrite } = useWriteGate();
+  const { toast } = useToast();
   const { errors, setErrors, onError } = useFormErrors();
   const meta = useQuery({ queryKey: ['admin', 'contents', 'meta'], queryFn: ({ signal }) => cp.contentsMeta(signal), staleTime: 10 * 60_000 });
   const [f, setF] = useState<DetailForm>(() => detailForm(row, nextOrder));
@@ -81,10 +109,14 @@ export function ContentDetailDrawer({ contentsIdx, row, nextOrder, onClose }: { 
   });
   const sec = detailSections(f.ContentsType);
   const submit = () => {
-    if (!/^\d+$/.test(f.OrderByNum.trim())) { setErrors({ OrderByNum: tr('정렬 순서는 숫자만 입력하세요.', 'Digits only.') }); return; }
+    const err = detailFormError(f);
+    setErrors(err ? { [err.field]: err.message } : {});
+    if (err) { toast(err.message, { tone: 'danger' }); return; }
+    if (!window.confirm(tr('등록 하시겠습니까?', 'Register?'))) return;
     save.mutate({ ...f, OrderByNum: Number(f.OrderByNum), Teacher: f.Teacher ? Number(f.Teacher) : 0, Answer: f.Answer || null });
   };
-  const t = (k: keyof DetailForm, label: string) => <FieldRow label={label} htmlFor={`cd-${k}`}><AInput id={`cd-${k}`} value={f[k]} onChange={(e) => set({ [k]: e.target.value } as Partial<DetailForm>)} maxLength={500} /></FieldRow>;
+  const deleteCaption = () => { if (window.confirm(tr('파일을 서버에서 삭제 하시겠습니까?', 'Delete the file?'))) set({ Caption: '' }); };
+  const t = (k: keyof DetailForm, label: string, required = false) => <FieldRow label={label} htmlFor={`cd-${k}`} required={required} error={errors[k]}><AInput id={`cd-${k}`} value={f[k]} onChange={(e) => set({ [k]: e.target.value } as Partial<DetailForm>)} maxLength={500} invalid={!!errors[k]} /></FieldRow>;
   const srv = meta.data?.servers;
   return (
     <DetailDrawer open onClose={onClose} wide title={tr('기초차시 상세 구성', 'Page composition')} subtitle={row ? `Seq ${row.seq}` : tr('추가', 'New')}
@@ -106,21 +138,28 @@ export function ContentDetailDrawer({ contentsIdx, row, nextOrder, onClose }: { 
             </div>
           </FieldRow>
         ) : null}
-        {sec.common ? t('ContentsURL', tr('컨텐츠 경로', 'Content path')) : null}
+        {sec.common ? t('ContentsURL', tr('컨텐츠 경로', 'Content path'), true) : null}
         {sec.movie ? t('ContentsURL2', tr('컨텐츠 경로(예비)', 'Content path (backup)')) : null}
         {sec.common ? <FieldRow label={tr('모바일 서버', 'Mobile server')}><div className="mono" style={{ paddingTop: 6, fontSize: 12 }}>{srv?.mobile}</div></FieldRow> : null}
         {sec.common ? t('MobileURL', tr('모바일 경로', 'Mobile path')) : null}
         {sec.movie ? t('MobileURL2', tr('모바일 경로(예비)', 'Mobile path (backup)')) : null}
-        {sec.movie ? <FieldRow label={tr('자막 업로드', 'Captions')} help={tr('자막 파일 업로드는 기존 사이트에서 합니다. 저장된 파일명은 유지됩니다.', 'Caption upload still runs on the previous site; the stored file name is kept.')}><div className="mono" style={{ paddingTop: 6, fontSize: 12 }}>{f.Caption || adm.common.none}</div></FieldRow> : null}
-        {sec.exam ? <FieldRow label={tr('질문 내용', 'Question')} htmlFor="cd-q"><ATextarea id="cd-q" rows={2} value={f.Question} onChange={(e) => set({ Question: e.target.value })} /></FieldRow> : null}
+        {sec.movie ? (
+          <FieldRow label={tr('자막 업로드', 'Captions')} help={tr('"파일 삭제"는 저장된 파일명(Caption)을 비우고 "등록 하기"로 저장합니다. 자막 업로드(CaptionUploadFile)와 내려받기 링크는 기존 사이트에서도 동작하지 않았습니다.', '"Delete file" clears the stored caption name (saved with "Register"). Caption upload and download never worked on the previous site either.')}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', paddingTop: 4 }}>
+              <span className="mono" style={{ fontSize: 12 }}>{f.Caption || adm.common.none}</span>
+              {f.Caption ? <AButton size="xs" disabled={!canWrite} onClick={deleteCaption}>{tr('파일 삭제', 'Delete file')}</AButton> : null}
+            </div>
+          </FieldRow>
+        ) : null}
+        {sec.exam ? <FieldRow label={tr('질문 내용', 'Question')} htmlFor="cd-q" required error={errors.Question}><ATextarea id="cd-q" rows={2} value={f.Question} onChange={(e) => set({ Question: e.target.value })} /></FieldRow> : null}
         {sec.examSelect ? ([1, 2, 3, 4, 5] as const).map((i) => { const k = `Example0${i}` as keyof DetailForm; return (
-          <FieldRow key={k} label={tr(`보기 ${i}`, `Choice ${i}`)}>
+          <FieldRow key={k} label={tr(`보기 ${i}`, `Choice ${i}`)} error={errors[k] || (i === 1 ? errors.Answer : undefined)}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="radio" name="cd-answer" aria-label={tr(`정답 ${i}`, `Answer ${i}`)} checked={f.Answer === String(i)} onChange={() => set({ Answer: String(i) })} /><AInput aria-label={tr(`보기 ${i}`, `Choice ${i}`)} value={f[k]} onChange={(e) => set({ [k]: e.target.value } as Partial<DetailForm>)} maxLength={500} /></div>
           </FieldRow>
         ); }) : null}
-        {sec.exam ? <FieldRow label={tr('해답 설명', 'Explanation')} htmlFor="cd-c"><ATextarea id="cd-c" rows={3} value={f.Comment} onChange={(e) => set({ Comment: e.target.value })} /></FieldRow> : null}
-        {sec.teacher ? <FieldRow label={tr('강사 선택', 'Instructor')}><ASelect aria-label={tr('강사 선택', 'Instructor')} value={f.Teacher} onChange={(e) => set({ Teacher: e.target.value })} options={[{ value: '', label: tr('-- 강사 선택 --', '-- choose --') }, ...(meta.data?.teachers ?? []).map((x) => ({ value: String(x.idx), label: x.name ?? '' }))]} /></FieldRow> : null}
-        <FieldRow label={tr('정렬 순서', 'Order')} htmlFor="cd-order" error={errors.OrderByNum}><AInput id="cd-order" value={f.OrderByNum} onChange={(e) => set({ OrderByNum: e.target.value })} style={{ width: 90 }} invalid={!!errors.OrderByNum} /></FieldRow>
+        {sec.exam ? <FieldRow label={tr('해답 설명', 'Explanation')} htmlFor="cd-c" required error={errors.Comment}><ATextarea id="cd-c" rows={3} value={f.Comment} onChange={(e) => set({ Comment: e.target.value })} /></FieldRow> : null}
+        {sec.teacher ? <FieldRow label={tr('강사 선택', 'Instructor')} required error={errors.Teacher}><ASelect aria-label={tr('강사 선택', 'Instructor')} value={f.Teacher} onChange={(e) => set({ Teacher: e.target.value })} options={[{ value: '', label: tr('-- 강사 선택 --', '-- choose --') }, ...(meta.data?.teachers ?? []).map((x) => ({ value: String(x.idx), label: x.name ?? '' }))]} /></FieldRow> : null}
+        <FieldRow label={tr('정렬 순서', 'Order')} htmlFor="cd-order" required error={errors.OrderByNum}><AInput id="cd-order" value={f.OrderByNum} onChange={(e) => set({ OrderByNum: e.target.value })} style={{ width: 90 }} invalid={!!errors.OrderByNum} /></FieldRow>
         <FieldRow label={tr('사용 여부', 'In use')}>
           <div style={{ display: 'flex', gap: 12, paddingTop: 6 }}>
             <label><input type="radio" name="cd-use" checked={f.UseYN === 'Y'} onChange={() => set({ UseYN: 'Y' })} /> {tr('사용', 'Yes')}</label>

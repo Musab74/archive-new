@@ -7,6 +7,11 @@ import { tr } from '../../../../shared/i18n/adminLang';
 import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
 import { adm } from '../../strings';
+import { LegacyHtml } from '../../../../shared/ui/LegacyHtml';
+import { looksLikeHtml } from '../../../../shared/utils/legacyHtml';
+
+/** List cell: plain text of the stored Content (HTML tags stripped like the browser shows them). */
+const plain = (html: string) => (looksLikeHtml(html) ? (new DOMParser().parseFromString(html, 'text/html').body.textContent ?? '') : html);
 
 const DEFAULTS = { col: 'CompanyName', q: '', page: 1 };
 const SIZE = 30;
@@ -33,13 +38,15 @@ export default function NegativeTrainingPage() {
   const del = useAdminMutation({ fn: () => adminLearningApi.deleteNegative(sel!.idx), invalidate: inv, success: tr('처리되었습니다.', 'Deleted.'), onSuccess: () => { setDelOpen(false); setSel(null); } });
   const submit = () => {
     if (mode === 'create' && !f.CompanyCode.trim()) { setErr(tr('사업주 ID를 입력하세요.', 'Enter the company ID.')); return; }
-    if (mode === 'create') create.mutate({ CompanyCode: f.CompanyCode.trim(), Content: f.Content }); else patch.mutate({ Content: f.Content });
+    setConfirmSave(true); // negative_training_write.php: confirm('등록하시겠습니까?')
   };
+  const [confirmSave, setConfirmSave] = useState(false);
+  const save = () => { setConfirmSave(false); if (mode === 'create') create.mutate({ CompanyCode: f.CompanyCode.trim(), Content: f.Content }); else patch.mutate({ Content: f.Content }); };
 
   const columns: Column<NegativeRow>[] = [
     { key: 'no', header: tr('번호', 'No.'), align: 'right', width: 60, render: (_r, i) => firstNo - i },
     { key: 'companyName', header: tr('사업주', 'Company'), nowrap: true, render: (r) => <span title={r.companyCode}>{r.companyName ?? r.companyCode}</span> },
-    { key: 'content', header: tr('내용', 'Content'), render: (r) => <span className="u-clamp-2">{r.content}</span> },
+    { key: 'content', header: tr('내용', 'Content'), render: (r) => <span className="u-clamp-2">{plain(r.content)}</span> },
     { key: 'regDate', header: tr('등록일', 'Registered'), nowrap: true, width: 170, render: (r) => r.regDate ?? '' },
   ];
   const d = detail.data ?? sel;
@@ -54,7 +61,7 @@ export default function NegativeTrainingPage() {
 
       <DetailDrawer open={!!sel && !mode} onClose={() => setSel(null)} title={tr('리포트 부정훈련', 'Misconduct report')} subtitle={d?.companyName ?? ''}
         footer={<><AButton variant="danger" disabled={!canWrite} title={readOnlyTitle} onClick={() => setDelOpen(true)}>{tr('삭 제', 'Delete')}</AButton><AButton variant="primary" disabled={!canWrite} title={readOnlyTitle} onClick={() => setMode('edit')}>{tr('정보 수정', 'Edit')}</AButton><AButton onClick={() => setSel(null)}>{tr('목록', 'List')}</AButton></>}>
-        {d ? (<Card><DescList items={[[tr('사업주 명', 'Company'), d.companyName], [tr('사업주 ID', 'Company ID'), <span key="c" className="mono">{d.companyCode}</span>], [tr('등록일', 'Registered'), d.regDate], [tr('내용', 'Content'), <div key="t" style={{ whiteSpace: 'pre-wrap' }}>{d.content}</div>]]} /></Card>) : <p className="muted">{adm.common.loading}</p>}
+        {d ? (<Card><DescList items={[[tr('사업주 명', 'Company'), d.companyName], [tr('사업주 ID', 'Company ID'), <span key="c" className="mono">{d.companyCode}</span>], [tr('등록일', 'Registered'), d.regDate], [tr('내용', 'Content'), <LegacyHtml key="t" html={d.content} />]]} /></Card>) : <p className="muted">{adm.common.loading}</p>}
       </DetailDrawer>
 
       <DetailDrawer open={!!mode} onClose={() => setMode(null)} title={mode === 'create' ? tr('리포트 부정훈련 등록', 'New misconduct report') : tr('리포트 부정훈련 수정', 'Edit misconduct report')}
@@ -64,6 +71,7 @@ export default function NegativeTrainingPage() {
           <FieldRow label={tr('내용', 'Content')} htmlFor="nt-content"><ATextarea id="nt-content" rows={8} value={f.Content} onChange={(e) => setF({ ...f, Content: e.target.value })} /></FieldRow>
         </div>
       </DetailDrawer>
+      <ConfirmDialog open={confirmSave} tone="info" title={tr('등록하시겠습니까?', 'Save this report?')} confirmLabel={mode === 'create' ? tr('등록', 'Create') : tr('수정', 'Save')} onCancel={() => setConfirmSave(false)} onConfirm={save} />
       <ConfirmDialog open={delOpen} tone="danger" title={tr('현재 글을 삭제하시겠습니까?', 'Delete this report?')} body={tr('목록에서 제외됩니다(Del=Y). 행은 남습니다.', 'Hidden from the list (Del=Y); the row is kept.')} loading={del.isPending} onCancel={() => setDelOpen(false)} onConfirm={() => del.mutate(undefined as never)} />
     </AdminPage>
   );

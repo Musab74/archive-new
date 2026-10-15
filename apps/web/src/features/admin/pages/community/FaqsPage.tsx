@@ -2,15 +2,18 @@ import { useEffect, useMemo, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { adminSupportParityApi, FAQ_CATEGORIES, type FaqRow } from '../../../../shared/api/endpoints/admin-support-parity';
 import { useSearchState } from '../../../../shared/utils/useSearchState';
-import { AButton, AdminPage, AInput, ASelect, ATextarea, Card, ConfirmDialog, DataTable, DescList, DetailDrawer, FieldRow, FilterBar, FilterField, TabStrip, type Column } from '../../../../shared/ui/admin';
+import { AButton, AdminPage, AInput, ASelect, Card, ConfirmDialog, DataTable, DescList, DetailDrawer, FieldRow, FilterBar, FilterField, TabStrip, type Column } from '../../../../shared/ui/admin';
 import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
 import { tr } from '../../../../shared/i18n/adminLang';
 import { adm } from '../../strings';
-import { rowNo, tooShort } from './support-parity.helpers';
+import { PHP_PAGE_SIZE, rowNo, toEditorHtml, tooShort } from './support-parity.helpers';
+import { SupportRichEditor } from './SupportRichEditor';
+import { SupportSubmitConfirm, useSubmitConfirm } from './SupportSubmitConfirm';
 
 const DEFAULTS = { col: 'Title', q: '', category: '', page: 1 };
-const SIZE = 20;
+/** include_top.php $page_size = 30. */
+const SIZE = PHP_PAGE_SIZE;
 interface Form { UseYN: 'Y' | 'N'; OrderByNum: string; Category: string; Title: string; Content: string }
 const ynMsg = (v: string | null | undefined) => <span style={{ color: v === 'Y' ? 'var(--c-primary)' : 'var(--c-danger)' }}>{v === 'Y' ? tr('사용', 'In use') : tr('미사용', 'Not used')}</span>;
 
@@ -33,7 +36,7 @@ export default function FaqsPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   useEffect(() => {
     if (editing === 'new') setF({ UseYN: 'Y', OrderByNum: String(meta.data?.nextOrder ?? ''), Category: categories[0]?.value ?? 'A', Title: '', Content: '' });
-    if (editing === 'edit' && d) setF({ UseYN: d.useYN === 'N' ? 'N' : 'Y', OrderByNum: String(d.order || ''), Category: d.category ?? 'A', Title: d.title, Content: d.content ?? '' });
+    if (editing === 'edit' && d) setF({ UseYN: d.useYN === 'N' ? 'N' : 'Y', OrderByNum: String(d.order || ''), Category: d.category ?? 'A', Title: d.title, Content: toEditorHtml(d.content) });
     setErrors({});
   }, [editing, d]); // categories/meta only seed the new form
   const inv = [['admin', 'faqs'], ['admin', 'faq'], ['support']];
@@ -46,11 +49,13 @@ export default function FaqsPage() {
   const submit = () => {
     const e: Record<string, string> = {};
     if (!f.Title.trim()) e.Title = tr('제목을 입력하세요.', 'Enter a title.');
-    if (tooShort(f.Content)) e.Content = tr('내용을 입력해주세요', 'Enter the content (15+ characters).');
+    if (tooShort(f.Content)) e.Content = tr('내용을 15자 이상 입력해주세요', 'Enter at least 15 characters.');
     if (f.OrderByNum && !/^\d+$/.test(f.OrderByNum)) e.OrderByNum = tr('숫자만 입력하세요.', 'Digits only.');
     setErrors(e); if (Object.keys(e).length) return;
-    if (editing === 'new') create.mutate(undefined as never); else update.mutate(undefined as never);
+    confirmSave.ask(); // faq_write.php SubmitOk(): confirm("등록하시겠습니까?")
   };
+  const confirmSave = useSubmitConfirm();
+  const doSave = () => (editing === 'new' ? create : update).mutate(undefined as never, { onSettled: confirmSave.close });
 
   const columns: Column<FaqRow>[] = [
     { key: 'no', header: tr('번호', 'No.'), align: 'center', width: 80, render: (_r, i) => rowNo(total, p.page, SIZE, i) },
@@ -89,9 +94,10 @@ export default function FaqsPage() {
           <FieldRow label={tr('정렬 순서', 'Order')} htmlFor="ff-order" error={errors.OrderByNum} help={tr('비우면 마지막 순서(MAX+1)로 저장됩니다.', 'Empty = last (MAX+1).')}><AInput id="ff-order" inputMode="numeric" value={f.OrderByNum} onChange={(e) => setF({ ...f, OrderByNum: e.target.value })} style={{ width: 100 }} disabled={!canWrite} /></FieldRow>
           <FieldRow label={tr('분류', 'Category')} htmlFor="ff-cat"><ASelect id="ff-cat" value={f.Category} onChange={(e) => setF({ ...f, Category: e.target.value })} options={categories} disabled={!canWrite} /></FieldRow>
           <FieldRow label={tr('제목', 'Title')} htmlFor="ff-title" required error={errors.Title}><AInput id="ff-title" value={f.Title} onChange={(e) => setF({ ...f, Title: e.target.value })} maxLength={250} disabled={!canWrite} /></FieldRow>
-          <FieldRow label={tr('내용', 'Content')} htmlFor="ff-content" required error={errors.Content} help={tr('HTML 사용 가능(기존 에디터 내용 그대로 저장)', 'HTML allowed (saved as-is)')}><ATextarea id="ff-content" rows={16} value={f.Content} onChange={(e) => setF({ ...f, Content: e.target.value })} disabled={!canWrite} /></FieldRow>
+          <FieldRow label={tr('내용', 'Content')} htmlFor="ff-content" required error={errors.Content} help={tr('Editor / HTML / TEXT 모드(기존 스마트에디터와 같음), 15자 이상', 'Editor / HTML / TEXT modes (as SmartEditor), 15+ characters')}><SupportRichEditor id="ff-content" ariaLabel={tr('내용', 'Content')} value={f.Content} onChange={(html) => setF((x) => ({ ...x, Content: html }))} disabled={!canWrite} invalid={!!errors.Content} /></FieldRow>
         </div>
       </DetailDrawer>
+      <SupportSubmitConfirm open={confirmSave.open} loading={create.isPending || update.isPending} onCancel={confirmSave.close} onConfirm={doSave} />
       <ConfirmDialog open={delOpen} title={tr('FAQ 삭제', 'Delete FAQ')} body={tr('현재 글을 삭제하시겠습니까?', 'Delete this post?')} tone="danger" confirmLabel={tr('삭 제', 'Delete')} loading={remove.isPending} onCancel={() => setDelOpen(false)} onConfirm={() => remove.mutate(undefined as never)} />
     </AdminPage>
   );

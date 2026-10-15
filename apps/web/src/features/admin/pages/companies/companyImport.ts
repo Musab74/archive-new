@@ -15,7 +15,9 @@ export const HEADER_LABELS: Record<ImportKey, string> = {
 const ALIASES: Record<string, ImportKey> = {
   회사명: 'CompanyName', 기업명: 'CompanyName', 사업주아이디: 'CompanyID', 사업주id: 'CompanyID', 사업주아이디id: 'CompanyID', 회사규모: 'CompanyScale', 규모: 'CompanyScale', 사업자등록번호: 'CompanyCode', 사업자번호: 'CompanyCode', hrd번호: 'HRD', hrd: 'HRD', 대표자명: 'Ceo', 대표자: 'Ceo', 우편번호: 'Zipcode', 주소: 'Address01', 상세주소: 'Address02', 나머지주소: 'Address02',
   업태: 'Uptae', 업종: 'Upjong', 회사전화번호: 'Tel', 대표전화번호: 'Tel', 전화번호: 'Tel', 이메일: 'Email', 세금계산서이메일: 'Email', 교육담당자: 'EduManager', 교육담당자명: 'EduManager', 교육담당자연락처: 'EduManagerPhone', 교육담당자휴대폰: 'EduManagerPhone', 교육담당자이메일: 'EduManagerEmail',
-  영업담당자id: 'SalesManager', 영업담당자아이디: 'SalesManager', 영업담당자: 'SalesManager', 메모: 'Remark', 사이버교육센터: 'CyberEnabled', 사이버교육센터사용여부: 'CyberEnabled', 고객센터번호: 'Tel2', 고객센터전화번호: 'Tel2', 고객센터팩스번호: 'Fax2', 고객센터번호사용여부: 'CSEnabled', 고객센터전화번호사용여부: 'CSEnabled', 기업관리코드: 'HomePage', 홈페이지: 'HomePage',
+  영업담당자id: 'SalesManager', 영업담당자아이디: 'SalesManager', 영업담당자: 'SalesManager', 영업자id: 'SalesManager', 메모: 'Remark',
+  // sample/사업주정보.xlsx header row (A..W)
+  회사아이디: 'CompanyID', hrd코드: 'HRD', 회사주소: 'Address01', 종목: 'Upjong', 전자계산서이메일: 'Email', 회사교육담당자: 'EduManager', 회사교육담당자전화번호: 'EduManagerPhone', 회사교육담당자이메일: 'EduManagerEmail', 사이버교육센터: 'CyberEnabled', 사이버교육센터사용여부: 'CyberEnabled', 고객센터번호: 'Tel2', 고객센터전화번호: 'Tel2', 고객센터팩스번호: 'Fax2', 고객센터번호사용여부: 'CSEnabled', 고객센터전화번호사용여부: 'CSEnabled', 기업관리코드: 'HomePage', 홈페이지: 'HomePage',
 };
 for (const k of IMPORT_KEYS) ALIASES[k.toLowerCase()] = k;
 
@@ -91,4 +93,55 @@ export function downloadText(name: string, text: string, type = 'text/csv;charse
   a.href = href; a.download = name; a.rel = 'noopener';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(href), 1000);
+}
+
+// ---------------------------------------------------------------------------------------------- .xlsx (company_excel_upload.php)
+
+/** company_excel_upload.php: a file whose name contains 'HRD 훈련생 등록' is read from the 2nd sheet with a fixed cell map. */
+export const isHrdTraineeFile = (name: string) => name.includes('HRD 훈련생 등록');
+
+/** "HRD 훈련생 등록" cell map (B3 회사명, D3 사업자등록번호, B4 대표자, B7 주소, B6 업태, D6 업종, B5 전화, D9 세금계산서 이메일, B8/D8/B9 교육담당자, F3 영업자ID). */
+export const HRD_TRAINEE_CELLS: Partial<Record<ImportKey, string>> = { CompanyName: 'B3', CompanyCode: 'D3', Ceo: 'B4', Address01: 'B7', Uptae: 'B6', Upjong: 'D6', Tel: 'B5', Email: 'D9', EduManager: 'B8', EduManagerPhone: 'D8', EduManagerEmail: 'B9', SalesManager: 'F3' };
+
+const emptyRow = (): ImportRow => Object.fromEntries(IMPORT_KEYS.map((k) => [k, null])) as ImportRow;
+
+/** First sheet, data from row 2, columns A..W in template order (the header row is ignored, as in the PHP loop). Blank rows are dropped. */
+export function rowsFromTemplateGrid(grid: string[][]): MappedImport {
+  const rows = grid.filter((cells) => cells.some((c) => String(c).trim() !== '')).map((cells) => {
+    const r = emptyRow();
+    IMPORT_KEYS.forEach((k, i) => { const v = String(cells[i] ?? '').trim(); if (v !== '') r[k] = v; });
+    r.CompanyScale = scaleToCode(r.CompanyScale);
+    return r;
+  });
+  return { rows, headerDetected: true, columns: [...IMPORT_KEYS], unknownHeaders: [] };
+}
+
+/** One company from the "HRD 훈련생 등록" sheet; the API fills CompanyID/HomePage/Remark (format=hrdTrainee). Missing 회사명 or 사업자번호 → no row (PHP). */
+export function rowFromHrdTraineeCells(get: (ref: string) => string | undefined): MappedImport {
+  const r = emptyRow();
+  for (const [k, ref] of Object.entries(HRD_TRAINEE_CELLS) as [ImportKey, string][]) { const v = String(get(ref) ?? '').trim(); if (v !== '') r[k] = v; }
+  r.CompanyScale = 'C'; r.Zipcode = '00000'; r.CyberEnabled = 'N'; r.CSEnabled = 'N';
+  if (r.CompanyCode) r.CompanyCode = r.CompanyCode.replace(/[-\s]/g, '');
+  const ok = !!r.CompanyName && !!r.CompanyCode;
+  return { rows: ok ? [r] : [], headerDetected: true, columns: Object.keys(HRD_TRAINEE_CELLS) as ImportKey[], unknownHeaders: [] };
+}
+
+/** company_write_excel.php "업로드한 엑셀파일 데이터 확인" two header rows (rowspan 체크/번호 aside). */
+export const PREVIEW_ROW1: [ImportKey, string][] = [['CompanyName', '회사명'], ['CompanyID', '회사 아이디'], ['CompanyScale', '회사 규모'], ['CompanyCode', '사업자번호'], ['HRD', 'HRD코드'], ['Ceo', '대표자'], ['Zipcode', '우편번호'], ['Address01', '회사 주소'], ['Address02', '상세 주소'], ['Uptae', '업태'], ['CyberEnabled', '사이버교육센터'], ['HomePage', '기업관리코드']];
+export const PREVIEW_ROW2: [ImportKey, string][] = [['Tel', '회사 전화번호'], ['Email', '전자계산서 이메일'], ['EduManager', '회사 교육담당자'], ['EduManagerPhone', '회사 교육담당자 전화번호'], ['EduManagerEmail', '회사 교육담당자 이메일'], ['SalesManager', '영업자ID'], ['Remark', '메모'], ['Tel2', '고객센터 번호'], ['Fax2', '고객센터 팩스번호'], ['Upjong', '종목'], ['CSEnabled', '고객센터 사용여부']];
+
+/** Draft kept in this browser so a reload does not lose the uploaded rows (the PHP kept them in CompanyExcelTemp per admin). */
+export interface ImportDraft { rows: ImportRow[]; format: 'template' | 'hrdTrainee'; fileName: string | null; savedAt: string }
+export const DRAFT_KEY = 'admin.companies.importDraft.v1';
+export function loadDraft(): ImportDraft | null {
+  try { const raw = localStorage.getItem(DRAFT_KEY); if (!raw) return null; const d = JSON.parse(raw) as ImportDraft; return Array.isArray(d.rows) && d.rows.length ? d : null; } catch { return null; }
+}
+export function saveDraft(d: ImportDraft | null): void {
+  try { if (d && d.rows.length) localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); else localStorage.removeItem(DRAFT_KEY); } catch { /* storage unavailable: the rows simply stay in memory */ }
+}
+
+/** "선택항목 삭제": drop the checked preview lines (1-based) from the batch. */
+export function dropLines<T>(rows: T[], lines: Iterable<number>): T[] {
+  const drop = new Set(lines);
+  return rows.filter((_, i) => !drop.has(i + 1));
 }

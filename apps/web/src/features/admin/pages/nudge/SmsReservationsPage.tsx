@@ -12,7 +12,7 @@ import { adm } from '../../strings';
 import { MemberLink, MessageBlock } from './nudgeShared';
 
 const DEFAULTS = { from: '', to: '', col: 'name', q: '', page: 1 };
-const SIZE = 20;
+const SIZE = 30; // include_top.php $page_size
 const COLS = [{ value: 'name', label: tr('이름', 'Name') }, { value: 'id', label: tr('아이디', 'User ID') }, { value: 'company', label: tr('사업주명', 'Company') }];
 
 /** study_sms_res_list.php — 예약문자발송 (C1): pending SmsRes rows, CSV export, delete (= cancel) checked rows. */
@@ -50,7 +50,7 @@ export default function SmsReservationsPage() {
   return (
     <AdminPage title={tr('예약문자발송', 'Scheduled SMS')} lead={tr('아직 발송되지 않은 예약 문자(SmsRes, SendYN=N)입니다. 예약 시각이 되면 기존 사이트의 발송기가 보내고 목록에서 사라집니다. 학습참여독려에서 "체크항목 문자 예약 발송"으로 등록합니다.', 'Reserved SMS not yet sent (SmsRes, SendYN=N). The legacy scheduler sends them at the chosen time; create them from Study nudges.')}>
       <FilterBar onSubmit={() => setP(form, true)} onReset={() => { setForm({ from: '', to: '', col: 'name', q: '' }); reset(); }}
-        extra={<><AButton onClick={() => void exportCsv()} loading={exporting} disabled={!list.data || total === 0}>{tr('검색항목 엑셀(CSV) 출력', 'Export CSV')}</AButton><AButton variant="danger" disabled={!canWrite || checked.size === 0} title={readOnlyTitle} onClick={() => setDelOpen(true)}>{tr('체크항목 삭제', 'Delete checked')}</AButton></>}>
+        extra={canWrite ? <><AButton onClick={() => void exportCsv()} loading={exporting} disabled={!list.data || total === 0}>{tr('검색항목 엑셀(CSV) 출력', 'Export CSV')}</AButton><AButton variant="danger" disabled={checked.size === 0} onClick={() => setDelOpen(true)}>{tr('체크항목 삭제', 'Delete checked')}</AButton></> : undefined /* study_sms_res_list.php: both buttons only when AdminWrite=='Y' */}>
         <FilterField label={tr('조회기간 시작', 'From')} htmlFor="sr-from" width={160}><DateField id="sr-from" value={form.from} onChange={(v) => setForm({ ...form, from: v })} /></FilterField>
         <FilterField label={tr('조회기간 종료', 'To')} htmlFor="sr-to" width={160}><DateField id="sr-to" value={form.to} onChange={(v) => setForm({ ...form, to: v })} /></FilterField>
         <FilterField label={tr('검색 항목', 'Search in')} htmlFor="sr-col" width={130}><ASelect id="sr-col" value={form.col} onChange={(e) => setForm({ ...form, col: e.target.value })} options={COLS} /></FilterField>

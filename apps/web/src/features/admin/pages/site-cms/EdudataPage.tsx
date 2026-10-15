@@ -1,19 +1,20 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { adminSiteCmsApi } from '../../../../shared/api/endpoints/admin-site-cms';
 import type { EdudataRow } from '../../../../shared/api/endpoints/admin-site-cms';
 import { useSearchState } from '../../../../shared/utils/useSearchState';
-import { AButton, ACheckbox, AdminPage, AInput, ASelect, ATextarea, Callout, Card, ConfirmDialog, DataTable, DescList, DetailDrawer, FieldRow, FilterBar, FilterField, StatusBadge, YnBadge, type Column } from '../../../../shared/ui/admin';
+import { AButton, ACheckbox, AdminPage, AInput, ASelect, Callout, Card, ConfirmDialog, DataTable, DescList, DetailDrawer, FieldRow, FilterBar, FilterField, StatusBadge, YnBadge, type Column } from '../../../../shared/ui/admin';
 import { isAppError } from '../../../../shared/api/client';
 import { useToast } from '../../../../app/providers/ToastProvider';
 import { tr } from '../../../../shared/i18n/adminLang';
 import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
 import { adm } from '../../strings';
-import { rowNumber } from './siteCms.helpers';
+import { LEGACY_PAGE_SIZE, rowNumber } from './siteCms.helpers';
+import { SiteCmsHtmlEditor } from './SiteCmsHtmlEditor';
 
 const DEFAULTS = { col: 'Title', q: '', page: 1 };
-const SIZE = 20;
+const SIZE = LEGACY_PAGE_SIZE; // include_top.php $page_size = 30
 const SLOTS = [1, 2, 3, 4, 5] as const;
 interface Form { Notice: 'Y' | 'N'; UseYN: 'Y' | 'N'; Category: string; Title: string; Content: string }
 const EMPTY: Form = { Notice: 'N', UseYN: 'Y', Category: 'A', Title: '', Content: '' };
@@ -24,7 +25,6 @@ export default function EdudataPage() {
   const [p, setP, reset] = useSearchState(DEFAULTS);
   const [form, setForm] = useState({ col: p.col, q: p.q });
   const { toast } = useToast();
-  const qc = useQueryClient();
   const { canWrite, readOnlyTitle } = useWriteGate();
   const query = useMemo(() => ({ col: p.col, q: p.q || undefined, page: p.page, size: SIZE }), [p]);
   const list = useQuery({ queryKey: ['admin', 'edudata', query], queryFn: ({ signal }) => adminSiteCmsApi.edudata(query, signal), placeholderData: keepPreviousData });
@@ -47,17 +47,25 @@ export default function EdudataPage() {
   }, [editOpen, detail.data]);
   const inv = [['admin', 'edudata'], ['admin', 'edudata-detail']];
 
-  /** PHP posts text + up to 5 files in one request; here the row is saved first and each chosen file follows (same columns). */
-  const uploadChosen = async (idx: number) => {
-    const picked = SLOTS.filter((s) => files[s]);
-    let failed = 0;
-    for (const s of picked) { try { await adminSiteCmsApi.uploadEdudataFile(idx, s, files[s]!); } catch (e) { failed++; toast(`${tr('첨부', 'Attachment')} ${s}: ${isAppError(e) ? e.message : adm.common.failed}`, { tone: 'danger' }); } }
-    if (picked.length) for (const k of inv) void qc.invalidateQueries({ queryKey: k });
-    return failed;
-  };
   const body = () => ({ Notice: f.Notice, UseYN: f.UseYN, Category: f.Category, Title: f.Title.trim(), Content: f.Content });
-  const create = useAdminMutation({ fn: async () => { const r = await adminSiteCmsApi.createEdudata(body()); await uploadChosen(r.idx); return r; }, invalidate: inv, success: adm.common.created, onSuccess: () => setEditOpen(null) });
-  const patch = useAdminMutation({ fn: async () => { const r = await adminSiteCmsApi.patchEdudata(sel!.idx, { ...body(), clearFiles: clear }); await uploadChosen(sel!.idx); return r; }, invalidate: inv, success: adm.common.saved, onSuccess: () => setEditOpen(null) });
+  /**
+   * edudata_script.php: text + up to 5 files in ONE request. include_upload_file.php's checkFileSecure runs before the INSERT/UPDATE,
+   * so a rejected file (e.g. a zip containing run.sh) writes nothing: the form stays open with the message on that slot (PHP alert).
+   */
+  const onSaveError = (err: unknown) => {
+    setConfirmOpen(false);
+    const slot = isAppError(err) && err.details && typeof err.details === 'object' ? Number((err.details as { slot?: unknown }).slot) : NaN;
+    if (isAppError(err) && SLOTS.includes(slot as never)) setErrors({ [`file${slot}`]: err.message });
+    toast(isAppError(err) ? err.message : adm.common.failed, { tone: 'danger' });
+  };
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  /** edudata_script.php: "처리되었습니다." then edudata_read.php?idx=<new idx> — the new record's detail drawer opens. */
+  const openCreated = (idx: number) => {
+    const b = body();
+    setSel({ idx, useYN: b.UseYN, useLabel: b.UseYN === 'Y' ? '사용' : '미사용', notice: b.Notice, category: b.Category, categoryLabel: categories.find((c) => c.value === b.Category)?.label ?? b.Category, title: b.Title, content: b.Content, files: [], firstFile: null, viewCount: 0, regDate: null, pinned: b.Notice === 'Y' });
+  };
+  const create = useAdminMutation({ fn: () => adminSiteCmsApi.createEdudataForm(body(), files), invalidate: inv, success: tr('처리되었습니다.', 'Saved.'), onSuccess: (r) => { setConfirmOpen(false); openCreated(r.idx); setEditOpen(null); }, onError: onSaveError });
+  const patch = useAdminMutation({ fn: () => adminSiteCmsApi.patchEdudataForm(sel!.idx, body(), files, clear), invalidate: inv, success: tr('처리되었습니다.', 'Saved.'), onSuccess: () => { setConfirmOpen(false); setEditOpen(null); }, onError: onSaveError });
   const [delOpen, setDelOpen] = useState(false);
   const del = useAdminMutation({ fn: () => adminSiteCmsApi.deleteEdudata(sel!.idx), invalidate: inv, success: adm.common.deleted, onSuccess: () => { setDelOpen(false); setSel(null); } });
   const submit = () => {
@@ -65,8 +73,9 @@ export default function EdudataPage() {
     if (!f.Title.trim()) e.Title = tr('제목을 입력하세요.', 'Enter a title.');
     if (f.Content.length < 15) e.Content = tr('내용을 15자 이상 입력해주세요', 'Enter at least 15 characters.');
     setErrors(e); if (Object.keys(e).length) return;
-    if (editOpen === 'create') create.mutate(undefined as never); else patch.mutate(undefined as never);
+    setConfirmOpen(true); // edudata_write.php: confirm("등록하시겠습니까?")
   };
+  const confirmSave = () => { if (editOpen === 'create') create.mutate(undefined as never); else patch.mutate(undefined as never); };
   const download = async (idx: number, slot: number, name: string) => { try { await adminSiteCmsApi.downloadEdudataFile(idx, slot, name); } catch (e) { toast(isAppError(e) ? e.message : adm.common.failed, { tone: 'danger' }); } };
 
   const columns: Column<Row>[] = [
@@ -113,15 +122,17 @@ export default function EdudataPage() {
           <FieldRow label={tr('제목', 'Title')} htmlFor="ef-title" required error={errors.Title}><AInput id="ef-title" value={f.Title} onChange={(e) => setF({ ...f, Title: e.target.value })} maxLength={250} /></FieldRow>
           {SLOTS.map((s) => {
             const existing = editOpen === 'edit' ? d?.files.find((x) => x.slot === s) : undefined;
+            const cleared = clear.includes(s); // FileDelN wins over a new file in edudata_script.php
             return (
-              <FieldRow key={s} label={`${tr('첨부파일', 'File')} ${s}`} htmlFor={`ef-file-${s}`} help={existing ? <span>{tr('첨부된 파일', 'Current')}: {existing.realFileName} <ACheckbox label={tr('현재 파일 삭제', 'Remove current file')} checked={clear.includes(s)} onChange={(e) => setClear(e.target.checked ? [...clear, s] : clear.filter((x) => x !== s))} /></span> : undefined}>
-                <input id={`ef-file-${s}`} type="file" accept=".hwp,.hwpx,.xlsx,.xls,.txt,.jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.zip" disabled={!uploadOk || !canWrite} onChange={(e) => setFiles({ ...files, [s]: e.target.files?.[0] ?? null })} />
+              <FieldRow key={s} label={`${tr('첨부파일', 'File')} ${s}`} htmlFor={`ef-file-${s}`} error={errors[`file${s}`]} help={existing ? <span>{tr('첨부된 파일', 'Current')}: {existing.realFileName} <ACheckbox label={tr('현재 파일 삭제', 'Remove current file')} checked={clear.includes(s)} onChange={(e) => setClear(e.target.checked ? [...clear, s] : clear.filter((x) => x !== s))} /></span> : undefined}>
+                <input id={`ef-file-${s}`} type="file" accept=".hwp,.hwpx,.xlsx,.xls,.txt,.jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.zip" disabled={!uploadOk || !canWrite || cleared} onChange={(e) => { setFiles({ ...files, [s]: e.target.files?.[0] ?? null }); if (errors[`file${s}`]) setErrors((prev) => { const next = { ...prev }; delete next[`file${s}`]; return next; }); }} />
               </FieldRow>
             );
           })}
-          <FieldRow label={tr('내 용', 'Content')} htmlFor="ef-content" required error={errors.Content} help={tr('HTML 사용 가능 (기존 에디터 내용 그대로 저장), 15자 이상', 'HTML allowed (saved as-is), 15+ characters')}><ATextarea id="ef-content" rows={14} value={f.Content} onChange={(e) => setF({ ...f, Content: e.target.value })} /></FieldRow>
+          <FieldRow label={tr('내 용', 'Content')} htmlFor="ef-content" required error={errors.Content} help={tr('15자 이상 (Editor | HTML | TEXT 모드)', '15+ characters (Editor | HTML | TEXT)')}><SiteCmsHtmlEditor id="ef-content" label={tr('내 용', 'Content')} value={f.Content} onChange={(html) => setF((s) => ({ ...s, Content: html }))} invalid={!!errors.Content} height={340} /></FieldRow>
         </div>
       </DetailDrawer>
+      <ConfirmDialog open={confirmOpen} title={editOpen === 'create' ? tr('학습자료 등록', 'Create resource') : tr('학습자료 수정', 'Save resource')} tone="info" loading={create.isPending || patch.isPending} onCancel={() => setConfirmOpen(false)} onConfirm={confirmSave} confirmLabel={tr('등록', 'Save')} body={<p>{tr('등록하시겠습니까?', 'Save this resource?')}</p>} />
       <ConfirmDialog open={delOpen} title={tr('학습자료 삭제', 'Delete resource')} tone="danger" loading={del.isPending} onCancel={() => setDelOpen(false)} onConfirm={() => del.mutate(undefined as never)} body={<p>{tr('현재 글을 삭제하시겠습니까? (Del=Y 처리)', 'Delete this post? (Del=Y)')}</p>} />
     </AdminPage>
   );
