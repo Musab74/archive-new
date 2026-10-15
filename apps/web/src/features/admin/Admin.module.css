@@ -197,7 +197,8 @@
   .side{position:static;height:auto;padding:8px 10px}
   .sideHead{display:none}
   .sideNav{flex-direction:row;overflow-x:auto;gap:6px;scrollbar-width:none}
-  .item{padding:0 12px;min-height:36px;border:1px solid rgba(255,255,255,.5);border-radius:999px;font-size:13px}
+  .item{flex:none;padding:0 12px;min-height:36px;border:1px solid rgba(255,255,255,.5);border-radius:999px;font-size:13px;white-space:nowrap;word-break:normal}
+  .item .label{white-space:nowrap}
   .legacyMark{margin-left:4px}
   .crumbs{padding:10px 16px 0}
   .ds{grid-template-columns:1fr}

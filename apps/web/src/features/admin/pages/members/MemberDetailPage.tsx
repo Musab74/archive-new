@@ -1,10 +1,10 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { adminApi } from '../../../../shared/api/endpoints/admin';
 import { adminMembersParityApi, type MemberEditForm, type MemberParityDetail } from '../../../../shared/api/endpoints/admin-members-parity';
 import { adminStudiesParityApi } from '../../../../shared/api/endpoints/admin-studies-parity';
-import { AButton, AdminPage, AInput, ASelect, ATextarea, Callout, Card, ConfirmDialog, DataTable, DescList, FieldRow, StatusBadge, type Column } from '../../../../shared/ui/admin';
+import { AButton, AInput, ASelect, ATextarea, Callout, ConfirmDialog, DataTable, DescList, DetailHeader, DetailPage, DetailTab, DetailTabs, FieldRow, InfoTable, MenuAction, PanelGrid, SectionPanel, StatusBadge, type Column } from '../../../../shared/ui/admin';
 import { Modal } from '../../../../shared/ui/Modal';
 import { StateBlock } from '../../../../shared/ui/StateBlock';
 import { Skeleton } from '../../../../shared/ui/Skeleton';
@@ -27,7 +27,6 @@ const REVEAL_LABEL: Record<RevealKey, string> = { BirthDay: '생년월일', Emai
 
 /** Numbering like the PHP lists: total, total-1, … */
 const desc = (total: number) => (_r: unknown, i: number) => total - i;
-const scroll = (h: number, children: ReactNode) => <div style={{ maxHeight: h, overflowY: 'auto' }}>{children}</div>;
 
 const enrollCols = (total: number, memberId: string, memberName: string): Column<Enrollment>[] => [
   { key: 'no', header: <>{tr('번호', 'No.')}<br />{tr('구분', 'Type')}</>, align: 'center', render: (r, i) => <>{total - i}<br /><small className="muted">{r.serviceTypeLabel || r.serviceType || ''}</small></> },
@@ -126,76 +125,135 @@ export default function MemberDetailPage() {
   ];
 
   const co = d?.company;
-  const check = (on: boolean) => <span aria-label={on ? tr('사용', 'on') : tr('미사용', 'off')}>{on ? '☑' : '☐'} {tr('사용 여부', 'enabled')}</span>;
+  const check = (on: boolean) => <StatusBadge tone={on ? 'ok' : 'neutral'}>{on ? tr('사용', 'On') : tr('미사용', 'Off')}</StatusBadge>;
+  const addr = (a: { zipcode?: string | null; address01?: string | null; address02?: string | null }) => [a.zipcode ? `[${a.zipcode}]` : '', a.address01, a.address02].filter(Boolean).join(' ');
+  const passed = d ? d.enrollments.filter((e) => e.passOkRaw === 'Y').length : 0;
+  const counselCount = d ? d.counselPhone.length + d.inquiries.length : 0;
+
+  if (q.isError) return <DetailPage><StateBlock code={(q.error as { status?: number }).status === 404 ? 'NOT_FOUND' : 'LIST_ERROR'} center onRetry={() => void q.refetch()} /></DetailPage>;
+  if (q.isPending || !d || !p) return <DetailPage><Skeleton lines={10} /></DetailPage>;
+
   return (
-    <AdminPage title={tr('수강생 상세 내용', 'Learner detail')} crumbs={[{ label: adm.top.home, to: '/admin' }, { label: tr('수강생 관리', 'Learners'), to: '/admin/members' }, { label: id }]}
-      actions={<AButton to="/admin/members">{tr('목록', 'List')}</AButton>}>
-      {q.isError ? <StateBlock code={(q.error as { status?: number }).status === 404 ? 'NOT_FOUND' : 'LIST_ERROR'} center onRetry={() => void q.refetch()} /> : q.isPending || !d || !p ? <Skeleton lines={8} /> : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <Card>
-            <DescList cols={2} items={[
-              [tr('아이디', 'ID'), <span key="id"><b>{p.id}</b> {p.useYN === 'N' ? <StatusBadge tone="warn">{tr('미사용 계정', 'Inactive account')}</StatusBadge> : null}{p.testId === 'Y' ? <> <StatusBadge>{tr('테스트', 'Test')}</StatusBadge></> : null}</span>],
-              [tr('이름', 'Name'), p.name],
-              [tr('생년월일/성별', 'Birth date / gender'), <span key="b">{masked('BirthDay', p.birthDay)} / {p.genderLabel}</span>],
-              [tr('이메일', 'Email'), masked('Email', p.email)],
-              [tr('전화번호', 'Phone'), masked('Tel', p.tel)],
-              [tr('휴대폰', 'Mobile'), masked('Mobile', p.mobile)],
-              [tr('영문 이름', 'English name'), p.nameEng],
-              [tr('주소', 'Address'), `[${p.address.zipcode ?? ''}] ${p.address.address01 ?? ''} ${p.address.address02 ?? ''}`],
-              [tr('부서', 'Department'), p.depart], [tr('직위', 'Title'), p.position],
-              [tr('관심분야', 'Interests'), p.etc01], [tr('가입경로', 'Referral'), p.etc02],
-              [tr('메일링', 'Mailing'), p.mailling], ['ACS', p.acs],
-              [tr('가입일', 'Joined'), p.regDate], [tr('교육 담당자', 'Training manager'), p.eduManager],
-              [tr('마케팅 수신동의', 'Marketing consent'), p.marketingLabel], [tr('회원구분', 'Member type'), p.memberTypeLabel],
-              [tr('내일배움카드', 'Learning card'), [p.cardName, p.cardNumber].filter(Boolean).join(' ')],
-              [tr('최종로그인', 'Last login'), p.lastLogin ? `${p.lastLogin} (${p.lastLoginIp ?? ''})` : null],
+    <DetailPage>
+      <DetailHeader
+        initial={p.name ?? p.id}
+        title={<>{p.name ?? p.id} <span style={{ fontWeight: 500, color: 'var(--c-muted)', fontSize: 16 }}>({p.id})</span></>}
+        subtitle={[co?.companyName ?? p.companyCode, [p.depart, p.position].filter(Boolean).join(' · ')].filter(Boolean).join('  |  ') || tr('소속 정보 없음', 'No company')}
+        badges={<>
+          <StatusBadge tone={p.useYN === 'N' ? 'warn' : 'ok'}>{p.useYN === 'N' ? tr('미사용 계정', 'Inactive') : tr('사용 중', 'Active')}</StatusBadge>
+          {p.memberTypeLabel ? <StatusBadge>{p.memberTypeLabel}</StatusBadge> : null}
+          {p.eduManager === 'Y' ? <StatusBadge tone="info">{tr('교육담당자', 'Training manager')}</StatusBadge> : null}
+          {p.testId === 'Y' ? <StatusBadge>{tr('테스트 계정', 'Test account')}</StatusBadge> : null}
+          {p.memberOut === 'Y' ? <StatusBadge tone="danger">{tr(`탈퇴 ${p.memberOutDate ?? ''}`, `Withdrawn ${p.memberOutDate ?? ''}`)}</StatusBadge> : null}
+          {p.sleep === 'Y' ? <StatusBadge tone="warn">{tr(`휴면 ${p.sleepDate ?? ''}`, `Dormant ${p.sleepDate ?? ''}`)}</StatusBadge> : null}
+        </>}
+        facts={[
+          { label: tr('수강', 'Enrollments'), value: tr(`${d.enrollments.length}건`, String(d.enrollments.length)) },
+          { label: tr('수료', 'Completed'), value: tr(`${passed}건`, String(passed)), tone: passed ? 'ok' : undefined },
+          { label: tr('로그인', 'Logins'), value: tr(`${d.loginTotal}회`, String(d.loginTotal)) },
+          { label: tr('최근 로그인', 'Last login'), value: p.lastLogin ? p.lastLogin.slice(0, 16) : null, hint: p.lastLoginIp ?? undefined },
+          { label: tr('가입일', 'Joined'), value: p.regDate ? p.regDate.slice(0, 10) : null },
+        ]}
+        back={{ to: '/admin/members', label: tr('목록', 'List') }}
+        actions={<AButton variant="primary" icon="edit" disabled={!canWrite || p.memberOut === 'Y'} title={readOnlyTitle} onClick={() => setReason({ kind: 'edit' })}>{tr('정보 수정', 'Edit')}</AButton>}
+        dangerActions={<>
+          <MenuAction onClick={() => setConfirm('pcd')} disabled={!canWrite} title={readOnlyTitle}>{tr('비밀번호 초기화 (1111)', 'Reset password (1111)')}</MenuAction>
+          <MenuAction onClick={() => setPwOpen(true)} disabled={!canWrite} title={readOnlyTitle}>{tr('비밀번호 지정', 'Set password')}</MenuAction>
+          <MenuAction onClick={() => setConfirm('use')} disabled={!canWrite} title={readOnlyTitle}>{p.useYN === 'Y' ? tr('회원 미사용처리', 'Deactivate') : tr('회원 사용처리', 'Activate')}</MenuAction>
+          <MenuAction onClick={() => setConfirm('out')} disabled={!canWrite || p.memberOut === 'Y'} title={readOnlyTitle} danger>{tr('회원 탈퇴처리', 'Withdraw')}</MenuAction>
+          <MenuAction onClick={() => setConfirm('delete')} disabled={!canWrite} title={readOnlyTitle} danger>{tr('회원 데이터 삭제', 'Delete member data')}</MenuAction>
+          <MenuAction onClick={() => undefined} disabled title={tr('회원으로 로그인은 아직 이전 사이트(hrd_manager)에서만 가능합니다.', 'Log in as member is still only available on the previous site.')}>{tr('회원으로 로그인', 'Log in as member')}</MenuAction>
+        </>}
+      />
+
+      {p.memberOut === 'Y' ? <Callout tone="warn">{tr(`탈퇴 처리된 회원입니다 (${p.memberOutDate ?? ''}). 복구는 탈퇴회원 관리에서 합니다.`, `Withdrawn member (${p.memberOutDate ?? ''}). Restore it from Withdrawn members.`)}</Callout> : null}
+
+      <DetailTabs label={tr('수강생 상세 항목', 'Learner sections')}>
+        <DetailTab id="info" label={tr('기본 정보', 'Profile')} icon="user">
+          <InfoTable groups={[
+            { title: tr('계정', 'Account'), rows: [
+              { label: tr('아이디', 'ID'), value: <b>{p.id}</b> }, { label: tr('이름', 'Name'), value: p.name },
+              { label: tr('영문 이름', 'English name'), value: p.nameEng }, { label: tr('회원구분', 'Member type'), value: p.memberTypeLabel },
+              { label: tr('가입일', 'Joined'), value: p.regDate }, { label: tr('최종로그인', 'Last login'), value: p.lastLogin ? `${p.lastLogin} (${p.lastLoginIp ?? ''})` : null },
+              { label: tr('교육 담당자', 'Training manager'), value: p.eduManager }, { label: tr('계정 사용', 'Account'), value: p.useYN === 'N' ? tr('미사용', 'Inactive') : tr('사용', 'Active') },
+            ] },
+            { title: tr('개인정보', 'Personal data'), aside: <span className="muted" style={{ fontSize: 12 }}>{tr('가려진 값을 누르면 사유를 남기고 열람합니다', 'Click a masked value to view it with a logged reason')}</span>, rows: [
+              { label: tr('생년월일 / 성별', 'Birth date / gender'), value: <span>{masked('BirthDay', p.birthDay) || '—'}{p.genderLabel ? ` / ${p.genderLabel}` : ''}</span> },
+              { label: tr('이메일', 'Email'), value: masked('Email', p.email) },
+              { label: tr('휴대폰', 'Mobile'), value: masked('Mobile', p.mobile) },
+              { label: tr('전화번호', 'Phone'), value: masked('Tel', p.tel) },
+              { label: tr('주소', 'Address'), value: addr(p.address), wide: true },
+            ] },
+            { title: tr('소속 · 기타', 'Work · other'), rows: [
+              { label: tr('부서', 'Department'), value: p.depart }, { label: tr('직위', 'Title'), value: p.position },
+              { label: tr('관심분야', 'Interests'), value: p.etc01 }, { label: tr('가입경로', 'Referral'), value: p.etc02 },
+              { label: tr('메일링', 'Mailing'), value: p.mailling }, { label: 'ACS', value: p.acs },
+              { label: tr('마케팅 수신동의', 'Marketing consent'), value: p.marketingLabel }, { label: tr('내일배움카드', 'Learning card'), value: [p.cardName, p.cardNumber].filter(Boolean).join(' ') },
+            ] },
+          ]} />
+        </DetailTab>
+
+        <DetailTab id="company" label={tr('소속 정보', 'Company')} icon="building" hidden={!p.companyCode}>
+          {co ? (
+            <InfoTable groups={[
+              { title: tr('사업주', 'Company'), aside: <Link to={`/admin/companies/${co.idx}`} style={{ fontSize: 13 }}>{tr('사업주 상세 보기 →', 'Open company →')}</Link>, rows: [
+                { label: tr('회사명', 'Company'), value: <b>{co.companyName}</b> }, { label: tr('회사 규모', 'Size'), value: co.scaleLabel },
+                { label: tr('사업자 번호', 'Biz no.'), value: co.companyCode }, { label: tr('HRD 번호', 'HRD no.'), value: co.hrd },
+                { label: tr('사업주 ID', 'Company ID'), value: co.companyId }, { label: tr('대표자명', 'CEO'), value: co.ceo },
+                { label: tr('업태', 'Business type'), value: co.uptae }, { label: tr('업종', 'Industry'), value: co.upjong },
+              ] },
+              { title: tr('연락처', 'Contact'), rows: [
+                { label: tr('대표 전화번호', 'Main phone'), value: co.tel }, { label: tr('고객센터 전화번호', 'Support phone'), value: <span>{co.tel2 ?? ''} {check(co.csEnabled)}</span> },
+                { label: tr('대표 팩스번호', 'Main fax'), value: co.fax }, { label: tr('고객센터 팩스번호', 'Support fax'), value: co.fax2 },
+                { label: tr('이메일', 'Email'), value: co.email }, { label: tr('홈페이지', 'Homepage'), value: co.homePage },
+                { label: tr('주소', 'Address'), value: addr(co.address), wide: true },
+              ] },
+              { title: tr('운영', 'Operations'), rows: [
+                { label: tr('교육담당자', 'Training manager'), value: [co.eduManager, co.eduManagerPhone, co.eduManagerEmail].filter(Boolean).join(' / ') }, { label: tr('영업담당자', 'Sales rep'), value: co.salesName },
+                { label: tr('계좌정보', 'Bank'), value: [co.bankName, co.bankNumber].filter(Boolean).join(' ') }, { label: tr('사이버교육센터', 'Cyber centre'), value: <span>{co.cyberUrl ?? ''} {check(co.cyberEnabled)}</span> },
+                { label: tr('메모', 'Memo'), value: co.remark, wide: true },
+              ] },
             ]} />
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginTop: 14 }}>
-              <AButton variant="primary" disabled={!canWrite || p.memberOut === 'Y'} title={readOnlyTitle} onClick={() => setReason({ kind: 'edit' })}>{tr('정보 수정', 'Edit')}</AButton>
-              <AButton disabled title={tr('회원으로 로그인은 아직 이전 사이트(hrd_manager)에서만 가능합니다.', 'Log in as member is still only available on the previous site.')}>{tr('회원으로 로그인', 'Log in as member')}</AButton>
-              <AButton disabled={!canWrite} title={readOnlyTitle} onClick={() => setConfirm('pcd')}>{tr('비밀번호 초기화', 'Reset password')}</AButton>
-              <AButton disabled={!canWrite} title={readOnlyTitle} onClick={() => setPwOpen(true)}>{tr('비밀번호 지정', 'Set password')}</AButton>
-              <AButton disabled={!canWrite || p.memberOut === 'Y'} title={readOnlyTitle} onClick={() => setConfirm('out')}>{tr('회원 탈퇴처리', 'Withdraw')}</AButton>
-              <AButton disabled={!canWrite} title={readOnlyTitle} onClick={() => setConfirm('use')}>{p.useYN === 'Y' ? tr('회원 미사용처리', 'Deactivate') : tr('회원 사용처리', 'Activate')}</AButton>
-              <AButton variant="danger" disabled={!canWrite} title={readOnlyTitle} onClick={() => setConfirm('delete')}>{tr('회원 데이터 삭제', 'Delete member data')}</AButton>
-              <AButton to="/admin/members">{tr('목록', 'List')}</AButton>
-            </div>
-            {p.memberOut === 'Y' ? <Callout tone="warn" className="u-mt-16">{tr(`탈퇴 처리된 회원입니다 (${p.memberOutDate ?? ''}). 복구는 탈퇴회원 관리에서 합니다.`, `Withdrawn member (${p.memberOutDate ?? ''}). Restore it from Withdrawn members.`)}</Callout> : null}
-            {p.sleep === 'Y' ? <Callout tone="warn" className="u-mt-16">{tr(`휴면 계정입니다 (${p.sleepDate ?? ''}).`, `Dormant account (${p.sleepDate ?? ''}).`)}</Callout> : null}
-          </Card>
+          ) : <Callout>{tr(`사업자번호 ${p.companyCode} 의 사업주 정보가 없습니다.`, `No company record for ${p.companyCode}.`)}</Callout>}
+        </DetailTab>
 
-          {p.companyCode ? (
-            <Card title={tr('소속 정보', 'Company')}>
-              {co ? <DescList cols={2} items={[
-                [tr('회사 규모', 'Size'), co.scaleLabel], [tr('회사명', 'Company'), co.companyName], [tr('사업자 번호', 'Biz no.'), co.companyCode], [tr('HRD 번호', 'HRD no.'), co.hrd],
-                [tr('사업주 ID', 'Company ID'), co.companyId], [tr('대표자명', 'CEO'), co.ceo], [tr('대표 전화번호', 'Main phone'), co.tel], [tr('고객센터 전화번호', 'Support phone'), <span key="t2">{co.tel2 ?? ''} {check(co.csEnabled)}</span>],
-                [tr('업태', 'Business type'), co.uptae], [tr('업종', 'Industry'), co.upjong], [tr('대표 팩스번호', 'Main fax'), co.fax], [tr('고객센터 팩스번호', 'Support fax'), co.fax2],
-                [tr('주소', 'Address'), `[${co.address.zipcode ?? ''}] ${co.address.address01 ?? ''} ${co.address.address02 ?? ''}`], [tr('계좌정보', 'Bank'), [co.bankName, co.bankNumber].filter(Boolean).join(' ')], [tr('이메일', 'Email'), co.email], [tr('홈페이지', 'Homepage'), co.homePage],
-                [tr('교육담당자', 'Training manager'), [co.eduManager, co.eduManagerPhone, co.eduManagerEmail].map((x) => x ?? '').join(' / ')], [tr('영업담당자', 'Sales rep'), co.salesName], [tr('메모', 'Memo'), co.remark], [tr('사이버교육센터', 'Cyber centre'), <span key="cy">{co.cyberUrl ?? ''} {check(co.cyberEnabled)}</span>],
-              ]} /> : <p className="muted" style={{ fontSize: 13 }}>{tr(`사업자번호 ${p.companyCode} 의 사업주 정보가 없습니다.`, `No company record for ${p.companyCode}.`)}</p>}
-              {co ? <div style={{ marginTop: 8 }}><Link to={`/admin/companies/${co.idx}`} style={{ fontSize: 12 }}>{tr('사업주 상세 보기 →', 'Open company →')}</Link></div> : null}
-            </Card>
-          ) : null}
+        <DetailTab id="studies" label={tr('수강 내역', 'Enrollments')} icon="book" count={d.enrollments.length}>
+          <SectionPanel title={tr('수강 내역', 'Enrollments')} count={d.enrollments.length}
+            note={tr('진도율 = 학습시간 ÷ 15시간 (패키지는 하위 과정 합산). 진도 로그 "보기"를 누르면 차시별 학습 기록과 로그가 열립니다.', 'Progress = study time ÷ 15h (package: sub-courses summed). "View" opens the per-chapter record and log.')}
+            toolbar={<AButton size="sm" icon="download" loading={xlsBusy} onClick={() => void learningXls()}>{tr('학습내역 엑셀 출력', 'Learning record CSV')}</AButton>}>
+            <DataTable columns={enrollCols(d.enrollments.length, p.id, p.name ?? '')} rows={d.enrollments} rowKey={(r) => r.studySeq} emptyTitle={tr('수강 내역이 없습니다.', 'No enrollments.')} dense />
+          </SectionPanel>
+        </DetailTab>
 
-          <Card title={tr('로그인 내역', 'Login history')} aside={<span className="muted" style={{ fontSize: 12 }}>{d.loginTotal}{tr('건', '')}</span>}>{scroll(350, <DataTable columns={loginCols} rows={d.loginHistory} rowKey={(r) => r.idx} emptyTitle={tr('로그인 내역이 없습니다.', 'No logins.')} dense />)}</Card>
-          <Card title={tr('본인인증 내역', 'Identity checks')} aside={<span className="muted" style={{ fontSize: 12 }}>{tr(`${d.identity.certCount}건 · 성공 ${d.identity.certSuccess}`, `${d.identity.certCount} · ${d.identity.certSuccess} ok`)}</span>}>{scroll(350, <DataTable columns={certCols} rows={d.certHistory} rowKey={(r) => r.seq} emptyTitle={tr('본인인증 내역이 없습니다.', 'No identity checks.')} dense />)}</Card>
+        <DetailTab id="access" label={tr('로그인 · 본인인증', 'Logins · identity')} icon="shield" count={d.loginTotal}>
+          <PanelGrid>
+            <SectionPanel title={tr('로그인 내역', 'Login history')} count={d.loginTotal} maxHeight={520}>
+              <DataTable columns={loginCols} rows={d.loginHistory} rowKey={(r) => r.idx} emptyTitle={tr('로그인 내역이 없습니다.', 'No logins.')} dense />
+            </SectionPanel>
+            <SectionPanel title={tr('본인인증 내역', 'Identity checks')} count={d.identity.certCount} note={tr(`성공 ${d.identity.certSuccess}건`, `${d.identity.certSuccess} succeeded`)} maxHeight={520}>
+              <DataTable columns={certCols} rows={d.certHistory} rowKey={(r) => r.seq} emptyTitle={tr('본인인증 내역이 없습니다.', 'No identity checks.')} dense />
+            </SectionPanel>
+          </PanelGrid>
+        </DetailTab>
 
-          {p.eduManager === 'Y' ? (
-            <Card title={tr('교육담당자 관리 업체', 'Managed companies')} aside={<AButton size="sm" variant="primary" disabled={!canWrite} title={readOnlyTitle} onClick={() => setManaged({ idx: null, companyCode: '', companyName: '' })}>{tr('신규 등록', 'Add')}</AButton>}>
-              <p className="muted" style={{ fontSize: 12, marginTop: 0 }}>{tr('등록된 업체는 소속업체와 같이 교육담당자 메뉴에서 관리할 수 있습니다', 'Listed companies can be managed from the training-manager menu like the own company.')}</p>
-              <DataTable columns={managedCols} rows={d.managedCompanies} rowKey={(r) => r.idx} emptyTitle={tr('등록된 회사가 없습니다.', 'No companies.')} dense />
-            </Card>
-          ) : null}
-
-          <Card title={tr('전화상담 내역', 'Phone counselling')} aside={<div style={{ display: 'flex', gap: 6 }}><AButton size="sm" variant="primary" disabled={!canWrite} title={readOnlyTitle} onClick={() => setPhone({ idx: null, Category: '', Name: admin?.name ?? '', Contents: '', Status: '' })}>{tr('신규 작성', 'New')}</AButton><AButton size="sm" icon="download" loading={csvBusy} onClick={() => void phoneCsv()}>{tr('엑셀 출력', 'Export')}</AButton></div>}>
+        <DetailTab id="counsel" label={tr('상담 · 문의', 'Counselling')} icon="headset" count={counselCount}>
+          <SectionPanel title={tr('전화상담 내역', 'Phone counselling')} count={d.counselPhone.length} note={canWrite ? tr('행을 누르면 수정할 수 있습니다.', 'Click a row to edit it.') : undefined}
+            toolbar={<><AButton size="sm" variant="primary" icon="plus" disabled={!canWrite} title={readOnlyTitle} onClick={() => setPhone({ idx: null, Category: '', Name: admin?.name ?? '', Contents: '', Status: '' })}>{tr('신규 작성', 'New')}</AButton><AButton size="sm" icon="download" loading={csvBusy} onClick={() => void phoneCsv()}>{tr('엑셀 출력', 'Export')}</AButton></>}>
             <DataTable columns={phoneCols} rows={d.counselPhone} rowKey={(r) => r.idx} onRowClick={canWrite ? (r) => setPhone({ idx: r.idx, Category: r.category ?? '', Name: r.name ?? '', Contents: r.contents, Status: r.status ?? '' }) : undefined} emptyTitle={tr('전화상담 내역이 없습니다.', 'No phone counselling.')} dense />
-          </Card>
-          <Card title={tr('1:1 문의 내역', '1:1 inquiries')}><DataTable columns={inquiryCols} rows={d.inquiries} rowKey={(r) => r.idx} emptyTitle={tr('1:1 문의 내역이 없습니다.', 'No inquiries.')} dense /></Card>
-          <Card title={tr('수강 내역', 'Enrollments')} aside={<span style={{ display: 'inline-flex', gap: 10, alignItems: 'center' }}><span className="muted" style={{ fontSize: 12 }}>{tr('진도율 = 학습시간 ÷ 15시간 (패키지는 하위 과정 합산) · 진도 로그 보기 = 차시별 학습 기록', 'Progress = study time ÷ 15h (package: sub-courses summed) · View = per-chapter log')}</span><AButton size="sm" loading={xlsBusy} onClick={() => void learningXls()}>{tr('학습내역 엑셀 출력', 'Learning record CSV')}</AButton></span>}>
-            {scroll(500, <DataTable columns={enrollCols(d.enrollments.length, p.id, p.name ?? '')} rows={d.enrollments} rowKey={(r) => r.studySeq} emptyTitle={tr('수강 내역이 없습니다.', 'No enrollments.')} dense />)}
-          </Card>
-        </div>
-      )}
+          </SectionPanel>
+          <SectionPanel title={tr('1:1 문의 내역', '1:1 inquiries')} count={d.inquiries.length}>
+            <DataTable columns={inquiryCols} rows={d.inquiries} rowKey={(r) => r.idx} emptyTitle={tr('1:1 문의 내역이 없습니다.', 'No inquiries.')} dense />
+          </SectionPanel>
+        </DetailTab>
+
+        <DetailTab id="managed" label={tr('관리 업체', 'Managed companies')} icon="briefcase" count={d.managedCompanies.length} hidden={p.eduManager !== 'Y'}>
+          <SectionPanel title={tr('교육담당자 관리 업체', 'Managed companies')} count={d.managedCompanies.length}
+            note={tr('등록된 업체는 소속업체와 같이 교육담당자 메뉴에서 관리할 수 있습니다.', 'Listed companies can be managed from the training-manager menu like the own company.')}
+            toolbar={<AButton size="sm" variant="primary" icon="plus" disabled={!canWrite} title={readOnlyTitle} onClick={() => setManaged({ idx: null, companyCode: '', companyName: '' })}>{tr('신규 등록', 'Add')}</AButton>}>
+            <DataTable columns={managedCols} rows={d.managedCompanies} rowKey={(r) => r.idx} emptyTitle={tr('등록된 회사가 없습니다.', 'No companies.')} dense />
+          </SectionPanel>
+        </DetailTab>
+      </DetailTabs>
 
       <PrivacyReasonDialog open={!!reason} item={reason?.kind === 'reveal' ? REVEAL_LABEL[reason.field] : '회원정보수정'} loading={reveal.isPending || editForm.isPending} onCancel={() => setReason(null)}
         onSubmit={(gubun, text) => { if (reason?.kind === 'reveal') reveal.mutate({ field: reason.field, gubun, reason: text }); else editForm.mutate({ gubun, reason: text }); }} />
@@ -232,6 +290,6 @@ export default function MemberDetailPage() {
           </div>
         </div> : null}
       </Modal>
-    </AdminPage>
+    </DetailPage>
   );
 }

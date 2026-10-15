@@ -54,23 +54,34 @@ describe('수강생 관리 parity', () => {
   it('member_read.php sections in order, masked contacts revealed only after a logged reason', async () => {
     vi.stubGlobal('fetch', apiMock());
     mount('/admin/members/user01');
-    expect(await screen.findByRole('heading', { level: 1, name: '수강생 상세 내용' })).toBeInTheDocument();
-    expect(await screen.findByText('소속 정보')).toBeInTheDocument();
-    for (const t of [ '로그인 내역', '본인인증 내역', '교육담당자 관리 업체', '전화상담 내역', '1:1 문의 내역', '수강 내역']) expect(screen.getByText(t)).toBeInTheDocument();
-    expect(screen.getByText('우선지원대상')).toBeInTheDocument();
-    expect(screen.getByText('관리기업')).toBeInTheDocument();
-    expect(screen.getByText('Chrome · Windows')).toBeInTheDocument();
-    expect(screen.getByText('질문있어요')).toBeInTheDocument();
-    expect(screen.getByText('50%')).toBeInTheDocument();
+    // header: identity, badges, facts, everyday action; tabs carry the old page's sections
+    expect(await screen.findByRole('heading', { level: 1, name: /홍길동/ })).toBeInTheDocument();
+    for (const t of ['기본 정보', '소속 정보', '수강 내역', '로그인 · 본인인증', '상담 · 문의', '관리 업체']) expect(screen.getByRole('tab', { name: new RegExp(t) })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '정보 수정' })).toBeEnabled();
+    // rare / destructive actions sit in the 더보기 menu
+    fireEvent.click(screen.getByRole('button', { name: /더보기/ }));
+    for (const b of ['비밀번호 초기화 (1111)', '회원 탈퇴처리', '회원 미사용처리', '회원 데이터 삭제']) expect(screen.getByRole('menuitem', { name: b })).toBeEnabled();
+    expect(screen.getByRole('menuitem', { name: '회원으로 로그인' })).toBeDisabled();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    // each tab shows its section
+    fireEvent.click(screen.getByRole('tab', { name: /소속 정보/ }));
+    expect(await screen.findByText('우선지원대상')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /로그인 · 본인인증/ }));
+    expect(await screen.findByText('Chrome · Windows')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /상담 · 문의/ }));
+    expect(await screen.findByText('질문있어요')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /관리 업체/ }));
+    expect(await screen.findByText('관리기업')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /수강 내역/ }));
+    expect(await screen.findByText('50%')).toBeInTheDocument();
     expect(screen.getByText('미마감')).toBeInTheDocument();
     // 진도 로그: each 수강 내역 row links to the enrollment page's 학습 내역 block; 학습내역 엑셀 is a real export (no PHP link)
     const logLink = screen.getByRole('link', { name: '보기' });
     expect(logLink.getAttribute('href')).toMatch(/^\/admin\/studies\/\d+#learning$/);
     expect(screen.getByRole('button', { name: '학습내역 엑셀 출력' })).toBeEnabled();
     expect(document.body.innerHTML).not.toContain('hrd_manager/');
-    for (const b of ['정보 수정', '비밀번호 초기화', '회원 탈퇴처리', '회원 미사용처리', '회원 데이터 삭제']) expect(screen.getByRole('button', { name: b })).toBeEnabled();
-    expect(screen.getByRole('button', { name: '회원으로 로그인' })).toBeDisabled();
 
+    fireEvent.click(screen.getByRole('tab', { name: /기본 정보/ }));
     fireEvent.click(screen.getByRole('button', { name: '010-****-3333' }));
     expect(await screen.findByText('개인정보 열람사유 작성')).toBeInTheDocument();
     fireEvent.change(document.getElementById('pr-reason')!, { target: { value: '상담 <확인>' } });

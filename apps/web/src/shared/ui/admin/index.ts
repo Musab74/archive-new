@@ -11,3 +11,5 @@ export { JsonViewer } from './JsonViewer';
 export { StatusBadge, YnBadge, BoolBadge } from './StatusBadge';
 export type { BadgeTone } from './StatusBadge';
 export { AdminPage, Card, Kpi, DescList, Callout, AButton, AInput, ATextarea, ASelect, FieldRow, ACheckbox, Bar, TabStrip, adminStyles } from './primitives';
+export { DetailPage, DetailHeader, DetailTabs, DetailTab, InfoTable, SectionPanel, PanelGrid, MenuAction } from './DetailLayout';
+export type { Fact, InfoRow, InfoGroup, DetailTabProps } from './DetailLayout';
