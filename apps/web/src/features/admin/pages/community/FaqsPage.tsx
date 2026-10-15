@@ -1,64 +1,98 @@
 import { useEffect, useMemo, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { adminApi } from '../../../../shared/api/endpoints/admin';
-import type { AdminFaqRow } from '../../../../shared/api/schemas';
+import { adminSupportParityApi, FAQ_CATEGORIES, type FaqRow } from '../../../../shared/api/endpoints/admin-support-parity';
 import { useSearchState } from '../../../../shared/utils/useSearchState';
-import { AButton, ACheckbox, AdminPage, AInput, ATextarea, ConfirmDialog, DataTable, DetailDrawer, FieldRow, FilterBar, FilterField, YnBadge, type Column } from '../../../../shared/ui/admin';
+import { AButton, AdminPage, AInput, ASelect, ATextarea, Card, ConfirmDialog, DataTable, DescList, DetailDrawer, FieldRow, FilterBar, FilterField, TabStrip, type Column } from '../../../../shared/ui/admin';
 import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
 import { tr } from '../../../../shared/i18n/adminLang';
 import { adm } from '../../strings';
+import { rowNo, tooShort } from './support-parity.helpers';
 
-const DEFAULTS = { q: '', category: '', page: 1 };
+const DEFAULTS = { col: 'Title', q: '', category: '', page: 1 };
 const SIZE = 20;
-interface Form { Category: string; Title: string; Content: string; UseYN: boolean; OrderByNum: string }
-const EMPTY: Form = { Category: '', Title: '', Content: '', UseYN: true, OrderByNum: '0' };
+interface Form { UseYN: 'Y' | 'N'; OrderByNum: string; Category: string; Title: string; Content: string }
+const ynMsg = (v: string | null | undefined) => <span style={{ color: v === 'Y' ? 'var(--c-primary)' : 'var(--c-danger)' }}>{v === 'Y' ? tr('사용', 'In use') : tr('미사용', 'Not used')}</span>;
 
+/** faq.php / faq_read.php / faq_write.php / faq_script.php — 커뮤니티관리 > 자주 묻는 질문 (F2). */
 export default function FaqsPage() {
-  const f = adm.community.faqs;
   const { canWrite, readOnlyTitle } = useWriteGate();
   const [p, setP, reset] = useSearchState(DEFAULTS);
-  const [form, setForm] = useState({ q: p.q, category: p.category });
-  const query = useMemo(() => ({ q: p.q || undefined, category: p.category || undefined, page: p.page, size: SIZE }), [p]);
-  const list = useQuery({ queryKey: ['admin', 'faqs', query], queryFn: ({ signal }) => adminApi.faqs(query, signal), placeholderData: keepPreviousData });
-  const [editing, setEditing] = useState<number | 'new' | null>(null);
-  const [draft, setDraft] = useState<Form>(EMPTY);
-  const [del, setDel] = useState<AdminFaqRow | null>(null);
-  const detail = useQuery({ queryKey: ['admin', 'faq', editing], queryFn: ({ signal }) => adminApi.faq(editing as number, signal), enabled: typeof editing === 'number' });
-  useEffect(() => { if (editing === 'new') setDraft(EMPTY); else if (detail.data) setDraft({ Category: detail.data.category ?? '', Title: detail.data.title, Content: detail.data.content ?? '', UseYN: detail.data.useYN === 'Y', OrderByNum: String(detail.data.order) }); }, [editing, detail.data]);
-  const toBody = (b: Form) => ({ Category: b.Category.trim(), Title: b.Title.trim(), Content: b.Content || null, UseYN: b.UseYN ? 'Y' : 'N', OrderByNum: Number(b.OrderByNum) || 0 });
-  const inv = [['admin', 'faqs'], ['support']];
-  const create = useAdminMutation({ fn: (b: Form) => adminApi.createFaq(toBody(b)), invalidate: inv, success: adm.common.created, onSuccess: () => setEditing(null) });
-  const update = useAdminMutation({ fn: ({ idx, b }: { idx: number; b: Form }) => adminApi.updateFaq(idx, toBody(b)), invalidate: [...inv, ['admin', 'faq']], success: adm.common.saved, onSuccess: () => setEditing(null) });
-  const remove = useAdminMutation({ fn: (idx: number) => adminApi.deleteFaq(idx), invalidate: inv, success: adm.common.deleted, onSuccess: () => setDel(null) });
-  const columns: Column<AdminFaqRow>[] = [
-    { key: 'order', header: f.cols.order, align: 'right', sortable: true },
-    { key: 'idx', header: f.cols.idx, align: 'right', sortable: true },
-    { key: 'category', header: f.cols.category, sortable: true, render: (r) => r.category ?? '' },
-    { key: 'title', header: f.cols.title, sortable: true, render: (r) => <b>{r.title}</b> },
-    { key: 'useYN', header: f.cols.useYN, align: 'center', render: (r) => <YnBadge value={r.useYN} yes={tr('노출', 'Visible')} no={tr('숨김', 'Hidden')} /> },
-    { key: 'regDate', header: f.cols.regDate, nowrap: true, sortable: true, render: (r) => r.regDate ?? '' },
-    { key: '_act', header: '', width: 120, render: (r) => <span style={{ display: 'inline-flex', gap: 4 }}><AButton size="xs" onClick={(e) => { e.stopPropagation(); setEditing(r.idx); }}>{adm.common.edit}</AButton><AButton size="xs" variant="danger" disabled={!canWrite} title={readOnlyTitle} onClick={(e) => { e.stopPropagation(); setDel(r); }}>{adm.common.delete}</AButton></span> },
+  const [form, setForm] = useState({ col: p.col, q: p.q });
+  const query = useMemo(() => ({ col: p.col, q: p.q || undefined, category: p.category || undefined, page: p.page, size: SIZE }), [p]);
+  const list = useQuery({ queryKey: ['admin', 'faqs', query], queryFn: ({ signal }) => adminSupportParityApi.faqs(query, signal), placeholderData: keepPreviousData });
+  const meta = useQuery({ queryKey: ['admin', 'faqs', 'meta'], queryFn: ({ signal }) => adminSupportParityApi.faqMeta(signal) });
+  const categories = meta.data?.categories ?? FAQ_CATEGORIES;
+  const total = list.data?.total ?? 0;
+
+  const [sel, setSel] = useState<number | null>(null);
+  const [editing, setEditing] = useState<'new' | 'edit' | null>(null);
+  const detail = useQuery({ queryKey: ['admin', 'faq', sel], queryFn: ({ signal }) => adminSupportParityApi.faq(sel!, signal), enabled: sel !== null });
+  const d = detail.data;
+  const [f, setF] = useState<Form>({ UseYN: 'Y', OrderByNum: '', Category: 'A', Title: '', Content: '' });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  useEffect(() => {
+    if (editing === 'new') setF({ UseYN: 'Y', OrderByNum: String(meta.data?.nextOrder ?? ''), Category: categories[0]?.value ?? 'A', Title: '', Content: '' });
+    if (editing === 'edit' && d) setF({ UseYN: d.useYN === 'N' ? 'N' : 'Y', OrderByNum: String(d.order || ''), Category: d.category ?? 'A', Title: d.title, Content: d.content ?? '' });
+    setErrors({});
+  }, [editing, d]); // categories/meta only seed the new form
+  const inv = [['admin', 'faqs'], ['admin', 'faq'], ['support']];
+  const body = () => ({ UseYN: f.UseYN, OrderByNum: Number(f.OrderByNum) || 0, Category: f.Category, Title: f.Title.trim(), Content: f.Content });
+  const done = tr('처리되었습니다.', 'Done.');
+  const create = useAdminMutation({ fn: () => adminSupportParityApi.createFaq(body()), invalidate: inv, success: done, onSuccess: (r) => { setEditing(null); setSel(r.idx); } });
+  const update = useAdminMutation({ fn: () => adminSupportParityApi.updateFaq(sel!, body()), invalidate: inv, success: done, onSuccess: () => setEditing(null) });
+  const [delOpen, setDelOpen] = useState(false);
+  const remove = useAdminMutation({ fn: () => adminSupportParityApi.deleteFaq(sel!), invalidate: inv, success: done, onSuccess: () => { setDelOpen(false); setSel(null); } });
+  const submit = () => {
+    const e: Record<string, string> = {};
+    if (!f.Title.trim()) e.Title = tr('제목을 입력하세요.', 'Enter a title.');
+    if (tooShort(f.Content)) e.Content = tr('내용을 입력해주세요', 'Enter the content (15+ characters).');
+    if (f.OrderByNum && !/^\d+$/.test(f.OrderByNum)) e.OrderByNum = tr('숫자만 입력하세요.', 'Digits only.');
+    setErrors(e); if (Object.keys(e).length) return;
+    if (editing === 'new') create.mutate(undefined as never); else update.mutate(undefined as never);
+  };
+
+  const columns: Column<FaqRow>[] = [
+    { key: 'no', header: tr('번호', 'No.'), align: 'center', width: 80, render: (_r, i) => rowNo(total, p.page, SIZE, i) },
+    { key: 'order', header: tr('정렬 순서', 'Order'), align: 'center', width: 80 },
+    { key: 'categoryLabel', header: tr('구분', 'Category'), width: 120, render: (r) => r.categoryLabel || r.category || '' },
+    { key: 'title', header: tr('제목', 'Title'), render: (r) => <b>{r.title}</b> },
+    { key: 'regDate', header: tr('등록일', 'Registered'), width: 150, nowrap: true, render: (r) => r.regDate ?? '' },
+    { key: 'useYN', header: tr('사용 유무', 'Active'), align: 'center', width: 80, render: (r) => ynMsg(r.useYN) },
   ];
-  const valid = draft.Title.trim() && draft.Category.trim();
+  const newBtn = <AButton variant="primary" disabled={!canWrite} title={readOnlyTitle} onClick={() => { setSel(null); setEditing('new'); }}>{tr('신규 등록', 'New')}</AButton>;
   return (
-    <AdminPage title={f.title} lead={f.lead} actions={<AButton variant="primary" disabled={!canWrite} title={readOnlyTitle} onClick={() => setEditing('new')}>{f.new}</AButton>}>
-      <FilterBar onSubmit={() => setP(form, true)} onReset={() => { setForm({ q: '', category: '' }); reset(); }}>
-        <FilterField label={f.q} htmlFor="f-q" width={240}><AInput id="f-q" value={form.q} onChange={(e) => setForm({ ...form, q: e.target.value })} /></FilterField>
-        <FilterField label={f.category} htmlFor="f-cat" width={140}><AInput id="f-cat" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} /></FilterField>
+    <AdminPage title={tr('자주 묻는 질문', 'FAQ')} actions={newBtn}>
+      <FilterBar onSubmit={() => setP(form, true)} onReset={() => { setForm({ col: 'Title', q: '' }); reset(); }}>
+        <FilterField label={tr('검색 항목', 'Search in')} htmlFor="fq-col" width={120}><ASelect id="fq-col" value={form.col} onChange={(e) => setForm({ ...form, col: e.target.value })} options={[{ value: 'Title', label: tr('제목', 'Title') }, { value: 'Content', label: tr('내용', 'Content') }]} /></FilterField>
+        <FilterField label={tr('검색어', 'Keyword')} htmlFor="fq-q" width={300}><AInput id="fq-q" value={form.q} onChange={(e) => setForm({ ...form, q: e.target.value })} /></FilterField>
       </FilterBar>
-      <DataTable columns={columns} rows={list.data?.items} rowKey={(r) => r.idx} loading={list.isPending || list.isFetching} error={list.error} onRetry={() => void list.refetch()} page={p.page} size={SIZE} total={list.data?.total} onPageChange={(x) => setP({ page: x })} onRowClick={(r) => setEditing(r.idx)} dense />
-      <DetailDrawer open={editing !== null} onClose={() => setEditing(null)} title={editing === 'new' ? f.new : `${adm.common.edit} · #${editing}`} wide
-        footer={<><AButton onClick={() => setEditing(null)}>{adm.common.cancel}</AButton><AButton variant="primary" disabled={!canWrite || !valid} title={readOnlyTitle} loading={create.isPending || update.isPending} onClick={() => (editing === 'new' ? create.mutate(draft) : typeof editing === 'number' ? update.mutate({ idx: editing, b: draft }) : undefined)}>{editing === 'new' ? adm.common.create : adm.common.save}</AButton></>}>
+      <TabStrip label={tr('구분', 'Category')} value={p.category || 'ALL'} onChange={(k) => setP({ category: k === 'ALL' ? '' : k }, true)} items={[{ key: 'ALL', label: tr('전체', 'All') }, ...categories.map((c) => ({ key: c.value, label: c.label }))]} />
+      <DataTable columns={columns} rows={list.data?.items} rowKey={(r) => r.idx} loading={list.isPending || list.isFetching} error={list.error} onRetry={() => void list.refetch()} page={p.page} size={SIZE} total={total} onPageChange={(x) => setP({ page: x })} onRowClick={(r) => { setEditing(null); setSel(r.idx); }} selectedKey={sel} emptyTitle={tr('등록된 내용이 없습니다.', 'Nothing registered.')} dense />
+
+      {/* faq_read.php */}
+      <DetailDrawer open={sel !== null && !editing} onClose={() => setSel(null)} title={d?.title ?? tr('자주 묻는 질문', 'FAQ')} wide
+        footer={<><AButton variant="danger" disabled={!canWrite || !d} title={readOnlyTitle} onClick={() => setDelOpen(true)}>{tr('삭 제', 'Delete')}</AButton><AButton variant="primary" disabled={!canWrite || !d} title={readOnlyTitle} onClick={() => setEditing('edit')}>{tr('정보 수정', 'Edit')}</AButton><AButton onClick={() => setSel(null)}>{tr('목록', 'List')}</AButton></>}>
+        {d ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <Card><DescList items={[[tr('제목', 'Title'), d.title], [tr('분류', 'Category'), d.categoryLabel], [tr('정렬 순서', 'Order'), d.order], [tr('사용 유무', 'Active'), ynMsg(d.useYN)], [tr('등록일', 'Registered'), d.regDate]]} /></Card>
+            <Card title={tr('내용', 'Content')}><div style={{ lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: d.content ?? '' }} /></Card>
+          </div>
+        ) : detail.isError ? <p className="muted">{adm.common.failed}</p> : <p className="muted">{adm.common.loading}</p>}
+      </DetailDrawer>
+
+      {/* faq_write.php */}
+      <DetailDrawer open={!!editing} onClose={() => setEditing(null)} title={editing === 'new' ? tr('자주 묻는 질문 등록', 'New FAQ') : tr('자주 묻는 질문 수정', 'Edit FAQ')} wide
+        footer={<><AButton onClick={() => setEditing(null)}>{tr('목록', 'List')}</AButton><AButton variant="primary" disabled={!canWrite} title={readOnlyTitle} loading={create.isPending || update.isPending} onClick={submit}>{editing === 'new' ? tr('등록', 'Create') : tr('수정', 'Save')}</AButton></>}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <FieldRow label={f.form.category} htmlFor="ff-cat" required><AInput id="ff-cat" value={draft.Category} onChange={(e) => setDraft({ ...draft, Category: e.target.value })} maxLength={50} disabled={!canWrite} /></FieldRow>
-          <FieldRow label={f.form.title} htmlFor="ff-title" required><AInput id="ff-title" value={draft.Title} onChange={(e) => setDraft({ ...draft, Title: e.target.value })} maxLength={200} disabled={!canWrite} /></FieldRow>
-          <FieldRow label={f.form.content} htmlFor="ff-content"><ATextarea id="ff-content" value={draft.Content} onChange={(e) => setDraft({ ...draft, Content: e.target.value })} rows={12} maxLength={100000} disabled={!canWrite} /></FieldRow>
-          <FieldRow label={f.form.order} htmlFor="ff-order"><AInput id="ff-order" type="number" min={0} value={draft.OrderByNum} onChange={(e) => setDraft({ ...draft, OrderByNum: e.target.value })} style={{ width: 120 }} disabled={!canWrite} /></FieldRow>
-          <FieldRow label={tr('옵션', 'Options')}><ACheckbox label={f.form.useYN} checked={draft.UseYN} onChange={(e) => setDraft({ ...draft, UseYN: e.target.checked })} disabled={!canWrite} /></FieldRow>
+          <FieldRow label={tr('사용 여부', 'Active')} htmlFor="ff-use"><ASelect id="ff-use" value={f.UseYN} onChange={(e) => setF({ ...f, UseYN: e.target.value as 'Y' | 'N' })} options={[{ value: 'N', label: tr('미사용', 'Not used') }, { value: 'Y', label: tr('사용', 'In use') }]} disabled={!canWrite} /></FieldRow>
+          <FieldRow label={tr('정렬 순서', 'Order')} htmlFor="ff-order" error={errors.OrderByNum} help={tr('비우면 마지막 순서(MAX+1)로 저장됩니다.', 'Empty = last (MAX+1).')}><AInput id="ff-order" inputMode="numeric" value={f.OrderByNum} onChange={(e) => setF({ ...f, OrderByNum: e.target.value })} style={{ width: 100 }} disabled={!canWrite} /></FieldRow>
+          <FieldRow label={tr('분류', 'Category')} htmlFor="ff-cat"><ASelect id="ff-cat" value={f.Category} onChange={(e) => setF({ ...f, Category: e.target.value })} options={categories} disabled={!canWrite} /></FieldRow>
+          <FieldRow label={tr('제목', 'Title')} htmlFor="ff-title" required error={errors.Title}><AInput id="ff-title" value={f.Title} onChange={(e) => setF({ ...f, Title: e.target.value })} maxLength={250} disabled={!canWrite} /></FieldRow>
+          <FieldRow label={tr('내용', 'Content')} htmlFor="ff-content" required error={errors.Content} help={tr('HTML 사용 가능(기존 에디터 내용 그대로 저장)', 'HTML allowed (saved as-is)')}><ATextarea id="ff-content" rows={16} value={f.Content} onChange={(e) => setF({ ...f, Content: e.target.value })} disabled={!canWrite} /></FieldRow>
         </div>
       </DetailDrawer>
-      <ConfirmDialog open={!!del} title={`${adm.common.delete} · ${del?.title ?? ''}`} body={f.deleteBody} tone="danger" confirmLabel={adm.common.delete} loading={remove.isPending} onCancel={() => setDel(null)} onConfirm={() => del && remove.mutate(del.idx)} />
+      <ConfirmDialog open={delOpen} title={tr('FAQ 삭제', 'Delete FAQ')} body={tr('현재 글을 삭제하시겠습니까?', 'Delete this post?')} tone="danger" confirmLabel={tr('삭 제', 'Delete')} loading={remove.isPending} onCancel={() => setDelOpen(false)} onConfirm={() => remove.mutate(undefined as never)} />
     </AdminPage>
   );
 }

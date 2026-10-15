@@ -4,7 +4,8 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { adminApi } from '../../../../shared/api/endpoints/admin';
 import type { AbnormalRow, DailyMonitor, OverlapMonitor } from '../../../../shared/api/schemas';
 import { useSearchState } from '../../../../shared/utils/useSearchState';
-import { AButton, AdminPage, AInput, ASelect, Callout, DataTable, DateField, FilterBar, FilterField, JsonViewer, Kpi, StatusBadge, toIsoDate, type Column } from '../../../../shared/ui/admin';
+import { AButton, AdminPage, AInput, ASelect, Callout, DataTable, DateField, FilterBar, FilterField, JsonViewer, Kpi, StatusBadge, TabStrip, toIsoDate, type Column } from '../../../../shared/ui/admin';
+import { StudyTimePage } from './studies-parity-daily';
 import { tr } from '../../../../shared/i18n/adminLang';
 import { adm, studyTime } from '../../strings';
 
@@ -26,14 +27,28 @@ const dailyCols: Column<DailyItem>[] = [
   { key: 'status', header: tr('상태', 'Status'), align: 'center', render: (r) => <StatusBadge tone={r.status === 'over' ? 'danger' : r.status === 'cap' ? 'warn' : 'ok'}>{adm.monitoring.daily.statuses.find((s) => s.value === r.status)?.label ?? r.statusLabel}</StatusBadge> },
 ];
 
+/**
+ * /admin/monitoring/daily — 일자별 학습시간 관리. Tab 1 = the study_time.php screen (B3, GET /admin/studies/daily-time);
+ * tab 2 = the earlier one-day 8 h check (player chapter-gain rule, GET /admin/monitoring/daily).
+ */
 export function MonitoringDailyPage() {
+  const [tab, setTab] = useState<'time' | 'cap'>(() => (new URLSearchParams(window.location.search).get('view') === 'cap' ? 'cap' : 'time'));
+  return (
+    <AdminPage title={tr('일자별 학습시간 관리', 'Daily study time')} lead={tab === 'time' ? tr('사업주 수강생의 날짜별 학습시간(차시 창, 하루 8시간 인정)과 15시간 충족·수료(공단 전송값)를 봅니다.', 'Per-day study time of a company’s learners (chapter windows, 8 h/day credited), 15 h and the reported pass flag.') : adm.monitoring.daily.lead}>
+      <TabStrip label={tr('보기', 'View')} value={tab} onChange={(k) => setTab(k as 'time' | 'cap')} items={[{ key: 'time', label: tr('일자별 학습시간 관리', 'Daily study time') }, { key: 'cap', label: tr('하루 8시간 점검 (차시 증가분)', 'One-day 8 h check') }]} />
+      <div className="u-mt-8">{tab === 'time' ? <StudyTimePage /> : <DailyCapMonitor />}</div>
+    </AdminPage>
+  );
+}
+
+function DailyCapMonitor() {
   const [p, setP, reset] = useSearchState({ date: '', companyCode: '', status: 'all' });
   const [form, setForm] = useState({ date: p.date || today(), companyCode: p.companyCode, status: p.status });
   const q = useQuery({ queryKey: ['admin', 'monitoring', 'daily', p], queryFn: ({ signal }) => adminApi.monitoringDaily({ date: p.date || undefined, companyCode: p.companyCode || undefined, status: p.status }, signal), placeholderData: keepPreviousData });
   const m = adm.monitoring.daily;
   const d = q.data;
   return (
-    <AdminPage title={m.title} lead={m.lead}>
+    <>
       <FilterBar onSubmit={() => setP(form)} onReset={() => { setForm({ date: today(), companyCode: '', status: 'all' }); reset(); }}>
         <FilterField label={m.date} htmlFor="d-date"><DateField id="d-date" value={form.date} onChange={(v) => setForm({ ...form, date: v })} /></FilterField>
         <FilterField label={adm.studies.filters.companyCode} htmlFor="d-cc"><AInput id="d-cc" value={form.companyCode} onChange={(e) => setForm({ ...form, companyCode: e.target.value })} /></FilterField>
@@ -49,7 +64,7 @@ export function MonitoringDailyPage() {
         </div>
       ) : null}
       <DataTable columns={dailyCols} rows={d?.items} rowKey={(r) => `${r.id}-${r.studySeq}-${r.lectureCode}`} loading={q.isPending || q.isFetching} error={q.error} onRetry={() => void q.refetch()} size={50} dense />
-    </AdminPage>
+    </>
   );
 }
 

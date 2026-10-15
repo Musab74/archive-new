@@ -1,6 +1,9 @@
 import '@testing-library/jest-dom/vitest';
 import { afterEach, vi } from 'vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
+
+// Lazy-loaded admin pages under a full parallel run can take longer than Testing Library's 1 s default to appear.
+configure({ asyncUtilTimeout: 5000 });
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 

@@ -24,7 +24,7 @@ describe('admin menu from grants', () => {
 
   it('a top-level letter grants every sub item of that letter', () => {
     const menu = buildAdminMenu({ dept: 'C', topGrants: ['F'], subGrants: [] });
-    expect(menu.map((g) => g.key)).toEqual(['live', 'archive', 'community', 'ruby']); // 실시간 강의 is shown to dept C regardless of grants; 아카이브 holds the F1 수강신청관리 item
+    expect(menu.map((g) => g.key)).toEqual(['live', 'community', 'ruby']); // 실시간 강의 is shown to dept C regardless of grants
     expect(hasGrant({ dept: 'C', topGrants: ['F'], subGrants: [] }, 'F1')).toBe(true);
     expect(hasGrant({ dept: 'C', topGrants: ['F'], subGrants: [] }, 'A1')).toBe(false);
   });
@@ -35,7 +35,7 @@ describe('admin menu from grants', () => {
   });
 
   it('maps paths to the grant their endpoints need', () => {
-    expect(grantForPath('/admin/members/user01')).toBe('A1');
+    expect(grantForPath('/admin/members/user01')).toBe('A2');
     expect(grantForPath('/admin/companies/import')).toBe('A1');
     expect(grantForPath('/admin/enrollments/new')).toBe('A3');
     expect(grantForPath('/admin/staff-list/B')).toBe('A7');

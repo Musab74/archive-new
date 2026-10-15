@@ -1,49 +1,65 @@
 import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { adminApi } from '../../../../shared/api/endpoints/admin';
-import type { CourseRow } from '../../../../shared/api/schemas';
+import { adminCoursesParityApi as cp, type CpCourseRow } from '../../../../shared/api/endpoints/admin-courses-parity';
 import { useSearchState } from '../../../../shared/utils/useSearchState';
-import { AdminPage, AInput, ASelect, DataTable, FilterBar, FilterField, StatusBadge, YnBadge, type Column } from '../../../../shared/ui/admin';
-import { adm } from '../../strings';
+import { AButton, AdminPage, AInput, ASelect, Callout, DataTable, FilterBar, FilterField, type Column } from '../../../../shared/ui/admin';
+import { useToast } from '../../../../app/providers/ToastProvider';
+import { useWriteGate } from '../../GrantGate';
 import { tr } from '../../../../shared/i18n/adminLang';
+import { adm } from '../../strings';
+import { menuName } from './courses-parity.shared';
+import { PackageList } from './courses-parity.package';
 
-const DEFAULTS = { q: '', ctype: '', useYN: '', packageYN: '', page: 1 };
+const DEFAULTS = { ctype: '', packageYN: '', col: 'ContentsName', q: '', page: 1 };
 const SIZE = 20;
-const YN = [{ value: '', label: adm.common.all }, { value: 'Y', label: 'Y' }, { value: 'N', label: 'N' }];
-const CTYPES = [{ value: '', label: adm.common.all }, ...Object.entries(adm.ctypes).map(([value, label]) => ({ value, label: `${value} · ${label}` }))];
-const c = adm.courses.cols;
 
+/** course.php (이러닝/마이크로닝/숏폼 컨텐츠 관리) and, with ?packageYN=Y, course_package.php (패키지컨텐츠관리). */
 export default function CoursesPage() {
-  const [p, setP, reset] = useSearchState(DEFAULTS);
-  const [form, setForm] = useState({ q: p.q, ctype: p.ctype, useYN: p.useYN, packageYN: p.packageYN });
+  const [p] = useSearchState(DEFAULTS);
+  return p.packageYN === 'Y' ? <PackageList /> : <CourseList />;
+}
+
+function CourseList() {
+  const [p, setP] = useSearchState(DEFAULTS);
+  const ctype = p.ctype || 'X';
+  const [form, setForm] = useState({ col: p.col, q: p.q });
   const navigate = useNavigate();
-  const query = useMemo(() => ({ q: p.q || undefined, ctype: p.ctype || undefined, useYN: p.useYN || undefined, packageYN: p.packageYN || undefined, page: p.page, size: SIZE }), [p]);
-  const list = useQuery({ queryKey: ['admin', 'courses', query], queryFn: ({ signal }) => adminApi.courses(query, signal), placeholderData: keepPreviousData });
-  const columns: Column<CourseRow>[] = [
-    { key: 'idx', header: c.idx, align: 'right', sortable: true },
-    { key: 'lectureCode', header: c.code, sortable: true, nowrap: true, render: (r) => <b className="mono">{r.lectureCode}</b> },
-    { key: 'name', header: c.name, sortable: true, render: (r) => <span>{r.name}{r.isPackage ? <StatusBadge tone="info"> {tr('패키지', 'Package')} {r.packageCodes.length}</StatusBadge> : null}</span> },
-    { key: 'ctype', header: c.ctype, align: 'center', render: (r) => <span title={adm.ctypes[r.ctype ?? ''] ?? ''}>{r.ctype}</span> },
-    { key: 'useYN', header: c.useYN, align: 'center', render: (r) => <YnBadge value={r.useYN} yes={tr('노출', 'Visible')} no={tr('숨김', 'Hidden')} /> },
-    { key: 'hrdCode', header: c.hrd, render: (r) => r.hrdCode ?? '' },
-    { key: 'category1', header: c.category, render: (r) => [r.category1, r.category2].filter(Boolean).join(' › ') },
-    { key: 'contentsTime', header: c.time, align: 'right', render: (r) => r.contentsTime ?? '' },
-    { key: 'chapterRows', header: c.chapters, align: 'right', render: (r) => <Link to={`/admin/courses/${encodeURIComponent(r.lectureCode)}/chapters`} onClick={(e) => e.stopPropagation()}>{r.chapterRows}</Link> },
-    { key: 'enrollments', header: c.enrollments, align: 'right', sortable: true },
-    { key: 'views', header: c.views, align: 'right', sortable: true },
-    { key: 'regDate', header: c.regDate, nowrap: true, sortable: true, render: (r) => r.regDate ?? '' },
+  const { toast } = useToast();
+  const { canWrite, readOnlyTitle } = useWriteGate();
+  const [exporting, setExporting] = useState(false);
+  const query = useMemo(() => ({ ctype, packageYN: 'N', col: p.q ? p.col : undefined, q: p.q || undefined, page: p.page, size: SIZE }), [p, ctype]);
+  const list = useQuery({ queryKey: ['admin', 'courses', query], queryFn: ({ signal }) => cp.courses(query, signal), placeholderData: keepPreviousData });
+  const total = list.data?.total ?? 0;
+  const columns: Column<CpCourseRow>[] = [
+    { key: 'no', header: tr('번호', 'No.'), align: 'right', width: 50, render: (_r, i) => total - (p.page - 1) * SIZE - i },
+    { key: 'lectureCode', header: <>{tr('등급', 'Grade')}<br />{tr('과정 코드', 'Course code')}</>, nowrap: true, render: (r) => <>{r.classGradeLabel}<br /><b className="mono">{r.lectureCode}</b></> },
+    { key: 'name', header: <>{tr('과정분류', 'Category')}<br />{tr('과정명', 'Course name')}</>, render: (r) => <><span className="muted">{r.categoryName1 ?? ''}&gt;{r.categoryName2 ?? ''}</span><br /><b>{r.name}</b></> },
+    { key: 'chapter', header: tr('차시', 'Chapters'), align: 'center', render: (r) => r.chapterLabel },
+    { key: 'contentsTime', header: tr('교육시간', 'Duration'), align: 'center', render: (r) => tr(`${r.contentsTime ?? ''} 분`, `${r.contentsTime ?? ''} min`) },
+    { key: 'packageLectureCode', header: tr('패키지콘텐츠 과정코드', 'Package course codes'), render: (r) => <span className="mono" style={{ fontSize: 12, wordBreak: 'break-all' }}>{r.packageLectureCode ?? ''}</span> },
+    { key: 'hrdSeq', header: tr('원격훈련 일련번호', 'Remote-training serial'), align: 'center', render: (r) => r.hrdSeq ?? '' },
+    { key: 'contentsStart', header: <>{tr('제작연도', 'Produced')}<br />{tr('업로드', 'Uploaded')}</>, nowrap: true, align: 'center', render: (r) => <>{r.contentsStart}<br />{r.uploadDate}</> },
+    { key: 'mobile', header: tr('모바일', 'Mobile'), align: 'center', render: (r) => r.mobileLabel },
+    { key: 'useYN', header: <>{tr('사이트', 'Site')}<br />{tr('노출', 'visible')}</>, align: 'center', render: (r) => r.useLabel },
   ];
-  const f = adm.courses.filters;
+  const download = async () => {
+    if (!window.confirm(tr('현재 검색조건으로 검색된 결과를 엑셀로 출력하시겠습니까?', 'Export the current search result?'))) return;
+    setExporting(true);
+    try { await cp.downloadCoursesCsv({ ctype, col: p.q ? p.col : undefined, q: p.q || undefined }); } catch { toast(adm.companies.actions.exportFailed, { tone: 'danger' }); } finally { setExporting(false); }
+  };
   return (
-    <AdminPage title={adm.courses.title} lead={adm.courses.lead}>
-      <FilterBar onSubmit={() => setP(form, true)} onReset={() => { setForm({ q: '', ctype: '', useYN: '', packageYN: '' }); reset(); }}>
-        <FilterField label={f.q} htmlFor="c-q" width={240}><AInput id="c-q" value={form.q} onChange={(e) => setForm({ ...form, q: e.target.value })} /></FilterField>
-        <FilterField label={f.ctype} htmlFor="c-type" width={160}><ASelect id="c-type" value={form.ctype} onChange={(e) => setForm({ ...form, ctype: e.target.value })} options={CTYPES} /></FilterField>
-        <FilterField label={f.useYN} htmlFor="c-use" width={100}><ASelect id="c-use" value={form.useYN} onChange={(e) => setForm({ ...form, useYN: e.target.value })} options={YN} /></FilterField>
-        <FilterField label={f.packageYN} htmlFor="c-pkg" width={100}><ASelect id="c-pkg" value={form.packageYN} onChange={(e) => setForm({ ...form, packageYN: e.target.value })} options={YN} /></FilterField>
+    <AdminPage title={tr(`${menuName(ctype)} 컨텐츠 관리`, `${menuName(ctype)} contents`)} lead={tr('과정명(포함) 또는 강의 코드(일치)로 검색합니다. 행을 누르면 상세(차시 구성 포함)로 이동합니다.', 'Search by course name (contains) or code (exact). Click a row for details and chapters.')}
+      actions={<>
+        <AButton onClick={() => void download()} loading={exporting}>{tr('검색 항목 엑셀 출력', 'Export search result')}</AButton>
+        <AButton variant="primary" disabled={!canWrite} title={readOnlyTitle} onClick={() => navigate(`/admin/courses/new?ctype=${ctype}`)}>{tr('신규 등록', 'New')}</AButton>
+      </>}>
+      <FilterBar onSubmit={() => setP({ col: form.col, q: form.q }, true)} onReset={() => { setForm({ col: 'ContentsName', q: '' }); setP({ col: 'ContentsName', q: '' }, true); }}>
+        <FilterField label={tr('검색 항목', 'Field')} htmlFor="c-col" width={140}><ASelect id="c-col" value={form.col} onChange={(e) => setForm({ ...form, col: e.target.value })} options={[{ value: 'ContentsName', label: tr('과정명', 'Course name') }, { value: 'LectureCode', label: tr('강의 코드', 'Course code') }]} /></FilterField>
+        <FilterField label={tr('검색어', 'Search')} htmlFor="c-q" width={300}><AInput id="c-q" value={form.q} onChange={(e) => setForm({ ...form, q: e.target.value })} /></FilterField>
       </FilterBar>
-      <DataTable columns={columns} rows={list.data?.items} rowKey={(r) => r.idx} loading={list.isPending || list.isFetching} error={list.error} onRetry={() => void list.refetch()} page={p.page} size={SIZE} total={list.data?.total} onPageChange={(n) => setP({ page: n })} onRowClick={(r) => navigate(`/admin/courses/${r.idx}`)} dense />
+      <DataTable columns={columns} rows={list.data?.items} rowKey={(r) => r.idx} loading={list.isPending || list.isFetching} error={list.error} onRetry={() => void list.refetch()} page={p.page} size={SIZE} total={list.data?.total} onPageChange={(n) => setP({ page: n })} onRowClick={(r) => navigate(`/admin/courses/${r.idx}`)} emptyTitle={tr('등록된 컨텐츠가 없습니다.', 'No contents registered.')} dense />
+      <Callout className="u-mt-8">{tr('"엑셀로 등록"(엑셀 파일 업로드 → 임시표 검수 → 일괄 등록)은 아직 기존 사이트에서 진행합니다.', '"Register from Excel" (upload → temp-table review → bulk insert) still runs on the previous site.')}</Callout>
     </AdminPage>
   );
 }

@@ -71,9 +71,10 @@ describe('admin + manager routes', () => {
   it('renders a grant-gated list page with the DataTable', async () => {
     vi.stubGlobal('fetch', apiMock({ adminSession: true }));
     mount('/admin/members?q=sleep');
-    expect(await screen.findByRole('heading', { level: 1, name: '회원 목록' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: '수강생 관리' })).toBeInTheDocument();
     expect(await screen.findByText('sleep01')).toBeInTheDocument();
-    expect(screen.getByText('휴면', { selector: 'span' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: '영업담당자 소속' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '검색항목 엑셀 출력' })).toBeInTheDocument();
   });
 
   it('renders 사업주 관리 with the legacy columns, the sidebar entry and the 신규 등록 action', async () => {

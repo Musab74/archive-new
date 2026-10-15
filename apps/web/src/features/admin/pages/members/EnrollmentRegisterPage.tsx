@@ -10,6 +10,7 @@ import { tr } from '../../../../shared/i18n/adminLang';
 import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
 import { adm, studyTime } from '../../strings';
+import { StagedUploadList } from './members-parity-staged';
 
 const plusDays = (ymd: string, n: number) => { if (!ymd) return ''; const d = new Date(`${ymd}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 type Form = { lectureStart: string; lectureEnd: string; lectureCode: string; userId: string; tutor: string; serviceType: 'A' | 'W'; progress: string; openChapter: string; salesId: string; nwIno: string };
@@ -89,6 +90,7 @@ export default function EnrollmentRegisterPage() {
           <Callout>{tr('여러 명을 한 번에 등록하려면 ', 'To register many learners at once use ')}<Link to="/admin/enrollments/import">{tr('엑셀 일괄 수강등록', 'Bulk enrolment (Excel)')}</Link>{tr(' 화면을 사용하세요 (회원 생성 포함).', ' (it also creates missing member accounts).')}</Callout>
         </div>
       </div>
+      <div style={{ marginTop: 14 }}><StagedUploadList /></div>
     </AdminPage>
   );
 }

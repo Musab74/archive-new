@@ -1,71 +1,81 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { adminApi } from '../../../../shared/api/endpoints/admin';
-import type { AdminContentsDetail } from '../../../../shared/api/schemas';
-import { AButton, AdminPage, AInput, Callout, Card, DataTable, DescList, FieldRow, YnBadge, type Column } from '../../../../shared/ui/admin';
+import { adminCoursesParityApi as cp, type CpContentDetailRow } from '../../../../shared/api/endpoints/admin-courses-parity';
+import { useSearchState } from '../../../../shared/utils/useSearchState';
+import { AButton, AdminPage, Callout, Card, ConfirmDialog, DataTable, DescList, type Column } from '../../../../shared/ui/admin';
 import { StateBlock } from '../../../../shared/ui/StateBlock';
 import { Skeleton } from '../../../../shared/ui/Skeleton';
 import { useWriteGate } from '../../GrantGate';
 import { useAdminMutation } from '../../useAdminMutation';
 import { adm } from '../../strings';
 import { tr } from '../../../../shared/i18n/adminLang';
+import { Multiline, ReadButtons } from './courses-parity.shared';
+import { ContentDetailDrawer, ContentsForm } from './courses-parity.contents';
 
-type Detail = AdminContentsDetail['details'][number];
 const isVideo = (url: string | null | undefined) => !!url && /\.(mp4|webm|m3u8|mov|ogv)(\?|$)/i.test(url);
+const crumbs = (idx: string) => [{ label: adm.top.home, to: '/admin' }, { label: tr('기초차시 관리', 'Base contents'), to: '/admin/contents' }, { label: idx === 'new' ? tr('등록', 'New') : `#${idx}` }];
 
+/** /admin/contents/:idx — contents_read.php (+ 기초차시 상세 구성 with the contents_detail.php popup); ?mode=edit = contents_write.php; /admin/contents/new = 등록. */
 export default function ContentDetailPage() {
   const { idx = '' } = useParams();
+  const navigate = useNavigate();
+  const [p, setP] = useSearchState({ mode: '' });
+  const isNew = idx === 'new';
   const n = Number(idx);
-  const { canWrite, readOnlyTitle } = useWriteGate();
-  const q = useQuery({ queryKey: ['admin', 'content', n], queryFn: ({ signal }) => adminApi.content(n, signal), enabled: n > 0 });
+  const { canWrite } = useWriteGate();
+  const q = useQuery({ queryKey: ['admin', 'content', n], queryFn: ({ signal }) => cp.content(n, signal), enabled: !isNew && n > 0 });
   const d = q.data;
-  const [title, setTitle] = useState('');
-  const [time, setTime] = useState('');
-  const [selected, setSelected] = useState<Detail | null>(null);
-  useEffect(() => { if (d) { setTitle(d.title ?? ''); setTime(d.lectureTimeMin != null ? String(d.lectureTimeMin) : ''); setSelected(d.details.find((x) => isVideo(x.url) || x.url) ?? null); } }, [d]);
-  const save = useAdminMutation({ fn: (body: { ContentsTitle?: string; LectureTime?: number | null }) => adminApi.patchContent(n, body), invalidate: [['admin', 'content', n], ['admin', 'contents']], success: adm.common.saved });
-  const dirty = !!d && (title !== (d.title ?? '') || time !== (d.lectureTimeMin != null ? String(d.lectureTimeMin) : ''));
-  const e = adm.courses.contents.detail;
-  const cols: Column<Detail>[] = [
-    { key: 'order', header: tr('순서', 'Order'), align: 'right' },
-    { key: 'seq', header: 'Seq', align: 'right' },
-    { key: 'type', header: tr('유형', 'Type'), align: 'center', render: (r) => r.type ?? '' },
-    { key: 'urlSelect', header: tr('URL 선택', 'URL selection'), align: 'center', render: (r) => r.urlSelect ?? '' },
-    { key: 'url', header: 'URL', render: (r) => <span className="mono" style={{ fontSize: 11, wordBreak: 'break-all' }}>{r.url ?? ''}</span> },
-    { key: 'mobileUrl', header: tr('모바일 URL', 'Mobile URL'), render: (r) => <span className="mono" style={{ fontSize: 11, wordBreak: 'break-all' }}>{r.mobileUrl ?? ''}</span> },
-    { key: 'pages', header: tr('페이지', 'Pages'), align: 'right', render: (r) => String(r.pages ?? '') },
-    { key: 'caption', header: tr('자막', 'Captions'), render: (r) => r.caption ?? '' },
-    { key: 'question', header: tr('문제', 'Question'), render: (r) => (r.question ? <span title={r.answer ?? ''}>{r.question}</span> : '') },
-    { key: 'useYN', header: tr('사용', 'Active'), align: 'center', render: (r) => <YnBadge value={r.useYN} /> },
+  const [selected, setSelected] = useState<CpContentDetailRow | null>(null);
+  useEffect(() => { if (d) setSelected(d.details.find((x) => isVideo(x.url)) ?? d.details[0] ?? null); }, [d]);
+  const [drawer, setDrawer] = useState<{ row: CpContentDetailRow | null } | null>(null);
+  const [delRow, setDelRow] = useState<CpContentDetailRow | null>(null);
+  const [delContent, setDelContent] = useState(false);
+  const removeRow = useAdminMutation({ fn: (seq: number) => cp.deleteDetail(n, seq), invalidate: [['admin', 'content', n], ['admin', 'contents']], success: adm.common.deleted, onSuccess: () => setDelRow(null) });
+  const removeContent = useAdminMutation({ fn: () => cp.deleteContent(n), invalidate: [['admin', 'contents']], success: tr('처리되었습니다.', 'Done.'), onSuccess: () => navigate('/admin/contents') });
+
+  if (isNew) {
+    return <AdminPage title={tr('기초차시 관리 등록', 'New base content')} crumbs={crumbs(idx)}><ContentsForm onDone={(id) => navigate(`/admin/contents/${id}`)} onCancel={() => navigate('/admin/contents')} /></AdminPage>;
+  }
+  const cols: Column<CpContentDetailRow>[] = [
+    { key: 'order', header: <>{tr('정렬', 'Sort')}<br />{tr('번호', 'no.')}</>, align: 'center', width: 50 },
+    { key: 'typeLabel', header: tr('컨텐츠 유형', 'Type'), align: 'center', render: (r) => `${r.typeLabel}${r.type === 'B' ? r.urlSelectLabel : ''}` },
+    { key: 'teacherName', header: tr('강사명', 'Instructor'), align: 'center', render: (r) => r.teacherName ?? '' },
+    { key: 'pages', header: <>{tr('차시', 'Chapter')}<br />{tr('페이지', 'pages')}</>, align: 'center', render: (r) => r.pages ?? '' },
+    { key: 'mobilePages', header: <>{tr('모바일', 'Mobile')}<br />{tr('페이지', 'pages')}</>, align: 'center', render: (r) => r.mobilePages ?? '' },
+    { key: 'url', header: tr('컨텐츠 URL', 'Content URL'), render: (r) => <span className="mono" style={{ fontSize: 11, wordBreak: 'break-all' }}>{r.type === 'B' ? <>{r.url ? `(주) ${r.url}` : ''}{r.url2 ? <><br />(예비) {r.url2}</> : null}</> : r.type === 'A' ? r.url ?? '' : ''}</span> },
+    { key: 'mobileUrl', header: tr('모바일 URL', 'Mobile URL'), render: (r) => <span className="mono" style={{ fontSize: 11, wordBreak: 'break-all' }}>{r.type === 'B' ? <>{r.mobileUrl ? `(주) ${r.mobileUrl}` : ''}{r.mobileUrl2 ? <><br />(예비) {r.mobileUrl2}</> : null}</> : r.type === 'A' ? r.mobileUrl ?? '' : ''}</span> },
+    { key: 'question', header: tr('문제풀이 질문', 'Question'), width: 200, render: (r) => (r.question ? `${r.question.slice(0, 30)}${r.question.length > 30 ? '…' : ''}` : '') },
+    { key: 'useLabel', header: <>{tr('사용', 'In')}<br />{tr('유무', 'use')}</>, align: 'center', render: (r) => r.useLabel },
+    { key: 'edit', header: tr('수정', 'Edit'), align: 'center', render: (r) => <AButton size="xs" disabled={!canWrite} onClick={(e) => { e.stopPropagation(); setDrawer({ row: r }); }}>{tr('수정', 'Edit')}</AButton> },
+    { key: 'del', header: tr('삭제', 'Delete'), align: 'center', render: (r) => <AButton size="xs" variant="danger" disabled={!canWrite} onClick={(e) => { e.stopPropagation(); setDelRow(r); }}>{tr('삭제', 'Delete')}</AButton> },
   ];
   const previewUrl = selected?.url ?? selected?.mobileUrl ?? null;
   return (
-    <AdminPage title={`${e.title} · #${idx}${d ? ` ${d.title ?? ''}` : ''}`} crumbs={[{ label: adm.top.home, to: '/admin' }, { label: adm.courses.contents.title, to: '/admin/contents' }, { label: `#${idx}` }]}
-      actions={<><AButton to="/admin/contents">{adm.common.back}</AButton><AButton variant="primary" disabled={!canWrite || !dirty} title={readOnlyTitle} loading={save.isPending} onClick={() => { const body: { ContentsTitle?: string; LectureTime?: number | null } = {}; if (d && title !== (d.title ?? '')) body.ContentsTitle = title.trim(); if (d && time !== (d.lectureTimeMin != null ? String(d.lectureTimeMin) : '')) body.LectureTime = time.trim() === '' ? null : Number(time); save.mutate(body); }}>{adm.common.save}</AButton></>}>
-      {q.isError ? <StateBlock code={(q.error as { status?: number }).status === 404 ? 'NOT_FOUND' : 'LIST_ERROR'} center onRetry={() => void q.refetch()} /> : q.isPending || !d ? <Skeleton lines={8} /> : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 420px', gap: 12, alignItems: 'start' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <Card title={e.edit}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <FieldRow label={e.titleField} htmlFor="cd-title" required><AInput id="cd-title" value={title} onChange={(ev) => setTitle(ev.target.value)} maxLength={200} disabled={!canWrite} /></FieldRow>
-                <FieldRow label={e.timeField} htmlFor="cd-time" help={e.timeWarn}><AInput id="cd-time" type="number" min={0} max={100000} value={time} onChange={(ev) => setTime(ev.target.value)} style={{ width: 140 }} disabled={!canWrite} /></FieldRow>
-              </div>
+    <AdminPage title={`${tr('기초차시 관리', 'Base contents')}${p.mode === 'edit' ? ` ${tr('수정', 'edit')}` : ''} · #${idx}${d ? ` ${d.title ?? ''}` : ''}`} crumbs={crumbs(idx)} actions={<AButton to="/admin/contents">{adm.common.back}</AButton>}>
+      {q.isError ? <StateBlock code={(q.error as { status?: number }).status === 404 ? 'NOT_FOUND' : 'LIST_ERROR'} center onRetry={() => void q.refetch()} /> : q.isPending || !d ? <Skeleton lines={8} /> : p.mode === 'edit' ? (
+        <ContentsForm detail={d} onDone={() => setP({ mode: '' })} onCancel={() => setP({ mode: '' })} />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {d.deleted ? <Callout tone="warn">{tr('삭제된(Del=Y) 기초차시입니다.', 'This base content is deleted (Del=Y).')}</Callout> : null}
+          <Card title={tr('기초차시 정보', 'Base content')}>
+            <DescList items={[[tr('차시 구분', '차시 구분'), d.gubun], [tr('차시명', 'Title'), d.title], [tr('수강시간', 'Minutes'), tr(`${d.lectureTimeMin ?? ''}분`, `${d.lectureTimeMin ?? ''} min`)], [tr('차시 목표', 'Goals'), <Multiline text={d.goal} />], [tr('훈련 내용', 'Training content'), <Multiline text={d.trainingContents} />], [tr('학습 활동', 'Activities'), <Multiline text={d.activities} />]]} />
+          </Card>
+          <ReadButtons left={canWrite ? <AButton variant="danger" disabled={d.deleted} onClick={() => setDelContent(true)}>{tr('기초차시 삭제', 'Delete')}</AButton> : null} center={canWrite ? <AButton variant="primary" onClick={() => setP({ mode: 'edit' })}>{tr('기초차시 수정', 'Edit')}</AButton> : null} right={<AButton to="/admin/contents">{tr('목록', 'List')}</AButton>} />
+          <Card title={`${tr('기초차시 상세 구성', 'Page composition')} (${d.details.length})`} aside={<AButton size="sm" disabled={!canWrite} onClick={() => setDrawer({ row: null })}>{tr('추가 하기', 'Add')}</AButton>}>
+            <DataTable columns={cols} rows={d.details} rowKey={(r) => r.seq} dense onRowClick={setSelected} selectedKey={selected?.seq} emptyTitle={tr('상세 구성 내역이 없습니다.', 'No pages.')} emptyBody=" " />
+          </Card>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12, alignItems: 'start' }}>
+            <Card title={tr('미리보기 (선택한 행)', 'Preview (selected row)')}>
+              {previewUrl ? (isVideo(previewUrl) ? <video key={previewUrl} src={previewUrl} controls preload="metadata" style={{ width: '100%', background: '#000', borderRadius: 4 }} /> : <Callout>{tr('동영상이 아닌 URL입니다.', 'This URL is not a video.')} <a href={previewUrl} target="_blank" rel="noopener noreferrer">{tr('새 창에서 열기 ↗', 'Open in new window ↗')}</a></Callout>) : <p className="muted" style={{ fontSize: 13, margin: 0 }}>{tr('행을 선택하면 영상이 재생됩니다.', 'Select a row to preview.')}</p>}
             </Card>
-            <Card title={e.info}><DescList cols={2} items={[[tr('구분', 'Kind'), d.gubun], [tr('크기', 'Size'), d.size?.width || d.size?.height ? `${d.size.width ?? '?'}×${d.size.height ?? '?'}` : null], [tr('학습목표', 'Learning goals'), d.goal], [tr('훈련내용', 'Training content'), d.trainingContents], [tr('활동', 'Activities'), d.activities], [tr('등록일', 'Created'), d.regDate], [tr('삭제', 'Deleted'), d.deleted ? 'Y' : 'N'], ['', '']]} /></Card>
-            <Card title={`${e.details} (${d.details.length})`}><DataTable columns={cols} rows={d.details} rowKey={(r) => r.seq} dense onRowClick={setSelected} selectedKey={selected?.seq} emptyTitle={tr('페이지가 없습니다.', 'No pages.')} emptyBody=" " /></Card>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <Card title={e.preview}>
-              {previewUrl ? (
-                isVideo(previewUrl) ? <video key={previewUrl} src={previewUrl} controls preload="metadata" style={{ width: '100%', background: '#000', borderRadius: 4 }} /> : <Callout>{tr('동영상이 아닌 URL입니다.', 'This URL is not a video.')} <a href={previewUrl} target="_blank" rel="noopener noreferrer">{tr('새 창에서 열기 ↗', 'Open in new window ↗')}</a></Callout>
-              ) : <p className="muted" style={{ fontSize: 13, margin: 0 }}>{d.details.length ? e.selectRow : e.noVideo}</p>}
-              {previewUrl ? <p className="mono muted" style={{ fontSize: 11, marginTop: 8, wordBreak: 'break-all' }}>{previewUrl}</p> : null}
-            </Card>
-            <Card title={`${e.usedIn} (${d.usedIn.length})`}>
+            <Card title={`${tr('사용 중인 과정', 'Used in courses')} (${d.usedIn.length})`}>
               {d.usedIn.length ? <ul style={{ fontSize: 13, display: 'flex', flexDirection: 'column', gap: 4 }}>{d.usedIn.map((u) => <li key={`${u.lectureCode}-${u.chapterSeq}`}><Link to={`/admin/courses/${encodeURIComponent(u.lectureCode)}/chapters`}>{u.lectureCode}</Link> <span className="muted">· Seq {u.chapterSeq} · {tr('순서', 'Order')} {u.order}</span></li>)}</ul> : <p className="muted" style={{ fontSize: 13, margin: 0 }}>{tr('사용 중인 과정이 없습니다.', 'Not used in any course.')}</p>}
             </Card>
           </div>
+          {drawer ? <ContentDetailDrawer contentsIdx={d.idx} row={drawer.row} nextOrder={d.nextDetailOrder} onClose={() => setDrawer(null)} /> : null}
+          <ConfirmDialog open={!!delRow} tone="danger" title={tr('상세 구성 삭제', 'Delete page')} body={<p>{tr('클릭한 상세 구성을 삭제하시겠습니까? (행이 삭제됩니다)', 'Delete this page row?')}</p>} loading={removeRow.isPending} onCancel={() => setDelRow(null)} onConfirm={() => delRow && removeRow.mutate(delRow.seq)} />
+          <ConfirmDialog open={delContent} tone="danger" title={tr('기초차시 삭제', 'Delete base content')} body={<p>{tr('현재 기초차시를 삭제하시겠습니까? (Del=Y)', 'Delete this base content? (Del=Y)')}</p>} loading={removeContent.isPending} onCancel={() => setDelContent(false)} onConfirm={() => removeContent.mutate()} />
         </div>
       )}
     </AdminPage>

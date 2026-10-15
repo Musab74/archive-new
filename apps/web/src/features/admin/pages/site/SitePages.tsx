@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { adminApi } from '../../../../shared/api/endpoints/admin';
+import { adminSupportParityApi } from '../../../../shared/api/endpoints/admin-support-parity';
 import type { StaffList } from '../../../../shared/api/schemas';
 import { AButton, AdminPage, AInput, Callout, Card, DataTable, FieldRow, StatusBadge, YnBadge, type Column } from '../../../../shared/ui/admin';
 import { StateBlock } from '../../../../shared/ui/StateBlock';
@@ -11,26 +12,47 @@ import { useAdminMutation } from '../../useAdminMutation';
 import { tr } from '../../../../shared/i18n/adminLang';
 import { adm } from '../../strings';
 
-const FIELD_KEYS = ['CompanyName', 'Ceo', 'CompanyNumber', 'SalesReportNumber', 'Phone', 'Fax', 'Email', 'PersonalInformationManager', 'Address', 'Copyright', 'KakaoURL'] as const;
-type Key = (typeof FIELD_KEYS)[number];
-const camel: Record<Key, string> = { CompanyName: 'companyName', Ceo: 'ceo', CompanyNumber: 'companyNumber', SalesReportNumber: 'salesReportNumber', Phone: 'phone', Fax: 'fax', Email: 'email', PersonalInformationManager: 'personalInformationManager', Address: 'address', Copyright: 'copyright', KakaoURL: 'kakaoUrl' };
+/** site_info.php inputs in screen order with the PHP <th> labels; every field except Kakao 채널 URL is required (SubmitOk). */
+const FIELDS = [
+  { key: 'CompanyName', camel: 'companyName', label: () => tr('상호명', 'Company name'), msg: () => tr('상호명을 입력하세요.', 'Enter the company name.') },
+  { key: 'Ceo', camel: 'ceo', label: () => tr('대표자명', 'CEO'), msg: () => tr('대표자명을 입력하세요.', 'Enter the CEO.') },
+  { key: 'CompanyNumber', camel: 'companyNumber', label: () => tr('사업자등록번호', 'Business reg. no.'), msg: () => tr('사업자번호를 입력하세요.', 'Enter the business number.') },
+  { key: 'SalesReportNumber', camel: 'salesReportNumber', label: () => tr('통신판매업신고번호', 'Mail-order reg. no.'), msg: () => tr('통신판매업신고번호를 입력하세요.', 'Enter the mail-order number.') },
+  { key: 'Phone', camel: 'phone', label: () => tr('고객상담센터 번호', 'Help desk'), msg: () => tr('고객상담센터 번호를 입력하세요.', 'Enter the help desk number.') },
+  { key: 'Fax', camel: 'fax', label: () => 'FAX', msg: () => tr('FAX를 입력하세요.', 'Enter the fax number.') },
+  { key: 'Email', camel: 'email', label: () => tr('이메일', 'Email'), msg: () => tr('이메일을 입력하세요.', 'Enter the email.') },
+  { key: 'PersonalInformationManager', camel: 'personalInformationManager', label: () => tr('개인정보책임자', 'Privacy officer'), msg: () => tr('개인정보책임자를 입력하세요.', 'Enter the privacy officer.') },
+  { key: 'Address', camel: 'address', label: () => tr('주소', 'Address'), msg: () => tr('주소를 입력하세요.', 'Enter the address.') },
+  { key: 'Copyright', camel: 'copyright', label: () => 'Copyright', msg: () => tr('Copyright를 입력하세요.', 'Enter the copyright.') },
+  { key: 'KakaoURL', camel: 'kakaoUrl', label: () => tr('Kakao 채널 URL', 'Kakao channel URL'), msg: null },
+] as const;
+type Key = (typeof FIELDS)[number]['key'];
 
-// ---------------------------------------------------------------- /admin/site-info
+// ---------------------------------------------------------------- /admin/site-info — site_info.php (G1)
 export function SiteInfoPage() {
-  const s = adm.site.info;
   const { canWrite, readOnlyTitle } = useWriteGate();
-  const q = useQuery({ queryKey: ['admin', 'site-info'], queryFn: ({ signal }) => adminApi.siteInfo(signal) });
-  const base = useMemo(() => { const out = {} as Record<Key, string>; for (const k of FIELD_KEYS) out[k] = String((q.data as Record<string, unknown> | null)?.[camel[k]] ?? ''); return out; }, [q.data]);
+  const q = useQuery({ queryKey: ['admin', 'site-info'], queryFn: ({ signal }) => adminSupportParityApi.siteInfo(signal) });
+  const base = useMemo(() => { const out = {} as Record<Key, string>; for (const f of FIELDS) out[f.key] = String((q.data as Record<string, unknown> | null | undefined)?.[f.camel] ?? ''); return out; }, [q.data]);
   const [form, setForm] = useState<Record<Key, string>>(base);
-  useEffect(() => { setForm(base); }, [base]);
-  const diff = useMemo(() => { const out: Record<string, string | null> = {}; for (const k of FIELD_KEYS) if (form[k] !== base[k]) out[k] = form[k].trim() === '' ? null : form[k].trim(); return out; }, [form, base]);
-  const save = useAdminMutation({ fn: (body: Record<string, string | null>) => adminApi.putSiteInfo(body), invalidate: [['admin', 'site-info'], ['design']], success: adm.common.saved });
+  const [errors, setErrors] = useState<Partial<Record<Key, string>>>({});
+  useEffect(() => { setForm(base); setErrors({}); }, [base]);
+  const changed = FIELDS.some((f) => form[f.key].trim() !== base[f.key].trim());
+  const save = useAdminMutation({ fn: () => adminSupportParityApi.saveSiteInfo(Object.fromEntries(FIELDS.map((f) => [f.key, form[f.key].trim()]))), invalidate: [['admin', 'site-info'], ['design']], success: tr('처리되었습니다.', 'Done.') });
+  const submit = () => {
+    const e: Partial<Record<Key, string>> = {};
+    for (const f of FIELDS) if (f.msg && !form[f.key].trim()) e[f.key] = f.msg();
+    setErrors(e); if (!Object.keys(e).length) save.mutate(undefined as never);
+  };
   return (
-    <AdminPage title={s.title} lead={s.lead} actions={<AButton variant="primary" disabled={!canWrite || !Object.keys(diff).length} title={readOnlyTitle} loading={save.isPending} onClick={() => save.mutate(diff)}>{adm.common.save}</AButton>}>
-      {q.isError ? <StateBlock code="LIST_ERROR" center onRetry={() => void q.refetch()} /> : q.isPending ? <Skeleton lines={8} /> : q.data === null ? <Callout tone="warn">{s.none}</Callout> : (
-        <Card title={`idx ${q.data?.idx ?? ''} · ${q.data?.regDate ?? ''}`}>
+    <AdminPage title={tr('사이트 정보 관리', 'Site information')} lead={tr('저장할 때마다 기존 사이트와 같이 새 행이 추가되고, 화면에는 가장 최근 행이 표시됩니다.', 'Each save adds a new row (as the previous site does); the newest row is shown.')}>
+      {q.isError ? <StateBlock code="LIST_ERROR" center onRetry={() => void q.refetch()} /> : q.isPending ? <Skeleton lines={8} /> : (
+        <Card title={q.data ? `idx ${q.data.idx} · ${q.data.regDate ?? ''}` : tr('등록된 사이트 정보가 없습니다', 'No site information yet')}>
+          {q.data === null ? <Callout tone="warn">{tr('사이트 정보가 없습니다. 아래 항목을 입력하고 저장하면 첫 행이 만들어집니다.', 'No row yet; saving creates the first one.')}</Callout> : null}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 760 }}>
-            {FIELD_KEYS.map((k) => <FieldRow key={k} label={s.fields[k]} htmlFor={`si-${k}`}><AInput id={`si-${k}`} value={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.value })} maxLength={k === 'Address' || k === 'Copyright' || k === 'KakaoURL' ? 300 : 100} disabled={!canWrite} /></FieldRow>)}
+            {FIELDS.map((f) => <FieldRow key={f.key} label={f.label()} htmlFor={`si-${f.key}`} required={!!f.msg} error={errors[f.key]}><AInput id={`si-${f.key}`} value={form[f.key]} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} maxLength={f.key === 'KakaoURL' ? 100 : 250} disabled={!canWrite} /></FieldRow>)}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+            <AButton variant="primary" disabled={!canWrite || (!changed && q.data !== null)} title={readOnlyTitle} loading={save.isPending} onClick={submit}>{tr('수정 하기', 'Save')}</AButton>
           </div>
         </Card>
       )}
