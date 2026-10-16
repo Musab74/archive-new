@@ -235,7 +235,7 @@ describe('buildPhpParityMenu (include_top.php + include_submenu.php)', () => {
     expect(labels({ dept: 'B', topGrants: [], subGrants: ['F2'] }).ruby).toHaveLength(6);
     expect(labels({ dept: 'B', topGrants: ['B'], subGrants: ['B1', 'B8'] })).toEqual({ learning: ['/admin/learning/ip-monitor', '/admin/learning/subject-certificates'] });
     const a = labels({ dept: 'A', topGrants: [], subGrants: [] });
-    expect(a.monitoring).toHaveLength(4); expect(a.ruby).toHaveLength(6); expect(a.learning).toBeUndefined();
+    expect(a.monitoring).toHaveLength(5); expect(a.ruby).toHaveLength(6); expect(a.learning).toBeUndefined(); // monitoring: + HLS 변환
     // dept A with top B but no B sub-grant: only the two dept-A links of include_submenu.php case "B"
     expect(labels({ dept: 'A', topGrants: ['B'], subGrants: [] }).learning).toEqual(['/admin/learning/ai-analysis', '/admin/learning/certificate-test']);
     expect(labels({ dept: 'B', topGrants: ['B', 'F'], subGrants: ['F2'] }).monitoring).toBeUndefined();

@@ -17,6 +17,7 @@
     "@radix-ui/react-select": "^2.4.1",
     "@tanstack/react-query": "^5.90.0",
     "framer-motion": "^12.23.0",
+    "hls.js": "1.5.17",
     "lucide-react": "^1.56.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

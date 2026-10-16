@@ -90,6 +90,7 @@ const EmonPage = lazy(() => import('./pages/emon/EmonPages').then((m) => ({ defa
 const EmonPendingPage = lazy(() => import('./pages/emon/EmonPages').then((m) => ({ default: m.EmonPendingPage })));
 const EmonDiagnosisPage = lazy(() => import('./pages/emon/EmonPages').then((m) => ({ default: m.EmonDiagnosisPage })));
 const EmonPreviewPage = lazy(() => import('./pages/emon/EmonPages').then((m) => ({ default: m.EmonPreviewPage })));
+const HlsPage = lazy(() => import('./pages/hls/HlsPage').then((m) => ({ default: m.HlsPage })));
 const DesignLayout = lazy(() => import('./design/DesignLayout'));
 const DesignOverviewPage = lazy(() => import('./design/pages/OverviewPage'));
 const PresetsPage = lazy(() => import('./design/pages/PresetsPage'));
@@ -199,6 +200,7 @@ export const adminRouteTree: RouteObject = {
           { path: 'emon/pending', element: grant('B1', <EmonPendingPage />) },
           { path: 'emon/diagnosis', element: grant('B1', <EmonDiagnosisPage />) },
           { path: 'emon/preview/:job', element: grant('B1', <EmonPreviewPage />) },
+          { path: 'hls', element: grant('D2', <HlsPage />) },
           { path: 'courses', element: el(<CoursesPage />) },
           { path: 'courses/:idx', element: el(<CourseEditPage />) },
           { path: 'courses/:lectureCode/chapters', element: el(<CourseChaptersPage />) },

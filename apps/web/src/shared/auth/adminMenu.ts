@@ -108,6 +108,7 @@ export const ADMIN_MENU: AdminMenuGroup[] = [
     { label: tr('이상 데이터', 'Anomalies'), to: '/admin/monitoring/abnormal', grant: 'B1', icon: 'file-warning' },
     { label: tr('중복 학습', 'Overlapping study'), to: '/admin/monitoring/overlap', grant: 'B1', icon: 'copy' },
     { label: tr('EMON 전송함', 'EMON outbox'), to: '/admin/emon', grant: 'B1', icon: 'send' },
+    { label: tr('HLS 변환 (영상 경량화)', 'HLS conversion'), to: '/admin/hls', grant: 'D2', icon: 'play' },
     { label: tr('IP 모니터링', 'IP monitoring'), to: '/admin/monitoring/ip', grant: 'B1', icon: 'activity' },
   ] },
 ];
