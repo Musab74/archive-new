@@ -1,0 +1,1 @@
+import{j as o}from"./query-DQDP2dKp.js";import{am as t,an as n}from"./index-BgGktwtv.js";const a="_body_g5qwr_1",r={body:a};function y({html:e,className:s}){return e?t(e)?o.jsx("div",{className:`${r.body} ${s??""}`,dangerouslySetInnerHTML:{__html:n(e)}}):o.jsx("p",{className:`${r.body} ${s??""}`,style:{whiteSpace:"pre-line"},children:e}):null}export{y as L};

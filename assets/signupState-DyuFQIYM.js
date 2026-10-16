@@ -1,0 +1,1 @@
+const s="signup.consent.v1",e=()=>{try{const t=sessionStorage.getItem(s);return t?JSON.parse(t):null}catch{return null}},n=t=>{try{sessionStorage.setItem(s,JSON.stringify(t))}catch{}},r=()=>{try{sessionStorage.removeItem(s)}catch{}};export{r as c,e as r,n as w};
