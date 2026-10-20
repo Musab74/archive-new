@@ -176,6 +176,7 @@ export function HlsPage() {
           <Kpi label={tr('변환 중', 'Encoding')} value={st.queue.running} />
           <Kpi label={tr('완료', 'Done')} value={st.queue.done} tone="ok" />
           <Kpi label={tr('실패', 'Failed')} value={st.queue.failed} tone={st.queue.failed ? 'warn' : undefined} />
+          {st.delivery ? <Kpi label={tr('송출 경로', 'Delivery')} value={st.delivery.mode === 'off' ? tr('VOD만', 'VOD only') : st.delivery.pathway === 'CDN' ? 'CDN' : 'VOD'} tone={st.delivery.pathway === 'CDN' ? 'warn' : 'ok'} hint={st.delivery.mbps !== null ? tr(`현재 ${st.delivery.mbps} Mbps · 기준 ${st.delivery.ceilingMbps} / 복귀 ${st.delivery.returnMbps} Mbps`, `${st.delivery.mbps} Mbps now · ceiling ${st.delivery.ceilingMbps} / return ${st.delivery.returnMbps}`) : tr(`모드 ${st.delivery.mode}`, `mode ${st.delivery.mode}`)} /> : null}
         </div>
       ) : null}
 

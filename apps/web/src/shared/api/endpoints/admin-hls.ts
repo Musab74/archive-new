@@ -38,6 +38,7 @@ export const HlsStatusSchema = z.object({
   worker: z.object({ alive: z.boolean(), lastSeen: S, ffmpeg: S, hours: S, runningJob: S }),
   queue: z.object({ queued: z.number(), running: z.number(), done: z.number(), failed: z.number(), cancelled: z.number() }),
   hlsRootExists: z.boolean(), publicBase: z.string(), preset: z.string(), threads: z.number(),
+  delivery: z.object({ mode: z.string(), cdnBase: S, ceilingMbps: z.number(), returnMbps: z.number(), returnHoldSec: z.number(), mbps: z.number().nullable(), pathway: z.enum(['VOD', 'CDN']), measuredAt: S, switchedAt: S }).optional(),
 });
 export type HlsStatus = z.infer<typeof HlsStatusSchema>;
 
