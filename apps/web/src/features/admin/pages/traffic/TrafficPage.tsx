@@ -7,7 +7,8 @@ import { StateBlock } from '../../../../shared/ui/StateBlock';
 import { tr } from '../../../../shared/i18n/adminLang';
 
 const POLL_MS = 2_000;
-const MAX_PINS = 4;
+const MAX_PINS = 6;
+type FocusInfo = TrafficLive['focus'][number];
 const DEFAULTS = { pin: '', q: '' };
 
 /** Decimal units, like network speeds: 1 MB = 1,000,000 bytes. */
@@ -111,11 +112,11 @@ function IpCell({ l }: { l: TrafficLearner }) {
 }
 
 /** One learner side by side with the others: big current speed, totals, last 5 minutes on the shared scale. */
-function ComparePanel({ l, series, at, max, auto, onUnpin }: { l: TrafficLearner | null; id: string; series: number[]; at: string; max: number; auto: boolean; onUnpin: () => void }) {
+function ComparePanel({ l, id, info, series, at, max, auto, onUnpin }: { l: TrafficLearner | null; id: string; info: FocusInfo | undefined; series: number[]; at: string; max: number; auto: boolean; onUnpin: () => void }) {
   return (
     <Card
-      title={l ? <LearnerName l={l} /> : tr('학습 종료', 'Not studying now')}
-      aside={<span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>{auto ? <StatusBadge tone="info">{tr('자동 선택', 'Auto')}</StatusBadge> : null}<AButton size="xs" variant="ghost" onClick={onUnpin}>{auto ? tr('숨기기', 'Hide') : tr('고정 해제', 'Unpin')}</AButton></span>}
+      title={l ? <LearnerName l={l} /> : <LearnerName l={{ id, name: info?.name ?? null }} />}
+      aside={<span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>{auto ? <StatusBadge tone="info">{tr('자동 선택', 'Auto')}</StatusBadge> : null}<AButton size="xs" variant="ghost" onClick={onUnpin}>{auto ? tr('숨기기', 'Hide') : tr('빼기', 'Remove')}</AButton></span>}
     >
       {l ? (
         <div style={{ display: 'grid', gap: 10 }}>
@@ -135,7 +136,22 @@ function ComparePanel({ l, series, at, max, auto, onUnpin }: { l: TrafficLearner
           </dl>
           <LiveRateChart series={series} at={at} max={max} height={170} label={tr(`${l.name ?? l.id} 최근 5분 전송 속도`, `${l.name ?? l.id}, speed over the last 5 minutes`)} />
         </div>
-      ) : <p className="muted">{tr('최근 3분 동안 플레이어 신호가 없습니다.', 'No player tick in the last 3 minutes.')}</p>}
+      ) : info?.exists === false ? (
+        <Callout tone="warn">{tr(`'${id}' 아이디의 회원이 없습니다. 아이디를 확인해 주세요.`, `No member with the ID '${id}'. Check the ID.`)}</Callout>
+      ) : (
+        <div style={{ display: 'grid', gap: 10 }}>
+          <div className="muted" style={{ fontSize: 12, lineHeight: 1.5 }}>{info?.companyName ?? '—'}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 12px', alignItems: 'center' }}>
+            <StatusBadge tone="neutral">{tr('지금 학습 중 아님', 'Not studying now')}</StatusBadge>
+            <span className="muted" style={{ fontSize: 12 }}>{tr('학습을 시작하면 첫 플레이어 신호 뒤(보통 몇 초~1분) 숫자가 움직입니다.', 'Numbers start after the first player tick once a lesson is opened (a few seconds to a minute).')}</span>
+          </div>
+          <dl style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8, margin: 0, fontSize: 13 }}>
+            <div><dt className="muted" style={{ fontSize: 11 }}>{tr('현재 속도', 'Now')}</dt><dd style={{ margin: 0, fontWeight: 600 }}>{fmtRate(0)}</dd></div>
+            <div><dt className="muted" style={{ fontSize: 11 }}>{tr('오늘 사용량', 'Today')}</dt><dd style={{ margin: 0, fontWeight: 600 }}>{fmtMB(info?.todayBytes ?? 0)}</dd></div>
+          </dl>
+          <LiveRateChart series={series} at={at} max={max} height={170} label={tr(`${info?.name ?? id} 최근 5분 전송 속도`, `${info?.name ?? id}, speed over the last 5 minutes`)} />
+        </div>
+      )}
     </Card>
   );
 }
@@ -169,8 +185,16 @@ export function TrafficPage() {
     if (next.join(',') !== auto.join(',')) setAuto(next);
   }, [d, pins.length, auto, hidden]);
 
+  const [idText, setIdText] = useState('');
+  const addIds = () => {
+    const typed = idText.split(/[\s,]+/).map((x) => x.trim()).filter(Boolean);
+    if (!typed.length) return;
+    const next = [...pins, ...typed.filter((x) => !pins.includes(x))].slice(0, MAX_PINS);
+    setP({ pin: next.join(',') });
+    setIdText('');
+  };
   const togglePin = (id: string) => {
-    const next = pins.includes(id) ? pins.filter((x) => x !== id) : [...pins, id].slice(-MAX_PINS);
+    const next = pins.includes(id) ? pins.filter((x) => x !== id) : [...pins, id].slice(0, MAX_PINS);
     setP({ pin: next.join(',') });
   };
   const unpin = (id: string) => (pins.length ? togglePin(id) : (setHidden((h) => [...h, id]), setAuto((a) => a.filter((x) => x !== id))));
@@ -185,7 +209,7 @@ export function TrafficPage() {
   }, [d, p.q]);
 
   const columns: Column<TrafficLearner>[] = [
-    { key: 'pin', header: tr('비교', 'Compare'), width: 70, render: (r) => <AButton size="xs" variant={pins.includes(r.id) ? 'primary' : 'default'} onClick={() => togglePin(r.id)} aria-pressed={pins.includes(r.id)}>{pins.includes(r.id) ? tr('고정됨', 'Pinned') : tr('고정', 'Pin')}</AButton> },
+    { key: 'pin', header: tr('비교', 'Compare'), width: 70, render: (r) => <AButton size="xs" variant={pins.includes(r.id) ? 'primary' : 'default'} onClick={() => togglePin(r.id)} aria-pressed={pins.includes(r.id)} disabled={!pins.includes(r.id) && pins.length >= MAX_PINS}>{pins.includes(r.id) ? tr('고정됨', 'Pinned') : tr('고정', 'Pin')}</AButton> },
     { key: 'name', header: tr('학습자', 'Learner'), render: (r) => <><LearnerName l={r} /><div className="muted" style={{ fontSize: 12 }}>{r.companyName ?? '—'}</div></> },
     { key: 'lesson', header: tr('과정 · 차시', 'Course · lesson'), render: (r) => <div style={{ maxWidth: 280, whiteSpace: 'normal', fontSize: 13 }}>{r.courseName ?? r.lectureCode}<div className="muted" style={{ fontSize: 12 }}>{r.lessonTitle ?? `#${r.contentsIdx}`}</div></div> },
     { key: 'ip', header: 'IP', nowrap: true, render: (r) => <IpCell l={r} /> },
@@ -201,7 +225,7 @@ export function TrafficPage() {
     <AdminPage
       title={tr('실시간 트래픽 (학습자별)', 'Live traffic by learner')}
       icon="activity"
-      lead={tr('지금 학습 중인 사람마다 받고 있는 데이터 속도(MB/s)와 사용량을 2초마다 보여 줍니다. 학습자를 고정하면 나란히 비교할 수 있습니다.', 'Speed (MB/s) and data used by each learner who is studying now, refreshed every 2 seconds. Pin learners to compare them side by side.')}
+      lead={tr('지금 학습 중인 사람마다 받고 있는 데이터 속도(MB/s)와 사용량을 2초마다 보여 줍니다. 학습자 ID를 입력하면 최대 6명을 나란히 비교할 수 있습니다.', 'Speed (MB/s) and data used by each learner who is studying now, refreshed every 2 seconds. Enter learner IDs to compare up to 6 side by side.')}
       actions={<span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <span className="muted" style={{ fontSize: 12 }}>{q.isFetching && !paused ? '●' : '○'} {tr('갱신', 'Updated')} {hhmmss(d?.at ?? null)}</span>
         <AButton size="sm" onClick={() => setPaused((x) => !x)} icon={paused ? 'play' : undefined}>{paused ? tr('다시 시작', 'Resume') : tr('일시정지', 'Pause')}</AButton>
@@ -222,10 +246,22 @@ export function TrafficPage() {
           </div>
 
           <section aria-label={tr('학습자 비교', 'Learner comparison')}>
-            <h2 style={{ fontSize: 15, margin: '0 0 8px' }}>{tr('학습자 비교', 'Compare learners')} <span className="muted" style={{ fontSize: 12, fontWeight: 400 }}>{pins.length ? tr(`고정 ${pins.length}/${MAX_PINS}명 · 같은 눈금`, `${pins.length}/${MAX_PINS} pinned · same scale`) : tr('지금 가장 많이 받는 2명 (아래 표에서 고정 가능)', 'The two busiest right now (pin from the table below)')}</span></h2>
+            <h2 style={{ fontSize: 15, margin: '0 0 8px' }}>{tr('학습자 비교', 'Compare learners')} <span className="muted" style={{ fontSize: 12, fontWeight: 400 }}>{pins.length ? tr(`${pins.length}/${MAX_PINS}명 · 같은 눈금`, `${pins.length}/${MAX_PINS} · same scale`) : tr('아이디를 입력하지 않으면 지금 가장 많이 받는 2명을 보여 줍니다', 'With no IDs entered, the two busiest learners are shown')}</span></h2>
+            <form onSubmit={(e) => { e.preventDefault(); addIds(); }} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+              <label htmlFor="traffic-ids" className="muted" style={{ fontSize: 13 }}>{tr('비교할 학습자 ID', 'Learner IDs to compare')}</label>
+              <AInput id="traffic-ids" value={idText} onChange={(e) => setIdText(e.target.value)} placeholder={tr('예: kim01, lee002 (쉼표로 여러 명)', 'e.g. kim01, lee002 (comma separated)')} style={{ width: 'min(100%, 320px)' }} disabled={pins.length >= MAX_PINS} autoComplete="off" />
+              <AButton type="submit" size="sm" variant="primary" disabled={!idText.trim() || pins.length >= MAX_PINS}>{tr('비교에 추가', 'Add')}</AButton>
+              {pins.length ? <AButton type="button" size="sm" variant="ghost" onClick={() => setP({ pin: '' })}>{tr('모두 지우기', 'Clear all')}</AButton> : null}
+              {pins.map((id) => (
+                <span key={id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 4px 2px 10px', border: '1px solid var(--c-line, #e5e7eb)', borderRadius: 999, fontSize: 12 }}>
+                  <span className="mono">{id}</span>
+                  <button type="button" onClick={() => togglePin(id)} aria-label={tr(`${id} 비교에서 빼기`, `Remove ${id}`)} style={{ border: 0, background: 'transparent', cursor: 'pointer', padding: '0 6px', fontSize: 14, lineHeight: 1, color: 'var(--c-muted, #6b7280)' }}>×</button>
+                </span>
+              ))}
+            </form>
             {shown.length ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))', gap: 12 }}>
-                {shown.map((id) => <ComparePanel key={id} id={id} l={byId.get(id) ?? null} series={d.focus.find((f) => f.id === id)?.series ?? []} at={d.at} max={sharedMax} auto={!pins.length} onUnpin={() => unpin(id)} />)}
+                {shown.map((id) => { const f = d.focus.find((x) => x.id === id); return <ComparePanel key={id} id={id} l={byId.get(id) ?? null} info={f} series={f?.series ?? []} at={d.at} max={sharedMax} auto={!pins.length} onUnpin={() => unpin(id)} />; })}
               </div>
             ) : <Card><p className="muted" style={{ margin: 0 }}>{tr('지금 영상을 받고 있는 학습자가 없습니다.', 'No learner is receiving video right now.')}</p></Card>}
           </section>

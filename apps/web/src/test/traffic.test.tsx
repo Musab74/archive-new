@@ -23,7 +23,10 @@ const live = (focusIds: string[]) => ({
   site: { rateBps: 5_000_000, peakBps: 9_000_000, todayBytes: 42_000_000_000, connections: 60, series: Array.from({ length: 300 }, (_, i) => i * 10_000) },
   learners: { active: 3, receiving: 2, sharedIps: 1, rateBps: 1_500_000 },
   items: [learner('kim01', '김학습', 1_000_000), learner('lee002', '이학습', 500_000, { sharedIp: 2 }), learner('park0003', '박학습', 0)],
-  focus: focusIds.map((id) => ({ id, series: Array.from({ length: 299 }, () => 400_000) })),
+  focus: focusIds.map((id) => ({
+    id, exists: id !== 'nobody', name: id === 'idle01' ? '최휴식' : null, companyName: id === 'idle01' ? '쉬는회사' : null, studying: ['kim01', 'lee002', 'park0003'].includes(id),
+    rateBps: 0, sessionBytes: 0, todayBytes: id === 'idle01' ? 77_000_000 : 0, series: Array.from({ length: 299 }, () => 400_000),
+  })),
   unidentified: [{ ip: '203.0.113.9', rateBps: 200_000, todayBytes: 5_000_000, connections: 1 }],
 });
 
@@ -73,5 +76,23 @@ describe('실시간 트래픽 page', () => {
     await waitFor(() => expect(seen.some((s) => decodeURIComponent(s).includes('focus=park0003'))).toBe(true));
     expect(await screen.findByRole('img', { name: '박학습 최근 5분 전송 속도' })).toBeTruthy();
     expect(screen.queryByText('자동 선택')).toBeNull();
+  });
+
+  it('compares the learner IDs the admin types, studying or not, and flags unknown IDs', async () => {
+    const seen: string[] = [];
+    vi.stubGlobal('fetch', apiMock(seen));
+    mount('/admin/monitoring/traffic');
+    await screen.findByText('학습 중인 학습자 3명');
+    fireEvent.change(screen.getByLabelText('비교할 학습자 ID'), { target: { value: 'lee002, idle01 nobody' } });
+    fireEvent.click(screen.getByRole('button', { name: '비교에 추가' }));
+    await waitFor(() => expect(seen.some((s) => decodeURIComponent(s).includes('focus=lee002,idle01,nobody'))).toBe(true));
+    expect(await screen.findByRole('img', { name: '최휴식 최근 5분 전송 속도' })).toBeTruthy();
+    expect(screen.getByText('지금 학습 중 아님')).toBeTruthy();
+    expect(screen.getByText('77.0 MB')).toBeTruthy();
+    expect(screen.getByText(/'nobody' 아이디의 회원이 없습니다/)).toBeTruthy();
+    expect(screen.getByRole('img', { name: '이학습 최근 5분 전송 속도' })).toBeTruthy();
+    expect(screen.queryByText('자동 선택')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'nobody 비교에서 빼기' }));
+    await waitFor(() => expect(screen.queryByText(/'nobody' 아이디의 회원이 없습니다/)).toBeNull());
   });
 });

@@ -20,7 +20,10 @@ export const TrafficLiveSchema = z.object({
   site: z.object({ rateBps: z.number(), peakBps: z.number(), todayBytes: z.number(), connections: z.number(), series: z.array(z.number()) }),
   learners: z.object({ active: z.number(), receiving: z.number(), sharedIps: z.number(), rateBps: z.number() }),
   items: z.array(TrafficLearnerSchema),
-  focus: z.array(z.object({ id: z.string(), series: z.array(z.number()) })),
+  focus: z.array(z.object({
+    id: z.string(), exists: z.boolean().nullable().optional(), name: S.optional(), companyName: S.optional(), studying: z.boolean().optional(),
+    rateBps: z.number().optional(), sessionBytes: z.number().optional(), todayBytes: z.number().optional(), series: z.array(z.number()),
+  })),
   unidentified: z.array(z.object({ ip: z.string(), rateBps: z.number(), todayBytes: z.number(), connections: z.number() })),
 });
 export type TrafficLive = z.infer<typeof TrafficLiveSchema>;
