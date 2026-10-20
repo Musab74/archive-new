@@ -1,0 +1,1 @@
+import{j as r}from"./query-DQDP2dKp.js";import{L as e}from"./LegalDoc-Dh_6GhA5.js";import{O as t}from"./index-COlFIGWK.js";import"./react-vendor-CCPSXzWe.js";import"./Tabs-BbAfuU9x.js";import"./motion-b-whw0PY.js";function l(){return r.jsx(e,{docKey:"terms",title:t.terms.title,sections:t.terms.sections})}export{l as default};

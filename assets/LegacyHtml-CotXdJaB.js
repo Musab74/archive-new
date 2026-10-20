@@ -1,0 +1,1 @@
+import{j as s}from"./query-DQDP2dKp.js";import{an as t,ao as n}from"./index-COlFIGWK.js";const a="_body_g5qwr_1",r={body:a};function y({html:e,className:o}){return e?t(e)?s.jsx("div",{className:`${r.body} ${o??""}`,dangerouslySetInnerHTML:{__html:n(e)}}):s.jsx("p",{className:`${r.body} ${o??""}`,style:{whiteSpace:"pre-line"},children:e}):null}export{y as L};
