@@ -110,6 +110,7 @@ export const ADMIN_MENU: AdminMenuGroup[] = [
     { label: tr('EMON 전송함', 'EMON outbox'), to: '/admin/emon', grant: 'B1', icon: 'send' },
     { label: tr('HLS 변환 (영상 경량화)', 'HLS conversion'), to: '/admin/hls', grant: 'D2', icon: 'play' },
     { label: tr('IP 모니터링', 'IP monitoring'), to: '/admin/monitoring/ip', grant: 'B1', icon: 'activity' },
+    { label: tr('실시간 트래픽 (학습자별)', 'Live traffic by learner'), to: '/admin/monitoring/traffic', grant: 'B1', icon: 'activity' },
   ] },
 ];
 

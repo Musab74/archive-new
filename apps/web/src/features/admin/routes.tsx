@@ -91,6 +91,7 @@ const EmonPendingPage = lazy(() => import('./pages/emon/EmonPages').then((m) => 
 const EmonDiagnosisPage = lazy(() => import('./pages/emon/EmonPages').then((m) => ({ default: m.EmonDiagnosisPage })));
 const EmonPreviewPage = lazy(() => import('./pages/emon/EmonPages').then((m) => ({ default: m.EmonPreviewPage })));
 const HlsPage = lazy(() => import('./pages/hls/HlsPage').then((m) => ({ default: m.HlsPage })));
+const TrafficPage = lazy(() => import('./pages/traffic/TrafficPage').then((m) => ({ default: m.TrafficPage })));
 const DesignLayout = lazy(() => import('./design/DesignLayout'));
 const DesignOverviewPage = lazy(() => import('./design/pages/OverviewPage'));
 const PresetsPage = lazy(() => import('./design/pages/PresetsPage'));
@@ -175,6 +176,7 @@ export const adminRouteTree: RouteObject = {
           { path: 'ruby/tickets', element: grant('F2', <RubyTicketsPage />) },
           { path: 'ruby/embeddings', element: grant('F2', <RubyEmbeddingsPage />) },
           { path: 'monitoring/ip', element: grant('B1', <IpMonitoringPage />) },
+          { path: 'monitoring/traffic', element: grant('B1', <TrafficPage />) },
           { path: 'enrollments/import', element: grant('A3', <EnrollmentImportPage />) },
           { path: 'learning/history', element: grant('B5', <StudyHistoryPage />) },
           { path: 'learning/closings', element: grant('B6', <ClosingsPage />) },
