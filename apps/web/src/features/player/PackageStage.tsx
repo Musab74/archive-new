@@ -7,6 +7,7 @@ import { player as copy } from '../../shared/strings/ko';
 import { clock } from '../../shared/player/time';
 import type { PackageSource } from '../../shared/player/packageSource';
 import { cx } from '../../shared/utils/format';
+import { attachPackageHls } from '../../shared/player/packageHls';
 
 export const PACKAGE_LOAD_TIMEOUT_MS = 20_000;
 
@@ -17,6 +18,8 @@ export interface PackageStageProps {
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
   /** Fired once per (re)load when the iframe finished loading. */
   onLoaded: () => void;
+  /** `/contents/<mp4>` → HLS master for this lesson's section videos (API chapter.hlsMap); swapped in on every frame load. */
+  hlsMap?: Record<string, string> | null;
   /** How the engine currently derives the position; null before load. */
   source: PackageSource | null;
   /** Elapsed seconds credited in this window (elapsed mode) and the detected playhead (playhead mode). */
@@ -35,7 +38,7 @@ export interface PackageStageProps {
  * with a loading skeleton, an UNAVAILABLE state after onerror or a 20 s load timeout (retry reloads the frame),
  * a fullscreen button on the wrapper, and a control bar with the source status line and 이전/다음 차시.
  */
-export function PackageStage({ src, title, iframeRef, onLoaded, source, elapsedSec, playheadSec, counting, onPrev, onNext, overlay }: PackageStageProps) {
+export function PackageStage({ src, title, iframeRef, onLoaded, hlsMap, source, elapsedSec, playheadSec, counting, onPrev, onNext, overlay }: PackageStageProps) {
   const stageRef = useRef<HTMLDivElement>(null);
   const [attempt, setAttempt] = useState(0);
   const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
@@ -56,7 +59,7 @@ export function PackageStage({ src, title, iframeRef, onLoaded, source, elapsedS
     return () => document.removeEventListener('fullscreenchange', onFs);
   }, []);
 
-  const handleLoad = useCallback(() => { setStatus('loaded'); onLoaded(); }, [onLoaded]);
+  const handleLoad = useCallback(() => { setStatus('loaded'); attachPackageHls(iframeRef.current, hlsMap); onLoaded(); }, [onLoaded, iframeRef, hlsMap]);
   const handleError = useCallback(() => setStatus('error'), []);
   const retry = useCallback(() => { setStatus('loading'); setAttempt((n) => n + 1); }, []);
   const toggleFullscreen = useCallback(() => {

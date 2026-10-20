@@ -120,7 +120,7 @@ export type CurrentEnrollment = z.infer<typeof CurrentEnrollmentSchema>;
 /** POST /player/session descriptor. */
 export const PlayerChapterSchema = z.object({
   chapterSeq: z.number(), number: z.number(), title: z.string(), minutes: num0, contentsIdx: num0, contentsDetailSeq: num0, contentsType: ns,
-  url: ns, mobileUrl: ns, hlsUrl: ns.optional(), progress: num0, studyTime: num0, lastStudy: ns,
+  url: ns, mobileUrl: ns, hlsUrl: ns.optional(), hlsMap: z.record(z.string()).nullable().optional(), progress: num0, studyTime: num0, lastStudy: ns,
 });
 export type PlayerChapter = z.infer<typeof PlayerChapterSchema>;
 export const PlayerDescriptorSchema = z.object({

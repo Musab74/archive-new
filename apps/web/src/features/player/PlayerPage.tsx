@@ -196,7 +196,7 @@ function PlayerWindow({ target, chapterSeq }: { target: EngineTarget; chapterSeq
       <div className={styles.body}>
         <div className={styles.stageCol}>
           {isPackage ? (
-            <PackageStage src={src} title={d.chapter.title} iframeRef={engine.iframeRef} onLoaded={engine.onPackageLoaded} source={state.packageSource}
+            <PackageStage src={src} title={d.chapter.title} iframeRef={engine.iframeRef} onLoaded={engine.onPackageLoaded} hlsMap={d.chapter.hlsMap} source={state.packageSource}
               elapsedSec={engine.packageElapsedSec} playheadSec={engine.packagePlayheadSec} counting={engine.packageCounting}
               onPrev={prevChapterSeq !== null ? () => void goChapter(prevChapterSeq) : undefined} onNext={nextChapterSeq !== null ? () => void goChapter(nextChapterSeq) : undefined} overlay={overlay} />
           ) : (
