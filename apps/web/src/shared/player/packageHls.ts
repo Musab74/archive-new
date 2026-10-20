@@ -71,3 +71,44 @@ export function attachPackageHls(iframe: HTMLIFrameElement | null, map: Record<s
   s.onerror = run; // no hls.js: native HLS where it exists, else the MP4 keeps playing
   (d.head ?? d.documentElement).appendChild(s);
 }
+
+type PrimedWindow = Window & { Hls?: HlsCtor; HTMLMediaElement: typeof HTMLMediaElement; __hlsPrimed?: boolean };
+
+/**
+ * Install the swap BEFORE the package's own script runs, so not a byte of the MP4 is fetched: watch the frame for each
+ * new document (every section page is one) while it is still parsing, start loading hls.js into it, and route
+ * `video.load()` through the map from the first call. Returns a stop function. attachPackageHls on the load event stays
+ * as the safety net (wiring is idempotent).
+ */
+export function primePackageFrame(iframe: HTMLIFrameElement | null, map: Record<string, string> | null | undefined): () => void {
+  if (!iframe || !map || !Object.keys(map).length) return () => undefined;
+  let lastDoc: Document | null = null;
+  const tick = () => {
+    let w: PrimedWindow | null = null; let d: Document | null = null;
+    try { w = iframe.contentWindow as PrimedWindow | null; d = iframe.contentDocument; } catch { return; }
+    if (!w || !d || d === lastDoc || d.readyState === 'complete' || w.__hlsPrimed) return;
+    if (!/\/contents\//.test(d.URL)) return; // about:blank before navigation
+    lastDoc = d; w.__hlsPrimed = true;
+    const doc = d, win = w;
+    const proto = win.HTMLMediaElement.prototype;
+    const nativeLoad = proto.load;
+    const hasMse = 'MediaSource' in win || 'ManagedMediaSource' in win;
+    const waiting: WiredVideo[] = [];
+    let ready = !!win.Hls || !hasMse;
+    if (!ready) {
+      const s = doc.createElement('script');
+      s.src = PACKAGE_HLS_SCRIPT;
+      const go = () => { ready = true; waiting.splice(0).forEach((v) => wire(v, win, doc, map)); };
+      s.onload = go; s.onerror = go;
+      (doc.head ?? doc.documentElement).appendChild(s);
+    }
+    proto.load = function (this: HTMLMediaElement) {
+      const v = this as WiredVideo;
+      if (v.__hlsWired || !packageHlsUrl(map, sourceOf(v as HTMLVideoElement), doc.baseURI)) return nativeLoad.call(this);
+      if (ready) wire(v, win, doc, map); else if (!waiting.includes(v)) waiting.push(v); // nothing is fetched until hls.js is in
+    };
+  };
+  const id = setInterval(tick, 10);
+  tick();
+  return () => clearInterval(id);
+}

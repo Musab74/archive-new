@@ -7,7 +7,7 @@ import { player as copy } from '../../shared/strings/ko';
 import { clock } from '../../shared/player/time';
 import type { PackageSource } from '../../shared/player/packageSource';
 import { cx } from '../../shared/utils/format';
-import { attachPackageHls } from '../../shared/player/packageHls';
+import { attachPackageHls, primePackageFrame } from '../../shared/player/packageHls';
 
 export const PACKAGE_LOAD_TIMEOUT_MS = 20_000;
 
@@ -58,6 +58,9 @@ export function PackageStage({ src, title, iframeRef, onLoaded, hlsMap, source, 
     document.addEventListener('fullscreenchange', onFs);
     return () => document.removeEventListener('fullscreenchange', onFs);
   }, []);
+
+  // Swap section videos to HLS before the package's own script can start the MP4 (each section page is a new document).
+  useEffect(() => primePackageFrame(iframeRef.current, hlsMap), [iframeRef, hlsMap, src, attempt]);
 
   const handleLoad = useCallback(() => { setStatus('loaded'); attachPackageHls(iframeRef.current, hlsMap); onLoaded(); }, [onLoaded, iframeRef, hlsMap]);
   const handleError = useCallback(() => setStatus('error'), []);
