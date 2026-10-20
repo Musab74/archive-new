@@ -12,6 +12,7 @@ vi.mock('../shared/api/endpoints/player', () => ({
     heartbeat: vi.fn(() => Promise.resolve({ ok: true })),
     tick: vi.fn((body: ProgressTick) => { sent.push(body); return Promise.resolve({ ChkError: 'N', StudyTime: 10, PositionSec: body.positionSec || body.progressTime }); }),
     beaconTick: vi.fn((body: ProgressTick) => { beaconed.push(body); return true; }),
+    release: vi.fn(() => true),
     chapters: vi.fn(),
     dailyTime: vi.fn(),
   },

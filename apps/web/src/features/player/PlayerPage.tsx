@@ -124,12 +124,14 @@ function PlayerWindow({ target, chapterSeq }: { target: EngineTarget; chapterSeq
     const lastHb = phase.reason === 'playlock' && phase.details && typeof phase.details === 'object' && 'lastHeartbeat' in phase.details ? String((phase.details as { lastHeartbeat?: string }).lastHeartbeat ?? '') : '';
     return (
       <div className={styles.state}>
-        <StateBlock code={code} kicker={b.kicker} title={b.title} body={<>{phase.message ?? b.body}{lastHb ? <><br /><small>{copy.blocked.playlock.lastHeartbeat(fmtDateTime(lastHb) || lastHb)}</small></> : null}</>}
+        <StateBlock code={code} kicker={b.kicker} title={b.title} body={<>{phase.message ?? b.body}{lastHb ? <><br /><small>{copy.blocked.playlock.lastHeartbeat(fmtDateTime(lastHb) || lastHb)}</small></> : null}{phase.reason === 'playlock' ? <><br /><small>{copy.blocked.playlock.takeoverNote}</small></> : null}</>}
           actions={<>
             <Button variant="secondary" square size="sm" to={detailPath}>{copy.backToDetail}</Button>
             {phase.reason === 'preAssessment' ? <Button square size="sm" to="/assessment/pre">{copy.blocked.preAssessment.cta}</Button> : null}
             {phase.reason === 'sessionExpired' || phase.reason === 'idleTimeout' ? <Button square size="sm" to={`/auth/login?next=${encodeURIComponent(`/learn/${target.studySeq}/${chapterSeq}?lectureCode=${target.lectureCode}`)}`}>{common.goLogin}</Button> : null}
-            {phase.reason === 'playlock' || phase.reason === 'unknown' || phase.reason === 'dailyCap' ? <Button square size="sm" onClick={() => engine.open()}>{copy.recheck}</Button> : null}
+            {phase.reason === 'playlock' ? <Button variant="secondary" square size="sm" onClick={() => engine.open()}>{copy.recheck}</Button> : null}
+            {phase.reason === 'playlock' ? <Button square size="sm" onClick={() => engine.open({ takeover: true })}>{copy.blocked.playlock.takeover}</Button> : null}
+            {phase.reason === 'unknown' || phase.reason === 'dailyCap' ? <Button square size="sm" onClick={() => engine.open()}>{copy.recheck}</Button> : null}
           </>} />
       </div>
     );

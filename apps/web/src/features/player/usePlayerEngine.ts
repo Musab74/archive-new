@@ -17,7 +17,8 @@ export interface PlayerEngine {
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
   /** True once the descriptor says the chapter is packaged HTML (contentsType 'A' or an .html URL). */
   isPackage: boolean;
-  open: () => void;
+  /** Runs the gates again; `takeover` ends the other window's session (「여기서 학습 계속하기」). */
+  open: (opts?: { takeover?: boolean }) => void;
   play: () => void;
   pause: () => void;
   /** Called by the stage on every timeupdate: accumulates watched seconds (skip detection) and local elapsed for the daily cap. */
@@ -64,6 +65,14 @@ export function tickBody(d: PlayerDescriptor, step: TickStep, positionSec: numbe
 }
 
 const ACTIVITY_EVENTS = ['pointerdown', 'keydown', 'touchstart'] as const;
+
+/**
+ * The play token survives a reload of the same tab (sessionStorage is per tab), so F5 re-opens this tab's own session
+ * instead of being blocked by it for 90 s when the pagehide release did not reach the server.
+ */
+const TOKEN_KEY = 'ainex.player.playToken';
+const storedToken = (): string => { try { return window.sessionStorage.getItem(TOKEN_KEY) ?? ''; } catch { return ''; } };
+const storeToken = (t: string): void => { try { if (t) window.sessionStorage.setItem(TOKEN_KEY, t); else window.sessionStorage.removeItem(TOKEN_KEY); } catch { /* storage blocked */ } };
 
 /**
  * Wires the reducer, TickScheduler, heartbeat, idle timer and daily-cap stop to a <video> — or, for packaged
@@ -145,22 +154,24 @@ export function usePlayerEngine(target: EngineTarget | null): PlayerEngine {
   const mounted = useRef(true);
   const closed = useRef(false);
 
-  const open = useCallback(() => {
+  const open = useCallback((opts?: { takeover?: boolean }) => {
     if (!target) return;
-    const key = `${target.studySeq}|${target.lectureCode}|${target.chapterNumber}`;
+    const takeover = !!opts?.takeover;
+    const key = `${target.studySeq}|${target.lectureCode}|${target.chapterNumber}|${takeover ? 'takeover' : ''}`;
     const seq = ++openSeq.current;
     dispatch({ type: 'OPEN' });
     // One request per target even when the effect runs twice (StrictMode) — a second POST would collide with our own PlayLock.
     // A re-check while a token is held passes it back so the server re-validates the same session instead of blocking it.
     let promise = inflight.current?.key === key ? inflight.current.promise : null;
     if (!promise) {
-      promise = playerApi.open({ lectureCode: target.lectureCode, chapterNumber: target.chapterNumber, studySeq: target.studySeq, playToken: descriptorRef.current?.playToken || undefined });
+      promise = playerApi.open({ lectureCode: target.lectureCode, chapterNumber: target.chapterNumber, studySeq: target.studySeq, playToken: descriptorRef.current?.playToken || storedToken() || undefined, ...(takeover ? { takeover } : {}) });
       inflight.current = { key, promise };
       void promise.finally(() => { if (inflight.current?.promise === promise) inflight.current = null; }).catch(() => undefined);
     }
     promise
       .then((d) => {
         if (seq !== openSeq.current || !mounted.current) { if (d.playToken && !mounted.current) void playerApi.close(d.playToken).catch(() => undefined); return; }
+        storeToken(d.playToken);
         packageRef.current = isPackageChapter(d.chapter);
         playheadRef.current = null;
         setPackagePlayheadSec(null);
@@ -177,7 +188,7 @@ export function usePlayerEngine(target: EngineTarget | null): PlayerEngine {
 
   useEffect(() => { mounted.current = true; open(); }, [open]);
 
-  // Unmount / SPA navigation: close the chapter without waiting (beacon End + keepalive close).
+  // Unmount / SPA navigation: close the chapter without waiting (beacon End + keepalive release).
   useEffect(() => () => {
     mounted.current = false;
     const s = schedulerRef.current;
@@ -185,18 +196,23 @@ export function usePlayerEngine(target: EngineTarget | null): PlayerEngine {
     if (s && s.hasStarted && !s.hasEnded) s.end({ beacon: true });
     s?.dispose();
     counterRef.current?.dispose();
-    if (d?.playToken && !closed.current) void playerApi.close(d.playToken).catch(() => undefined);
+    if (d?.playToken && !closed.current) { playerApi.release(d.playToken); storeToken(''); }
   }, []);
 
-  // pagehide → beacon End (keepalive) while the page is going away.
+  // pagehide (tab closed, reload, leaving the site) → beacon End, then release the PlayLock so another window can start at once.
+  // pageshow from the back/forward cache → that session was released (and ended), so run the gates again for a fresh one.
   useEffect(() => {
     const onHide = () => {
       const s = schedulerRef.current;
       if (s && s.hasStarted && !s.hasEnded) s.end({ beacon: true });
+      const t = descriptorRef.current?.playToken;
+      if (t && !closed.current) { playerApi.release(t); closed.current = true; }
     };
+    const onShow = (e: PageTransitionEvent) => { if (e.persisted && closed.current && descriptorRef.current?.playToken) open(); };
     window.addEventListener('pagehide', onHide);
-    return () => window.removeEventListener('pagehide', onHide);
-  }, []);
+    window.addEventListener('pageshow', onShow);
+    return () => { window.removeEventListener('pagehide', onHide); window.removeEventListener('pageshow', onShow); };
+  }, [open]);
 
   // Heartbeat keeps the PlayLock alive while a token is held and the window is not blocked.
   const token = state.descriptor?.playToken ?? '';
@@ -379,7 +395,7 @@ export function usePlayerEngine(target: EngineTarget | null): PlayerEngine {
     const s = schedulerRef.current;
     if (s && s.hasStarted && !s.hasEnded) { s.end(); await s.flush(); }
     const t = descriptorRef.current?.playToken;
-    if (t) { try { await playerApi.close(t); closed.current = true; } catch { /* lock expires on its own */ } }
+    if (t) { try { await playerApi.close(t); closed.current = true; storeToken(''); } catch { /* lock expires on its own */ } }
   }, []);
 
   const retrySave = useCallback(() => { const s = schedulerRef.current; if (s && s.hasStarted && !s.hasEnded) s.tickNow(); }, []);

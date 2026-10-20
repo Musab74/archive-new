@@ -42,6 +42,8 @@ export const PlayerSessionOpenSchema = z.object({
   lectureCode: z.string().min(1).max(50),
   chapterNumber: z.string().max(10).default('1'),
   playToken: z.string().max(64).default(''),
+  /** 「여기서 학습 계속하기」: replace a live lock held by another window of the same login (that window stops at its next heartbeat). */
+  takeover: z.boolean().default(false),
 });
 
 export const HeartbeatSchema = z.object({ playToken: z.string().min(1).max(64) });
