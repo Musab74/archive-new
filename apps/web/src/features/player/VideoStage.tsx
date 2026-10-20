@@ -64,21 +64,20 @@ export function VideoStage({ src, videoRef, playing, canPlay, onPlay, onPause, o
   useEffect(() => {
     const v = videoRef.current;
     if (!v || !src || !isHls) return undefined;
-    if (v.canPlayType('application/vnd.apple.mpegurl')) {
-      v.src = src;
-      return () => { v.removeAttribute('src'); v.load(); };
-    }
     let destroy: (() => void) | null = null;
     let gone = false;
+    // hls.js first wherever it runs: recent Chrome answers canPlayType(HLS) = "maybe" but cannot play these fMP4
+    // byte-range renditions natively. Native HLS only without MSE (iOS Safari).
+    const native = () => { v.src = src; const err = () => onErrorRef.current?.(); v.addEventListener('error', err, { once: true }); destroy = () => { v.removeEventListener('error', err); v.removeAttribute('src'); v.load(); }; };
     import('hls.js').then(({ default: Hls }) => {
       if (gone) return;
-      if (!Hls.isSupported()) { onErrorRef.current?.(); return; }
+      if (!Hls.isSupported()) { if (v.canPlayType('application/vnd.apple.mpegurl')) native(); else onErrorRef.current?.(); return; }
       const hls = new Hls(HLS_CONFIG);
       hls.on(Hls.Events.ERROR, (_e, data) => { if (data.fatal) onErrorRef.current?.(); });
       hls.loadSource(src);
       hls.attachMedia(v);
       destroy = () => hls.destroy();
-    }).catch(() => onErrorRef.current?.());
+    }).catch(() => { if (!gone && v.canPlayType('application/vnd.apple.mpegurl')) native(); else onErrorRef.current?.(); });
     return () => { gone = true; destroy?.(); };
   }, [src, isHls, videoRef]);
 

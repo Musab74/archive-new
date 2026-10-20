@@ -49,11 +49,15 @@ export function HlsPreview({ src }: { src: string }) {
   useEffect(() => {
     const v = ref.current;
     if (!v) return undefined;
-    if (v.canPlayType('application/vnd.apple.mpegurl')) { v.src = src; setInfo(tr('브라우저 내장 HLS', 'Native HLS')); return () => { v.removeAttribute('src'); v.load(); }; }
     let destroy: (() => void) | null = null; let gone = false;
+    // hls.js first (recent Chrome claims native HLS but cannot play these renditions); native only without MSE
     void import('hls.js').then(({ default: Hls }) => {
       if (gone) return;
-      if (!Hls.isSupported()) { setInfo(tr('이 브라우저는 HLS를 재생할 수 없습니다.', 'This browser cannot play HLS.')); return; }
+      if (!Hls.isSupported()) {
+        if (v.canPlayType('application/vnd.apple.mpegurl')) { v.src = src; setInfo(tr('브라우저 내장 HLS', 'Native HLS')); destroy = () => { v.removeAttribute('src'); v.load(); }; }
+        else setInfo(tr('이 브라우저는 HLS를 재생할 수 없습니다.', 'This browser cannot play HLS.'));
+        return;
+      }
       const hls = new Hls({ maxBufferLength: 30, maxMaxBufferLength: 60, capLevelToPlayerSize: true });
       hls.on(Hls.Events.LEVEL_SWITCHED, (_e, d) => { const l = hls.levels[d.level]; if (l) setInfo(`hls.js · ${l.height}p · ${Math.round(l.bitrate / 1000)} kbps`); });
       hls.on(Hls.Events.ERROR, (_e, d) => { if (d.fatal) setInfo(`${tr('재생 오류', 'Playback error')}: ${d.details}`); });

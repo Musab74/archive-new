@@ -20,7 +20,7 @@ describe('packaged lesson HLS swap', () => {
     const doc = iframe.contentDocument!;
     doc.open(); doc.write('<!doctype html><html><head><base href="https://timeless.uz/contents/B/05/B0502/001/04/index.html"></head><body><video id="video1"><source id="vSource" src="./video/lect.mp4" type="video/mp4"></video></body></html>'); doc.close();
     const loaded: string[] = [];
-    class FakeHls { static isSupported() { return true; } loadSource(u: string) { loaded.push(u); } attachMedia() { /* noop */ } destroy() { /* noop */ } }
+    class FakeHls { static Events = { ERROR: 'hlsError' }; static isSupported() { return true; } loadSource(u: string) { loaded.push(u); } attachMedia() { /* noop */ } on() { /* noop */ } destroy() { /* noop */ } }
     (iframe.contentWindow as unknown as { Hls: unknown }).Hls = FakeHls;
     vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => undefined);
     attachPackageHls(iframe, MAP);
