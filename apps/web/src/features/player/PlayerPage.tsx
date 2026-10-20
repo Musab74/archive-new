@@ -82,7 +82,12 @@ function PlayerWindow({ target, chapterSeq }: { target: EngineTarget; chapterSeq
   const playing = phase.kind === 'playing';
   const isPackage = engine.isPackage;
   // Packaged (type A) chapters: mobileUrl on narrow viewports, with the legacy ?resume= hint; real media resolves url/mobileUrl as before.
-  const src = useMemo(() => (d && isPackage ? resolvePackageUrl(d.chapter, d.resume.positionSec, isMobileViewport()) : resolveMediaUrl(d?.chapter.url ?? d?.chapter.mobileUrl ?? null)), [d, isPackage]);
+  // Encoded lessons play their HLS master (HLS_PLAYBACK on the API); if it fails the MP4 takes over when the API still sent one.
+  const [hlsFailed, setHlsFailed] = useState<number | null>(null);
+  const mp4Src = useMemo(() => (d && isPackage ? resolvePackageUrl(d.chapter, d.resume.positionSec, isMobileViewport()) : resolveMediaUrl(d?.chapter.url ?? d?.chapter.mobileUrl ?? null)), [d, isPackage]);
+  const hlsSrc = d && !isPackage && d.chapter.hlsUrl && hlsFailed !== d.chapter.chapterSeq ? resolveMediaUrl(d.chapter.hlsUrl) : null;
+  const src = hlsSrc ?? mp4Src;
+  const onMediaError = useCallback(() => { if (hlsSrc && mp4Src && d) setHlsFailed(d.chapter.chapterSeq); else setMediaError(true); }, [hlsSrc, mp4Src, d]);
   const refund = d?.study.mode !== 'NON_REFUND';
 
   useEffect(() => { document.title = d ? `${d.chapter.title} · ${copy.title}` : copy.title; return () => { document.title = 'AINEX Archive'; }; }, [d]);
@@ -196,7 +201,7 @@ function PlayerWindow({ target, chapterSeq }: { target: EngineTarget; chapterSeq
               onPrev={prevChapterSeq !== null ? () => void goChapter(prevChapterSeq) : undefined} onNext={nextChapterSeq !== null ? () => void goChapter(nextChapterSeq) : undefined} overlay={overlay} />
           ) : (
             <VideoStage src={src} videoRef={engine.videoRef} playing={playing} canPlay={canPlayPhase(phase) && !mediaError} onPlay={engine.play} onPause={engine.pause}
-              onTimeUpdate={engine.onTimeUpdate} onLoadedMetadata={engine.onLoadedMetadata} onEnded={engine.onMediaEnded} onError={() => setMediaError(true)} overlay={overlay} />
+              onTimeUpdate={engine.onTimeUpdate} onLoadedMetadata={engine.onLoadedMetadata} onEnded={engine.onMediaEnded} onError={onMediaError} overlay={overlay} />
           )}
           {state.idleWarning ? (
             <div className={styles.idle} role="alert"><Icon name="clock" size={18} /><span>{copy.notices.idleWarn}</span><Button variant="white" size="xs" square onClick={engine.acknowledgeIdle}>{copy.notices.idleContinue}</Button></div>

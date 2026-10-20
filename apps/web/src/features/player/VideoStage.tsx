@@ -7,6 +7,9 @@ import { clock, spoken } from '../../shared/player/time';
 import { cx } from '../../shared/utils/format';
 
 const SPEEDS = [1, 1.25, 1.5];
+const HLS_RE = /\.m3u8(?:[?#]|$)/i;
+/** At most 30–60 s ahead, never the whole lesson; the rendition follows the player size. */
+export const HLS_CONFIG = { maxBufferLength: 30, maxMaxBufferLength: 60, backBufferLength: 30, capLevelToPlayerSize: true } as const;
 
 export interface VideoStageProps {
   src: string | null;
@@ -31,6 +34,9 @@ export interface VideoStageProps {
  */
 export function VideoStage({ src, videoRef, playing, canPlay, onPlay, onPause, onTimeUpdate, onLoadedMetadata, onEnded, onError, overlay }: VideoStageProps) {
   const stageRef = useRef<HTMLDivElement>(null);
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
+  const isHls = !!src && HLS_RE.test(src);
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
@@ -53,6 +59,28 @@ export function VideoStage({ src, videoRef, playing, canPlay, onPlay, onPause, o
     if (!document.fullscreenEnabled) return;
     if (document.fullscreenElement) void document.exitFullscreen?.(); else void el.requestFullscreen?.();
   }, []);
+
+  // HLS master: native playback where the browser has it (Safari, iOS), else hls.js (lazy chunk) with bounded buffering.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || !src || !isHls) return undefined;
+    if (v.canPlayType('application/vnd.apple.mpegurl')) {
+      v.src = src;
+      return () => { v.removeAttribute('src'); v.load(); };
+    }
+    let destroy: (() => void) | null = null;
+    let gone = false;
+    import('hls.js').then(({ default: Hls }) => {
+      if (gone) return;
+      if (!Hls.isSupported()) { onErrorRef.current?.(); return; }
+      const hls = new Hls(HLS_CONFIG);
+      hls.on(Hls.Events.ERROR, (_e, data) => { if (data.fatal) onErrorRef.current?.(); });
+      hls.loadSource(src);
+      hls.attachMedia(v);
+      destroy = () => hls.destroy();
+    }).catch(() => onErrorRef.current?.());
+    return () => { gone = true; destroy?.(); };
+  }, [src, isHls, videoRef]);
 
   useEffect(() => {
     const onFs = () => setFullscreen(!!document.fullscreenElement);
@@ -84,7 +112,7 @@ export function VideoStage({ src, videoRef, playing, canPlay, onPlay, onPause, o
         <video
           ref={videoRef}
           className={styles.video}
-          src={src ?? undefined}
+          src={isHls ? undefined : src ?? undefined}
           playsInline
           preload="metadata"
           controlsList="nodownload noplaybackrate"

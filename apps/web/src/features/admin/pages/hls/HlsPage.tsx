@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { adminHlsApi, type HlsChapter, type HlsJob, type HlsSource } from '../../../../shared/api/endpoints/admin-hls';
+import { adminHlsApi, type HlsChapter, type HlsJob, type HlsPopularItem, type HlsSource } from '../../../../shared/api/endpoints/admin-hls';
 import { useSearchState } from '../../../../shared/utils/useSearchState';
 import { AButton, ACheckbox, AdminPage, AInput, Bar, Callout, Card, DataTable, DetailDrawer, FilterBar, FilterField, Kpi, StatusBadge, type BadgeTone, type Column } from '../../../../shared/ui/admin';
 import { tr } from '../../../../shared/i18n/adminLang';
@@ -24,7 +24,7 @@ const STATE_LABEL: Record<string, [string, BadgeTone]> = {
 const stateBadge = (s: string) => { const [l, t] = STATE_LABEL[s] ?? [s, 'neutral' as BadgeTone]; return <StatusBadge tone={t}>{l}</StatusBadge>; };
 
 /** A chapter can be queued when every MP4 it plays exists and at least one is not converted or queued yet. */
-const selectable = (c: HlsChapter) => c.sources.length > 0 && c.sources.every((s) => s.exists) && c.sources.some((s) => !s.ready && !ACTIVE.has(s.job?.state ?? ''));
+const selectable = (c: HlsChapter) => pickableSources(c.sources);
 
 function SourceState({ s }: { s: HlsSource }) {
   if (!s.exists) return <StatusBadge tone="danger">{s.problem ?? tr('원본 없음', 'Source missing')}</StatusBadge>;
@@ -67,6 +67,45 @@ export function HlsPreview({ src }: { src: string }) {
       <video ref={ref} controls playsInline preload="metadata" style={{ width: '100%', background: '#000', borderRadius: 6 }} aria-label={tr('HLS 미리보기', 'HLS preview')} />
       <p className="muted" style={{ fontSize: 12, margin: '6px 0 0' }}>{info} · <span className="mono">{src}</span></p>
     </div>
+  );
+}
+
+const pickableSources = (sources: HlsSource[]) => sources.length > 0 && sources.every((s) => s.exists) && sources.some((s) => !s.ready && !ACTIVE.has(s.job?.state ?? ''));
+
+/** 인기 차시: most learners in the last 30 days, with a one-click "top 5" selection and conversion. */
+function PopularCard({ enabled, onOpenCourse }: { enabled: boolean; onOpenCourse: (code: string) => void }) {
+  const [picked, setPicked] = useState<number[]>([]);
+  const q = useQuery({
+    queryKey: ['admin', 'hls', 'popular'], queryFn: ({ signal }) => adminHlsApi.popular({ days: 30, limit: 20 }, signal),
+    refetchInterval: (qq) => (qq.state.data?.items.some((i) => i.sources.some((s) => ACTIVE.has(s.job?.state ?? ''))) ? 5_000 : false),
+  });
+  const enqueue = useAdminMutation({
+    fn: adminHlsApi.enqueueContents, invalidate: [['admin', 'hls']], onSuccess: () => setPicked([]),
+    success: (r) => tr(`${r.queued.length}개 파일을 대기열에 넣었습니다.${r.skipped.length + r.skippedContents.length ? ` (제외 ${r.skipped.length + r.skippedContents.length})` : ''}`, `Queued ${r.queued.length} file(s).`),
+  });
+  const items = Array.isArray(q.data?.items) ? q.data.items : [];
+  const canPick = new Set(items.filter((i) => pickableSources(i.sources)).map((i) => i.contentsIdx));
+  const toggle = (idx: number, on: boolean) => setPicked((cur) => (on ? [...new Set([...cur, idx])] : cur.filter((x) => x !== idx)));
+  const cols: Column<HlsPopularItem>[] = [
+    { key: '_pick', header: '', render: (r) => <input type="checkbox" aria-label={tr(`${r.title} 선택`, `Select ${r.title}`)} checked={picked.includes(r.contentsIdx)} disabled={!canPick.has(r.contentsIdx)} onChange={(e) => toggle(r.contentsIdx, e.target.checked)} /> },
+    { key: 'rank', header: tr('순위', 'Rank'), align: 'center', render: (r) => items.indexOf(r) + 1 },
+    { key: 'title', header: tr('차시', 'Lesson'), render: (r) => <span><b>{r.title || '—'}</b><br /><span className="muted" style={{ fontSize: 11 }}>{tr('유형', 'Type')} {r.contentsType} · {r.minutes}{tr('분', ' min')} · idx {r.contentsIdx}</span></span> },
+    { key: 'learners', header: tr('최근 30일 학습자', 'Learners (30 d)'), align: 'right', render: (r) => <b>{r.learners.toLocaleString('ko-KR')}</b> },
+    { key: 'course', header: tr('과정', 'Course'), render: (r) => (r.lectureCode ? <AButton size="sm" variant="link" onClick={() => onOpenCourse(r.lectureCode!)}>{r.lectureCode}{r.courses > 1 ? tr(` 외 ${r.courses - 1}`, ` +${r.courses - 1}`) : ''}</AButton> : '—') },
+    { key: 'source', header: tr('원본 MP4', 'Source MP4'), render: (r) => (r.sources.length ? r.sources.map((s) => <div key={s.rel} className="mono" style={{ fontSize: 11, wordBreak: 'break-all' }}>{s.rel} <span className="muted">{fmtBytes(s.bytes)}</span></div>) : <StatusBadge tone="neutral">{r.problem ?? tr('MP4 없음', 'No MP4')}</StatusBadge>) },
+    { key: 'hls', header: tr('HLS 상태', 'HLS'), render: (r) => r.sources.map((s) => <div key={s.rel}><SourceState s={s} /></div>) },
+  ];
+  return (
+    <Card title={tr('인기 차시 · 최근 30일 학습자 순', 'Most-watched lessons · last 30 days')} aside={q.data?.cachedAt ? <span className="muted" style={{ fontSize: 12 }}>{tr(`순위 기준 ${q.data.cachedAt.slice(0, 16).replace('T', ' ')}`, `Ranked at ${q.data.cachedAt.slice(0, 16).replace('T', ' ')}`)}</span> : null}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', margin: '0 0 10px' }}>
+        <AButton size="sm" onClick={() => setPicked(items.filter((i) => canPick.has(i.contentsIdx)).slice(0, 5).map((i) => i.contentsIdx))} disabled={!canPick.size}>{tr('상위 5개 선택', 'Select top 5')}</AButton>
+        <AButton size="sm" variant="ghost" onClick={() => setPicked([])} disabled={!picked.length}>{tr('선택 해제', 'Clear')}</AButton>
+        <AButton size="sm" variant="ghost" onClick={() => { void adminHlsApi.popular({ days: 30, limit: 20, refresh: 'Y' }).then(() => q.refetch()); }}>{tr('순위 다시 계산', 'Re-rank')}</AButton>
+        <span style={{ flex: 1 }} />
+        <AButton variant="primary" icon="play" disabled={!picked.length || !enabled} loading={enqueue.isPending} onClick={() => enqueue.mutate({ contentsIdx: picked, include1080: false })}>{tr(`선택 차시 HLS 변환 (${picked.length})`, `Convert selected (${picked.length})`)}</AButton>
+      </div>
+      <DataTable columns={cols} rows={items} rowKey={(r) => r.contentsIdx} loading={q.isPending} error={q.error} onRetry={() => void q.refetch()} dense emptyTitle={tr('최근 30일 학습 기록이 없습니다.', 'No study in the last 30 days.')} emptyBody=" " />
+    </Card>
   );
 }
 
@@ -140,6 +179,9 @@ export function HlsPage() {
         </div>
       ) : null}
 
+      <PopularCard enabled={!!st?.featureEnabled} onOpenCourse={(code) => setP({ code })} />
+
+      <div className="u-mt-8" />
       <FilterBar onSubmit={() => setP({ code: draft.trim() })} submitLabel={tr('조회', 'Look up')}>
         <FilterField label={tr('과정코드', 'Course code')} htmlFor="hls-code" width={240}><AInput id="hls-code" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="ARC2026" autoComplete="off" /></FilterField>
       </FilterBar>

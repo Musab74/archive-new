@@ -48,11 +48,23 @@ export const HlsEnqueueResultSchema = z.object({
 });
 export type HlsEnqueueResult = z.infer<typeof HlsEnqueueResultSchema>;
 const HlsJobListSchema = z.object({ items: z.array(HlsJobSchema), total: z.number() });
+export const HlsPopularSchema = z.object({
+  days: z.number(), cachedAt: z.string(),
+  items: z.array(z.object({
+    contentsIdx: z.number(), title: z.string(), minutes: z.number(), contentsType: z.string(), learners: z.number(), lastStudy: S,
+    lectureCode: S, chapterSeq: z.number().nullable(), courses: z.number(), url: S, problem: S, sources: z.array(HlsSourceSchema),
+  })),
+});
+export type HlsPopular = z.infer<typeof HlsPopularSchema>;
+export type HlsPopularItem = HlsPopular['items'][number];
+const HlsEnqueueContentsSchema = HlsEnqueueResultSchema.omit({ lectureCode: true }).extend({ skippedContents: z.array(z.object({ contentsIdx: z.number(), reason: z.string() })) });
 
 export const adminHlsApi = {
   status: (signal?: AbortSignal) => api.get<HlsStatus>('/admin/hls/status', { schema: HlsStatusSchema, signal }),
   course: (lectureCode: string, signal?: AbortSignal) => api.get<HlsCourse>(`/admin/hls/course/${encodeURIComponent(lectureCode)}`, { schema: HlsCourseSchema, signal }),
   enqueue: (body: { lectureCode: string; chapterSeqs: number[]; include1080: boolean }) => api.post<HlsEnqueueResult>('/admin/hls/jobs', body, { schema: HlsEnqueueResultSchema }),
   jobs: (query: { lectureCode?: string; state?: HlsJobState; limit?: number }, signal?: AbortSignal) => api.get<{ items: HlsJob[]; total: number }>('/admin/hls/jobs', { query: { ...query }, schema: HlsJobListSchema, signal }),
+  popular: (query: { days?: number; limit?: number; refresh?: 'Y' }, signal?: AbortSignal) => api.get<HlsPopular>('/admin/hls/popular', { query: { ...query }, schema: HlsPopularSchema, signal }),
+  enqueueContents: (body: { contentsIdx: number[]; include1080: boolean }) => api.post<z.infer<typeof HlsEnqueueContentsSchema>>('/admin/hls/jobs/contents', body, { schema: HlsEnqueueContentsSchema }),
   cancel: (id: string) => api.post<HlsJob>(`/admin/hls/jobs/${id}/cancel`, undefined, { schema: HlsJobSchema }),
 };
