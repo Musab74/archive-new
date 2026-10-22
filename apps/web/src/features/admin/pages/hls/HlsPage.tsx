@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { adminHlsApi, type HlsChapter, type HlsJob, type HlsPopularItem, type HlsSource } from '../../../../shared/api/endpoints/admin-hls';
+import { adminHlsApi, type HlsChapter, type HlsJob, type HlsStatus, type HlsPopularItem, type HlsSource } from '../../../../shared/api/endpoints/admin-hls';
 import { useSearchState } from '../../../../shared/utils/useSearchState';
 import { AButton, ACheckbox, AdminPage, AInput, Bar, Callout, Card, DataTable, DetailDrawer, FilterBar, FilterField, Kpi, StatusBadge, type BadgeTone, type Column } from '../../../../shared/ui/admin';
 import { tr } from '../../../../shared/i18n/adminLang';
@@ -180,7 +180,7 @@ export function HlsPage() {
           <Kpi label={tr('변환 중', 'Encoding')} value={st.queue.running} />
           <Kpi label={tr('완료', 'Done')} value={st.queue.done} tone="ok" />
           <Kpi label={tr('실패', 'Failed')} value={st.queue.failed} tone={st.queue.failed ? 'warn' : undefined} />
-          {st.delivery ? <Kpi label={tr('송출 경로', 'Delivery')} value={st.delivery.mode === 'off' ? tr('VOD만', 'VOD only') : st.delivery.pathway === 'CDN' ? 'CDN' : 'VOD'} tone={st.delivery.pathway === 'CDN' ? 'warn' : 'ok'} hint={st.delivery.mbps !== null ? tr(`현재 ${st.delivery.mbps} Mbps · 기준 ${st.delivery.ceilingMbps} / 복귀 ${st.delivery.returnMbps} Mbps`, `${st.delivery.mbps} Mbps now · ceiling ${st.delivery.ceilingMbps} / return ${st.delivery.returnMbps}`) : tr(`모드 ${st.delivery.mode}`, `mode ${st.delivery.mode}`)} /> : null}
+          {st.delivery ? <DeliveryKpi d={st.delivery} /> : null}
         </div>
       ) : null}
 
@@ -237,4 +237,19 @@ export function HlsPage() {
       </DetailDrawer>
     </AdminPage>
   );
+}
+
+type Delivery = NonNullable<HlsStatus['delivery']>;
+
+/** Where players are served from: this server (VOD seats) or the CDN, and the meter against the ceiling. */
+function DeliveryKpi({ d }: { d: Delivery }) {
+  const players = d.vodPlayers !== undefined && d.cdnPlayers !== undefined;
+  const value = d.mode === 'off' ? tr('VOD만', 'VOD only')
+    : players && d.mode === 'overflow' ? `VOD ${d.vodPlayers} · CDN ${d.cdnPlayers}`
+    : d.pathway;
+  const meter = d.mbps !== null
+    ? tr(`현재 ${d.mbps} Mbps · 기준 ${d.ceilingMbps} / 복귀 ${d.returnMbps} Mbps`, `${d.mbps} Mbps now · ceiling ${d.ceilingMbps} / return ${d.returnMbps}`)
+    : tr(`모드 ${d.mode}`, `mode ${d.mode}`);
+  const next = d.mode === 'overflow' ? tr(` · 새 학습자 → ${d.pathway}`, ` · new players → ${d.pathway}`) : '';
+  return <Kpi label={tr('송출 경로 (재생 중)', 'Delivery (playing)')} value={value} tone={d.pathway === 'CDN' || (d.cdnPlayers ?? 0) > 0 ? 'warn' : 'ok'} hint={meter + next} />;
 }
