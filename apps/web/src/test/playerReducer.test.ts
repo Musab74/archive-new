@@ -10,9 +10,11 @@ const descriptor = (over: Partial<PlayerDescriptor['gates']> = {}, extra: Partia
   chapters: [],
   resume: { positionSec: 120, studyTimeSec: 0 },
   totals: { recognizedSec: 54000, todaySec: 1800, dailyCapSec: 28800, dailyCapClientStopSec: 28770 },
-  gates: { identity: 'ok', dailyCapReached: false, alreadyDone: false, ...over },
+  gates: { identity: 'ok', dailyCapReached: false, dailyCapApplies: true, alreadyDone: false, ...over },
   tick: { intervalMs: 60000, heartbeatMs: 60000, idleTimeoutMs: 7200000 },
   identityUrl: null,
+  review: { mine: 0 },
+  assessment: { postDone: false },
   ...extra,
 });
 

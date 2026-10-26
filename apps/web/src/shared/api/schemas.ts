@@ -118,20 +118,27 @@ export const CurrentEnrollmentSchema = z.object({ studySeq: z.number().int().nul
 export type CurrentEnrollment = z.infer<typeof CurrentEnrollmentSchema>;
 
 /** POST /player/session descriptor. */
+/** `number` = list position (UI); `order` = Chapter.OrderByNum, the Chapter_Number the player posts (player2.php:225-234). */
 export const PlayerChapterSchema = z.object({
-  chapterSeq: z.number(), number: z.number(), title: z.string(), minutes: num0, contentsIdx: num0, contentsDetailSeq: num0, contentsType: ns,
-  url: ns, mobileUrl: ns, hlsUrl: ns.optional(), hlsMap: z.record(z.string()).nullable().optional(), progress: num0, studyTime: num0, lastStudy: ns,
+  chapterSeq: z.number(), number: z.number(), order: z.number().optional(), title: z.string(), minutes: num0, contentsIdx: num0, contentsDetailSeq: num0, contentsType: ns,
+  url: ns, mobileUrl: ns, hlsUrl: ns.optional(), hlsMap: z.record(z.string()).nullable().optional(), progress: num0, studyTime: num0, lastStudy: ns, lastStudiedAt: ns.optional(),
 });
 export type PlayerChapter = z.infer<typeof PlayerChapterSchema>;
 export const PlayerDescriptorSchema = z.object({
   playToken: z.string(),
   study: z.object({ seq: z.number(), lectureCode: z.string(), serviceType: ns, mode: z.string(), lectureStart: ns, lectureEnd: ns, passOk: z.boolean().default(false) }),
   contentLectureCode: z.string(),
-  chapter: PlayerChapterSchema.extend({ total: z.number(), completeTimeSec: num0 }),
+  /** urlSelect: the A/B choice the PHP page posts with each save; mode S fresh / C 이어보기; startLastStudy = LastStudy of the Start save. */
+  chapter: PlayerChapterSchema.extend({ total: z.number(), completeTimeSec: num0, urlSelect: z.enum(['A', 'B']).optional(), mode: z.enum(['S', 'C']).optional(), startLastStudy: z.string().optional() }),
   chapters: z.array(PlayerChapterSchema),
   resume: z.object({ positionSec: num0, studyTimeSec: num0 }),
-  totals: z.object({ recognizedSec: num0, todaySec: num0, dailyCapSec: z.number().default(28800), dailyCapClientStopSec: z.number().default(28770) }),
-  gates: z.object({ identity: z.enum(['ok', 'required']), dailyCapReached: z.boolean().default(false), alreadyDone: z.boolean().default(false) }),
+  totals: z.object({ recognizedSec: num0, todaySec: num0, date: ns.optional(), dailyCapSec: z.number().default(28800), dailyCapClientStopSec: z.number().default(28800), dailyCapEntrySec: z.number().optional() }),
+  gates: z.object({ identity: z.enum(['ok', 'required']), dailyCapReached: z.boolean().default(false), dailyCapApplies: z.boolean().default(true), alreadyDone: z.boolean().default(false) }),
+  /** 본인인증 needed: EvalCd 00 입과 / 01 진도, the PHP message and the legacy mOTP popup query (player2.php:917). */
+  identity: z.object({ evalCd: ns, message: ns, popupQuery: z.string() }).nullable().optional(),
+  review: z.object({ mine: num0 }).default({ mine: 0 }),
+  /** 사후역량진단 done (m_player/player2.php:12) — drives the 15-hour completion notice. */
+  assessment: z.object({ postDone: z.boolean().default(false) }).default({ postDone: false }),
   tick: z.object({ intervalMs: z.number().default(60000), heartbeatMs: z.number().default(60000), idleTimeoutMs: z.number().default(7200000), sessionMaxHours: z.number().optional() }),
   identityUrl: ns,
 });

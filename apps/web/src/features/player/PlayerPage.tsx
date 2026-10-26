@@ -12,17 +12,20 @@ import { Modal } from '../../shared/ui/Modal';
 import { Skeleton } from '../../shared/ui/Skeleton';
 import { StateBlock } from '../../shared/ui/StateBlock';
 import { MetricCard } from '../../shared/ui/MetricCard';
-import { Textarea } from '../../shared/ui/Form';
+import { Checkbox, Textarea } from '../../shared/ui/Form';
 import { TypeLabel } from '../../shared/ui/Pill';
 import { player as copy, common, content as contentCopy } from '../../shared/strings/ko';
-import { canPlay as canPlayPhase, type BlockReason } from '../../shared/player/playerReducer';
+import { canPlay as canPlayPhase, exitRatingDue, type BlockReason } from '../../shared/player/playerReducer';
 import { clock, hm } from '../../shared/player/time';
 import { cx } from '../../shared/utils/format';
 import { VideoStage } from './VideoStage';
 import { PackageStage } from './PackageStage';
 import { usePlayerEngine, type EngineTarget } from './usePlayerEngine';
-import { IDENTITY_POPUP_URL, isMobileViewport, resolveMediaUrl, resolvePackageUrl } from './media';
+import { IDENTITY_POPUP_FEATURES, identityPopupUrl, isMobileViewport, resolveMediaUrl, resolvePackageUrl } from './media';
+import { PackageBridgeDialogs, usePackageBridge } from './PackageBridge';
 import { fmtDateTime } from '../my/queries';
+
+const COMPLETION_SEC = 54_000; // 15 h (HRDE_COMPLETION_CRITERIA_SECONDS)
 
 /** Route `/learn/:studySeq/:chapterSeq?lectureCode=`: resolves the chapter → (lectureCode, chapterNumber) then mounts the engine. */
 export default function PlayerPage() {
@@ -43,7 +46,7 @@ export default function PlayerPage() {
     if (!Number.isFinite(seq) || seq <= 0) return null;
     if (fromRecords) return { studySeq: seq, ...fromRecords };
     const row = fallback.data?.chapters.find((c) => c.chapterSeq === chapter) ?? (lectureParam && chapter > 0 && chapter <= (fallback.data?.chapters.length ?? 0) ? fallback.data?.chapters[chapter - 1] : undefined);
-    if (row && lectureParam) return { studySeq: seq, lectureCode: lectureParam, chapterNumber: String(row.number) };
+    if (row && lectureParam) return { studySeq: seq, lectureCode: lectureParam, chapterNumber: String(row.order ?? row.number) };
     return null;
   }, [seq, chapter, fromRecords, fallback.data, lectureParam]);
 
@@ -72,10 +75,12 @@ function PlayerWindow({ target, chapterSeq }: { target: EngineTarget; chapterSeq
   const [star, setStar] = useState(0);
   const [comment, setComment] = useState('');
   const [rateMsg, setRateMsg] = useState<string | null>(null);
+  const [agreed, setAgreed] = useState(false);
   const popupRef = useRef<Window | null>(null);
 
   const course = useQuery({ queryKey: ['catalog', 'course', target.lectureCode, true], queryFn: ({ signal }) => catalogApi.course(target.lectureCode, signal), staleTime: 5 * 60_000 });
-  const rate = useMutation({ mutationFn: () => catalogApi.review(target.lectureCode, { starPoint: star, contents: comment }), onSuccess: () => { setRateMsg(copy.exitDialog.rateDone); void course.refetch(); }, onError: () => setRateMsg(copy.exitDialog.rateFail) });
+  // Empty text stores the PHP defaults (player2.php:5637-5638); the star is never pre-filled (AR-06 평점 미선택을 자동 5점으로 채우지 않음).
+  const rate = useMutation({ mutationFn: () => catalogApi.review(target.lectureCode, { starPoint: star, title: copy.exitDialog.rateOnlyTitle, contents: comment.trim() || copy.exitDialog.rateOnlyContents }), onSuccess: () => { setRateMsg(copy.exitDialog.rateDone); void course.refetch(); }, onError: () => setRateMsg(copy.exitDialog.rateFail) });
 
   const detailPath = `/courses/${encodeURIComponent(target.lectureCode)}`;
   const phase = state.phase;
@@ -92,12 +97,15 @@ function PlayerWindow({ target, chapterSeq }: { target: EngineTarget; chapterSeq
 
   useEffect(() => { document.title = d ? `${d.chapter.title} · ${copy.title}` : copy.title; return () => { document.title = 'AINEX Archive'; }; }, [d]);
 
+  // The legacy mOTP page needs its query (player2.php:917) and a window.opener (motp.php:283 skips the cert insert without one).
+  const identityEnroll = d?.identity?.evalCd === '00';
   const openIdentityPopup = useCallback(() => {
-    const w = window.open(IDENTITY_POPUP_URL, 'ainex-motp', 'width=480,height=760,noopener');
+    if (identityEnroll && !agreed) { setIdentityNote(copy.identity.agreeRequired); return; }
+    const w = window.open(identityPopupUrl(d?.identity?.popupQuery), 'popupMotp', IDENTITY_POPUP_FEATURES);
     if (!w) { setIdentityNote(copy.identity.popupBlocked); return; }
     popupRef.current = w;
     setIdentityNote(null);
-  }, []);
+  }, [d, identityEnroll, agreed]);
 
   const recheckedRef = useRef(false);
   const recheckIdentity = useCallback(() => { setIdentityNote(null); recheckedRef.current = true; engine.open(); }, [engine]);
@@ -116,6 +124,9 @@ function PlayerWindow({ target, chapterSeq }: { target: EngineTarget; chapterSeq
     await engine.exit();
     navigate(detailPath);
   }, [engine, navigate, detailPath]);
+
+  const requestExit = useCallback(() => setExitOpen(true), []);
+  const bridge = usePackageBridge(d ? { lectureCode: target.lectureCode, contentsIdx: d.chapter.contentsIdx } : null, requestExit);
 
   // ---- blocked (full screen)
   if (phase.kind === 'blocked') {
@@ -145,8 +156,11 @@ function PlayerWindow({ target, chapterSeq }: { target: EngineTarget; chapterSeq
   const chapterProgress = state.ack.chapterProgress ?? d.chapter.progress;
   const prevChapterSeq = d.chapter.number > 1 ? d.chapters[d.chapter.number - 2]?.chapterSeq ?? null : null;
   const nextChapterSeq = d.chapter.number < d.chapter.total ? d.chapters[d.chapter.number]?.chapterSeq ?? null : null;
-  const alreadyRated = !!course.data?.myRating;
-  const showRating = chapterProgress >= 100 && !alreadyRated && course.data?.canRate !== false;
+  // Enrollment total = the open-time Σ Progress.StudyTime plus what this chapter gained since (server acks only).
+  const recognizedNow = d.totals.recognizedSec + Math.max(0, (state.ack.studyTime ?? d.chapter.studyTime) - d.chapter.studyTime);
+  const alreadyRated = d.review.mine > 0 || !!course.data?.myRating;
+  const watchedForRating = Math.max(state.ack.studyTime ?? 0, d.chapter.studyTime);
+  const showRating = exitRatingDue(alreadyRated ? 1 : 0, rateMsg === copy.exitDialog.rateDone, watchedForRating, d.chapter.completeTimeSec) && course.data?.canRate !== false;
 
   const overlay = (() => {
     if (phase.kind === 'identityCheck') return <div className={styles.overlayBox}><Icon name="lock" size={26} /><b>{copy.identity.title}</b><p>{copy.identity.body}</p></div>;
@@ -197,7 +211,9 @@ function PlayerWindow({ target, chapterSeq }: { target: EngineTarget; chapterSeq
 
       <div className={styles.body}>
         <div className={styles.stageCol}>
-          {isPackage ? (
+          {phase.kind === 'identityCheck' ? (
+            <div className={styles.gatedStage}>{overlay}</div>
+          ) : isPackage ? (
             <PackageStage src={src} title={d.chapter.title} iframeRef={engine.iframeRef} onLoaded={engine.onPackageLoaded} hlsMap={d.chapter.hlsMap} source={state.packageSource}
               elapsedSec={engine.packageElapsedSec} playheadSec={engine.packagePlayheadSec} counting={engine.packageCounting}
               onPrev={prevChapterSeq !== null ? () => void goChapter(prevChapterSeq) : undefined} onNext={nextChapterSeq !== null ? () => void goChapter(nextChapterSeq) : undefined} overlay={overlay} />
@@ -223,6 +239,13 @@ function PlayerWindow({ target, chapterSeq }: { target: EngineTarget; chapterSeq
               )}
             </div>
             <p className={styles.panelNote}>{refund ? copy.metrics.refund : copy.metrics.general}</p>
+            {recognizedNow >= COMPLETION_SEC && !d.assessment.postDone ? (
+              <div className={styles.postNotice} role="status">
+                <b>{copy.notices.postTitle}</b>
+                <p>{copy.notices.postBody}</p>
+                <Button size="xs" square to="/assessment/post">{copy.notices.postCta}</Button>
+              </div>
+            ) : null}
           </section>
 
           <section className={styles.panel} aria-label={copy.toc.title}>
@@ -235,14 +258,24 @@ function PlayerWindow({ target, chapterSeq }: { target: EngineTarget; chapterSeq
                     <span className={styles.tocNum}>{String(i + 1).padStart(2, '0')}</span>
                     <div className={styles.tocCopy}>
                       <span className={styles.tocTitle}>{c.title}</span>
-                      <span className={styles.tocMeta}>{copy.toc.minutes(c.minutes)} · {Math.round(c.progress)}%{c.progress >= 100 ? ` · ${copy.toc.done}` : ''}</span>
+                      <span className={styles.tocMeta}>{copy.toc.minutes(c.minutes)} · {Math.round(c.progress)}%{c.progress >= 100 ? ` · ${copy.toc.done}` : ''}{c.lastStudiedAt ? ` · ${copy.toc.lastStudied(fmtDateTime(c.lastStudiedAt) || c.lastStudiedAt)}` : ''}</span>
                     </div>
-                    {current ? <span className={styles.tocState}>{copy.toc.current}</span> : <Button variant="white" size="xs" square onClick={() => void goChapter(c.chapterSeq)}>{c.progress > 0 && c.progress < 100 ? copy.toc.continue : copy.toc.go}</Button>}
+                    {current ? <span className={styles.tocState}>{copy.toc.current}</span> : <Button variant="white" size="xs" square onClick={() => void goChapter(c.chapterSeq)}>{c.progress >= 100 ? copy.toc.replay : c.progress > 0 ? copy.toc.continue : copy.toc.go}</Button>}
                   </li>
                 );
               })}
             </ol>
           </section>
+
+          {course.data?.objective || course.data?.teacher ? (
+            <section className={styles.panel} aria-label={copy.info.title}>
+              <h2>{copy.info.title}</h2>
+              <dl className={styles.courseInfo}>
+                {course.data.objective ? <div><dt>{copy.info.objective}</dt><dd>{course.data.objective}</dd></div> : null}
+                {course.data.teacher ? <div><dt>{copy.info.teacher}</dt><dd>{course.data.teacher}</dd></div> : null}
+              </dl>
+            </section>
+          ) : null}
 
           <section className={cx(styles.panel, styles.help)}>
             <h2>{copy.help.title}</h2>
@@ -253,11 +286,20 @@ function PlayerWindow({ target, chapterSeq }: { target: EngineTarget; chapterSeq
         </aside>
       </div>
 
-      <Modal open={phase.kind === 'identityCheck'} onClose={() => undefined} dismissible={false} title={copy.identity.title} symbol="lock"
-        actions={<><Button variant="secondary" to={detailPath}>{copy.backToDetail}</Button><Button variant="secondary" onClick={openIdentityPopup}>{copy.identity.open}</Button><Button onClick={recheckIdentity}>{copy.identity.recheck}</Button></>}>
-        <p>{copy.identity.body}</p>
+      <Modal open={phase.kind === 'identityCheck'} onClose={() => undefined} dismissible={false} title={identityEnroll ? copy.identity.enrollTitle : copy.identity.title} symbol="lock"
+        actions={<><Button variant="secondary" to={detailPath}>{copy.backToDetail}</Button><Button variant="secondary" onClick={openIdentityPopup} disabled={identityEnroll && !agreed}>{copy.identity.open}</Button><Button onClick={recheckIdentity}>{copy.identity.recheck}</Button></>}>
+        {d.identity?.message ? <p><b>{d.identity.message}</b></p> : null}
+        <p>{identityEnroll ? copy.identity.enrollBody : copy.identity.body}</p>
+        {identityEnroll ? (
+          <div className={styles.agree}>
+            <Checkbox label={copy.identity.agree} checked={agreed} onChange={(e) => { setAgreed(e.target.checked); setIdentityNote(null); }} />
+            {!agreed ? <small>{copy.identity.agreeRequired}</small> : null}
+          </div>
+        ) : null}
         {identityNote ? <p role="alert" style={{ color: 'var(--c-danger)' }}>{identityNote}</p> : null}
       </Modal>
+
+      <PackageBridgeDialogs layer={bridge.layer} onClose={bridge.close} />
 
       <Modal open={exitOpen} onClose={() => setExitOpen(false)} title={showRating ? copy.exitDialog.rateTitle : copy.exitDialog.title} symbol={showRating ? 'star' : 'info'} kicker={copy.exit}
         actions={<>

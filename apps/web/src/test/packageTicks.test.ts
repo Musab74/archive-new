@@ -14,9 +14,11 @@ const packageDescriptor = (resumeSec = 0): PlayerDescriptor => ({
   chapters: [],
   resume: { positionSec: resumeSec, studyTimeSec: 0 },
   totals: { recognizedSec: 0, todaySec: 0, dailyCapSec: 28800, dailyCapClientStopSec: 28770 },
-  gates: { identity: 'ok', dailyCapReached: false, alreadyDone: false },
+  gates: { identity: 'ok', dailyCapReached: false, dailyCapApplies: true, alreadyDone: false },
   tick: { intervalMs: 60000, heartbeatMs: 60000, idleTimeoutMs: 7200000 },
   identityUrl: null,
+  review: { mine: 0 },
+  assessment: { postDone: false },
 });
 
 const flush = async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); };
@@ -71,7 +73,7 @@ describe('type A ticks', () => {
     s.start();
     await flush();
     s.end({ beacon: true });
-    expect(beacon).toHaveBeenCalledWith('End', 0, 130);
+    expect(beacon).toHaveBeenCalledWith('End', 0, 130, '');
     expect(tickBody(d, 'End', 0, d.playToken, 130).progressTime).toBe(130);
   });
 

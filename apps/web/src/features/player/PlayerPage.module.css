@@ -31,6 +31,9 @@
 .tocTitle{font-size:13px;color:#fff;line-height:1.4}
 .tocMeta{font-size:11px;color:#aab7cb}
 .tocState{font-size:11px;color:#8fb0e0;font-weight:var(--fw-bold);white-space:nowrap}
+.courseInfo{display:flex;flex-direction:column;gap:8px;margin:0}
+.courseInfo dt{font-size:11px;color:#aab7cb;margin-bottom:2px}
+.courseInfo dd{margin:0;font-size:13px;color:#fff;line-height:1.6;white-space:pre-line}
 .help p{font-size:12px;color:#c3cddc;margin:0 0 8px;line-height:1.6}
 .loading{padding:24px 20px;color:#c3cddc;display:flex;flex-direction:column;gap:10px}
 .loading p{margin:0;color:#fff}
@@ -43,5 +46,16 @@
 .stars{display:flex;gap:6px}
 .stars button{font-size:26px;border:1px solid #cbd5e1;border-radius:6px;background:var(--c-paper);color:var(--c-muted);min-height:44px;width:44px;line-height:1;cursor:pointer}
 .stars button[aria-checked="true"],.stars button.filled{color:#9b6800;background:#fff8e9;border-color:#dbc38d}
+.gatedStage{background:var(--c-ink);color:var(--c-paper);border-radius:6px;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center}
+.postNotice{margin-top:12px;padding:12px;border-radius:6px;background:var(--c-paper);border:1px solid var(--c-line);display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.postNotice b{font-size:13px;color:var(--c-ink);line-height:1.5}
+.postNotice p{margin:0;font-size:12px;color:var(--c-muted);line-height:1.6}
+.modalNote{font-size:13px;color:var(--c-muted);line-height:1.6;margin:0 0 12px}
+.agree{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.agree small{color:var(--c-muted);font-size:12px;line-height:1.6}
+.infoList{display:flex;flex-direction:column;gap:12px;margin:0}
+.infoList > div{display:grid;grid-template-columns:96px 1fr;gap:10px;border-top:1px solid var(--c-line);padding-top:10px}
+.infoList dt{font-size:13px;font-weight:var(--fw-bold);color:var(--c-ink)}
+.infoList dd{margin:0;font-size:14px;color:var(--c-text);line-height:1.7}
 @media (max-width:1024px){.body{grid-template-columns:1fr}}
-@media (max-width:768px){.top{padding:10px 12px}.body{padding:12px 12px 20px}.topTitle h1{font-size:15px}}
+@media (max-width:768px){.top{padding:10px 12px}.body{padding:12px 12px 20px}.topTitle h1{font-size:15px}.infoList > div{grid-template-columns:1fr;gap:4px}}

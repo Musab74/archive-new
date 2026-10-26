@@ -6,12 +6,14 @@
  *   background-tab timers to ≥1 s but do not stop them, so saves keep going while the tab is hidden.
  * - `End` is sent once on exit / chapter switch / media ended / pagehide. The caller may ask for a beacon
  *   transport (`end({ beacon: true })`) which bypasses the queue because the page is going away.
+ * - `Seek` carries an explicit position (a packaged lesson's ArchivePlayerSeek message, player2.php:3695-3757).
+ * - Every tick carries the LastStudy the PHP page posts (`getLastStudy`, captured when the tick is queued).
  * - Ticks form an ordered queue with a single in-flight request; the next tick is sent only after the previous
  *   one was acknowledged (or failed). A failed tick reports SAVE_FAILED and does not block later ticks.
  *
  * Pure TypeScript, no React, no DOM dependency beyond setInterval/clearInterval (fake-timer friendly).
  */
-export type TickStep = 'Start' | 'Middle' | 'End';
+export type TickStep = 'Start' | 'Middle' | 'End' | 'Seek';
 export type SaveStatus = 'IDLE' | 'SAVING' | 'SAVED' | 'SAVE_FAILED';
 
 export interface TickSchedulerOptions<Ack> {
@@ -23,16 +25,18 @@ export interface TickSchedulerOptions<Ack> {
    * sent as `progressTime` while `positionSec` is 0. Omitted / 0 for real media.
    */
   getProgressTime?: () => number;
+  /** LastStudy for this save (package page path / video second); '' when the caller has none. */
+  getLastStudy?: (step: TickStep) => string;
   /** Sends one tick; resolves with the server acknowledgement. Rejects on transport failure. */
-  send: (step: TickStep, positionSec: number, progressTime: number) => Promise<Ack>;
+  send: (step: TickStep, positionSec: number, progressTime: number, lastStudy: string) => Promise<Ack>;
   /** Fire-and-forget transport used for `End` on pagehide. Return true when a request was handed off. */
-  beacon?: (step: TickStep, positionSec: number, progressTime: number) => boolean;
+  beacon?: (step: TickStep, positionSec: number, progressTime: number, lastStudy: string) => boolean;
   onAck?: (step: TickStep, ack: Ack) => void;
   onError?: (step: TickStep, error: unknown) => void;
   onStatus?: (status: SaveStatus) => void;
 }
 
-interface QueuedTick { step: TickStep; positionSec: number; progressTime: number }
+interface QueuedTick { step: TickStep; positionSec: number; progressTime: number; lastStudy: string }
 
 export class TickScheduler<Ack = unknown> {
   private readonly opts: TickSchedulerOptions<Ack>;
@@ -69,6 +73,9 @@ export class TickScheduler<Ack = unknown> {
   /** Manual Middle (e.g. before pausing so the latest position is persisted). */
   tickNow(): void { if (this.started && !this.ended && !this.disposed) this.enqueue('Middle'); }
 
+  /** 'Seek' save at an explicit position (the package reported a seek to `positionSec`). */
+  seek(positionSec: number): void { if (this.started && !this.ended && !this.disposed) this.enqueue('Seek', positionSec); }
+
   /**
    * Send End once and stop. With `beacon: true` the End goes through the fire-and-forget transport
    * (pagehide) and the queue is abandoned; otherwise it is queued behind any in-flight tick.
@@ -79,7 +86,7 @@ export class TickScheduler<Ack = unknown> {
     this.ended = true;
     if (!this.started) return; // never played: there is nothing to close
     if (options.beacon && this.opts.beacon) {
-      const ok = this.opts.beacon('End', Math.max(0, Math.floor(this.opts.getPosition())), this.progressTime());
+      const ok = this.opts.beacon('End', Math.max(0, Math.floor(this.opts.getPosition())), this.progressTime(), this.lastStudy('End'));
       if (ok) { this.setStatus('SAVED'); return; }
     }
     this.enqueue('End');
@@ -97,14 +104,16 @@ export class TickScheduler<Ack = unknown> {
   private disarm(): void { if (this.timer !== null) { clearInterval(this.timer); this.timer = null; } }
 
   private progressTime(): number { return Math.max(0, Math.floor(this.opts.getProgressTime?.() ?? 0)); }
+  private lastStudy(step: TickStep): string { try { return this.opts.getLastStudy?.(step) ?? ''; } catch { return ''; } }
 
   private setStatus(s: SaveStatus): void { if (this.statusValue !== s) { this.statusValue = s; this.opts.onStatus?.(s); } }
 
-  private enqueue(step: TickStep): void {
+  private enqueue(step: TickStep, at?: number): void {
     if (this.disposed) return;
     // Collapse duplicate Middles that pile up while a request is slow: keep only the newest position.
     if (step === 'Middle') this.queue = this.queue.filter((q) => q.step !== 'Middle');
-    this.queue.push({ step, positionSec: Math.max(0, Math.floor(this.opts.getPosition())), progressTime: this.progressTime() });
+    const positionSec = Math.max(0, Math.floor(at ?? this.opts.getPosition()));
+    this.queue.push({ step, positionSec, progressTime: this.progressTime(), lastStudy: this.lastStudy(step) });
     void this.pump();
   }
 
@@ -116,7 +125,7 @@ export class TickScheduler<Ack = unknown> {
         this.inFlight = tick;
         this.setStatus('SAVING');
         try {
-          const ack = await this.opts.send(tick.step, tick.positionSec, tick.progressTime);
+          const ack = await this.opts.send(tick.step, tick.positionSec, tick.progressTime, tick.lastStudy);
           if (this.disposed) break;
           this.setStatus('SAVED');
           this.opts.onAck?.(tick.step, ack);

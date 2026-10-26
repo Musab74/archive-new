@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-export const ProgressStep = z.enum(['Start', 'Middle', 'End']);
+/** 'Seek' = a packaged lesson's ArchivePlayerSeek message (player2.php:3695-3757): saved like any tick, TriggerYN 'N'. */
+export const ProgressStep = z.enum(['Start', 'Middle', 'End', 'Seek']);
 
 /** Same fields the PHP player posts to player/lecture_progress.php. */
 export const ProgressTickSchema = z.object({
@@ -11,7 +12,8 @@ export const ProgressTickSchema = z.object({
   chapterNumber: z.string().max(10),
   contentsIdx: z.coerce.number().int().nonnegative(),
   contentsDetailSeq: z.coerce.number().int().nonnegative().default(0),
-  lastStudy: z.string().max(50).default(''),
+  /** Progress/ProgressLog.LastStudy varchar(150): packaged lessons send the section page path (player2.php:3427-3446). */
+  lastStudy: z.string().max(150).default(''),
   completeTime: z.coerce.number().nonnegative().default(0),
   progressStep: ProgressStep,
   positionSec: z.coerce.number().int().nonnegative().default(0),

@@ -25,14 +25,17 @@ const descriptor: PlayerDescriptor = {
   chapters: [],
   resume: { positionSec: 0, studyTimeSec: 0 },
   totals: { recognizedSec: 0, todaySec: 0, dailyCapSec: 28800, dailyCapClientStopSec: 28770 },
-  gates: { identity: 'ok', dailyCapReached: false, alreadyDone: false },
+  gates: { identity: 'ok', dailyCapReached: false, dailyCapApplies: true, alreadyDone: false },
   tick: { intervalMs: 60000, heartbeatMs: 60000, idleTimeoutMs: 7200000 },
   identityUrl: null,
+  review: { mine: 0 },
+  assessment: { postDone: false },
 };
 
 import { usePlayerEngine } from '../features/player/usePlayerEngine';
 
 const target = { studySeq: 7, lectureCode: 'ARC2026', chapterNumber: '1' };
+const target2 = { ...target, chapterNumber: '2' };
 const settle = () => act(async () => { await Promise.resolve(); await Promise.resolve(); });
 const lastOpenBody = () => vi.mocked(playerApi.open).mock.calls.at(-1)?.[0];
 
@@ -67,6 +70,20 @@ describe('usePlayerEngine PlayLock lifecycle', () => {
     await settle();
     expect(lastOpenBody()).toMatchObject({ playToken: 'tok-1' });
     first.unmount(); reloaded.unmount();
+  });
+
+  it('a chapter switch keeps the lock and hands its token to the next chapter (player2.php:4757-4772)', async () => {
+    const first = renderHook(() => usePlayerEngine(target));
+    await settle();
+    await act(async () => { await first.result.current.endForSwitch(); });
+    first.unmount();
+    expect(playerApi.release).not.toHaveBeenCalled();
+    nextToken = 'tok-2';
+    const next = renderHook(() => usePlayerEngine(target2)); // stable identity, as PlayerPage memoizes it
+    await settle();
+    expect(lastOpenBody()).toMatchObject({ chapterNumber: '2', playToken: 'tok-1' });
+    next.unmount();
+    expect(playerApi.release).toHaveBeenLastCalledWith('tok-2');
   });
 
   it('「여기서 학습 계속하기」 re-opens with takeover', async () => {
