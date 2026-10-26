@@ -110,7 +110,7 @@ pre-assessment → `/assessment/pre`, classroom → `/my`, home → `/home` (ver
 | `user01` | 학습자일 | base | 2 | pre-assessment | base seed: active Study 2, 사전 not done |
 | `mgr01` | 담당자 | base | — | home | base seed: EduManager=Y for 1234567890 |
 | `sleep01` | 휴면 | base | — | DORMANT 403 | base seed: Sleep=Y |
-| `e2emgr01` | 강담당 | A | — | home | EduManager=Y; manages A + B (selector shows 2 companies); 수강생 관리 (2026) lists 14 enrollments (12 A + 2 B), never C or base |
+| `e2emgr01` | 강담당 | A | — | home | EduManager=Y; manages A + B (selector shows 2 companies); 수강생 관리 (2026) lists 14 enrollments (12 A + 2 B) from seed.sql — 15 with fixtures/manager.sql (+ `xmanager01`, B) — never C or base |
 | `e2eterms01` | 문약관 | A | — | terms | Mandatory=N (PassChange Y) |
 | `e2epw01` | 장비번 | A | — | password | PassChange=N |
 | `e2eout01` | 서탈퇴 | A | — | WITHDRAWN 403 | MemberOut=Y → "탈퇴한 회원입니다." |
@@ -246,7 +246,7 @@ test('공지 첨부: original file name, counted view', async ({ page, checks, d
   (`clearPlayLock`, delete your own rows), assert relative counts, or `node e2e/stack.mjs reseed` before the run. A test that
   needs a pristine DB says so in its title and the area README.
 - Downloads: `page.waitForEvent('download')`, check `suggestedFilename()` and save under `downloadRoot()` (support/stack.ts) if
-  you need the bytes. Animations: `test.use({ reducedMotion: 'reduce' })` if count-ups make a screenshot ambiguous.
+  you need the bytes. Animations: `test.use({ contextOptions: { reducedMotion: 'reduce' } })` if count-ups make a screenshot ambiguous.
 
 ## Known limitations and gotchas
 
