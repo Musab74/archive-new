@@ -27,6 +27,12 @@ const CounselPage = lazy(() => import('../features/support/CounselPage'));
 const ResourcesPage = lazy(() => import('../features/support/ResourcesPage'));
 const EventsPage = lazy(() => import('../features/support/EventsPage'));
 const RemotePage = lazy(() => import('../features/support/RemotePage'));
+const MyCounselPage = lazy(() => import('../features/support/MyCounselPage'));
+const CounselDetailPage = lazy(() => import('../features/support/CounselDetailPage'));
+const ResourceDetailPage = lazy(() => import('../features/support/ResourceDetailPage'));
+const CheatingPage = lazy(() => import('../features/support/CheatingPage'));
+const ArchivingPage = lazy(() => import('../features/support/ArchivingPage'));
+const ArchivingDetailPage = lazy(() => import('../features/support/ArchivingPage').then((m) => ({ default: m.ArchivingDetailPage })));
 const LoginPage = lazy(() => import('../features/auth/LoginPage'));
 const SignupTermsPage = lazy(() => import('../features/auth/SignupTermsPage'));
 const SignupInfoPage = lazy(() => import('../features/auth/SignupInfoPage'));
@@ -113,6 +119,12 @@ export const router = createBrowserRouter([
               { path: 'resources', element: lazyEl(<ResourcesPage />) },
               { path: 'events', element: lazyEl(<EventsPage />) },
               { path: 'remote', element: lazyEl(<RemotePage />) },
+              { path: 'my', element: lazyEl(<MyCounselPage />) },
+              { path: 'my/:id', element: lazyEl(<CounselDetailPage />) },
+              { path: 'resources/:id', element: lazyEl(<ResourceDetailPage />) },
+              { path: 'cheating', element: lazyEl(<CheatingPage />) },
+              { path: 'archiving', element: lazyEl(<ArchivingPage />) },
+              { path: 'archiving/:id', element: lazyEl(<ArchivingDetailPage />) },
             ],
           },
           { path: 'terms', element: lazyEl(<TermsPage />) },

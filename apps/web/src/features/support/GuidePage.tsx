@@ -32,6 +32,8 @@ export default function GuidePage() {
       <h3 className={styles.h2}>{g.sessionTitle}</h3>
       <ul className={styles.list}>{g.sessionItems.map((s) => <li key={s}>{s}</li>)}</ul>
       <div className="action-row"><Button variant="secondary" square size="sm" to="/support/faq" iconRight={<Icon name="arrow" size={15} />}>{g.faqLink}</Button></div>
+      <h3 className={styles.h2}>{g.moreTitle}</h3>
+      <div className="action-row">{g.more.map((m) => <Button key={m.to} variant="text" size="sm" to={m.to} iconRight={<Icon name="arrow" size={15} />}>{m.label}</Button>)}</div>
     </section>
   );
 }
