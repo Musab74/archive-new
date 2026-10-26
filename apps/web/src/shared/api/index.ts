@@ -5,5 +5,5 @@ export { catalogApi } from './endpoints/catalog';
 export { supportApi } from './endpoints/support';
 export { membersApi, SignupSchema } from './endpoints/members';
 export { fetchPublicDesign, fetchDesignPreview, designApi } from './endpoints/design';
-export { managerApi, downloadText } from './endpoints/manager';
+export { managerApi } from './endpoints/manager';
 export { adminApi, adminAuthApi } from './endpoints/admin';

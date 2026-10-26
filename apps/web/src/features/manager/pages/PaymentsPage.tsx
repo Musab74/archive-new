@@ -1,33 +1,62 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import styles from '../Manager.module.css';
-import { managerApi } from '../../../shared/api/endpoints/manager';
-import type { PaymentRow } from '../../../shared/api/schemas';
+import { managerApi, type PaymentItem } from '../../../shared/api/endpoints/manager';
 import { useManager } from '../ManagerContext';
-import { DataTable, StatusBadge, type BadgeTone, type Column } from '../../../shared/ui/admin';
-import { formatNumber } from '../../../shared/utils/format';
+import { useSearchState } from '../../../shared/utils/useSearchState';
+import { DataTable, StatusBadge, type Column } from '../../../shared/ui/admin';
+import { StatCard } from '../../../shared/ui/StatCard';
+import { ManagerError, Pager, Panel, YearSelect, won } from '../managerUi';
 import { mgr } from '../strings';
 
-const tone: Record<string, BadgeTone> = { N: 'neutral', R: 'warn', S: 'info', Y: 'ok' };
+const DEFAULTS = { year: '', page: 1 };
 const c = mgr.payments.cols;
-const columns: Column<PaymentRow>[] = [
-  { key: 'period', header: c.period, nowrap: true, sortable: true, sortValue: (r) => r.period.start, render: (r) => `${r.period.start} ~ ${r.period.end}` },
-  { key: 'bankPrice', header: c.bank, align: 'right', sortable: true, render: (r) => `${formatNumber(r.bankPrice)}원` },
-  { key: 'cardPrice', header: c.card, align: 'right', sortable: true, render: (r) => `${formatNumber(r.cardPrice)}원` },
-  { key: 'payStatus', header: c.status, align: 'center', sortable: true, render: (r) => <StatusBadge tone={tone[r.payStatus ?? ''] ?? 'neutral'}>{r.payStatusLabel ?? r.payStatus ?? '—'}</StatusBadge> },
-  { key: 'payMethod', header: c.method, render: (r) => r.payMethod ?? '—' },
-  { key: 'orderNo', header: c.order, render: (r) => <span className="mono">{r.orderNo ?? '—'}</span> },
-  { key: 'payDate', header: c.payDate, nowrap: true, sortable: true, render: (r) => r.payDate ?? '—' },
-  { key: 'regDate', header: c.regDate, nowrap: true, sortable: true, render: (r) => r.regDate ?? '—' },
-  { key: 'remark', header: c.remark, render: (r) => r.remark ?? '' },
+const columns: Column<PaymentItem>[] = [
+  { key: 'no', header: c.no, align: 'center', width: 56 },
+  { key: 'courseName', header: c.course, render: (r) => <span title={`${r.lectureCode} · ${r.period.start} ~ ${r.period.end}`}>{r.courseName}</span> },
+  { key: 'educationFee', header: c.fee, align: 'right', render: (r) => won(r.educationFee) },
+  { key: 'selfPayment', header: c.self, align: 'right', render: (r) => won(r.selfPayment) },
+  { key: 'deposit', header: c.deposit, align: 'right', render: (r) => won(r.deposit) },
+  { key: 'requestAmount', header: c.request, align: 'right', render: (r) => won(r.requestAmount) },
+  { key: 'statusLabel', header: c.status, align: 'center', render: (r) => <StatusBadge tone={r.depositStatus === 'C' ? 'ok' : 'warn'}>{r.statusLabel}</StatusBadge> },
+  { key: 'payStatusLabel', header: c.payStatus, align: 'center', render: (r) => r.payStatusLabel ?? '—' },
 ];
 
+/** 자부담금 관리 (tabs/tab-manager-payment.php) + AR-21 비용·증빙 상태 구분. */
 export default function PaymentsPage() {
   const { companyCode } = useManager();
-  const q = useQuery({ queryKey: ['manager', 'payments', companyCode], queryFn: ({ signal }) => managerApi.payments(companyCode || undefined, signal) });
+  const [params, setParams] = useSearchState(DEFAULTS);
+  const q = useQuery({ queryKey: ['manager', 'payments', companyCode, params], queryFn: ({ signal }) => managerApi.payments({ companyCode: companyCode || undefined, year: params.year || undefined, page: params.page }, signal), placeholderData: keepPreviousData, retry: false });
+  const d = q.data;
   return (
     <div>
       <div className={styles.head}><div><h1>{mgr.payments.title}</h1><p>{mgr.payments.lead}</p></div></div>
-      <DataTable columns={columns} rows={q.data} rowKey={(r) => r.idx} loading={q.isPending} error={q.error} onRetry={() => void q.refetch()} size={20} emptyTitle={mgr.payments.empty} emptyBody=" " />
+      {q.isError ? <ManagerError error={q.error} onRetry={() => void q.refetch()} /> : (
+        <>
+          <div className={styles.kpis}>
+            <StatCard title={mgr.payments.cards.fee} value={d?.summary.totalEducationFee ?? 0} unit="원" countUp={false} />
+            <StatCard title={mgr.payments.cards.self} value={d?.summary.totalSelfPayment ?? 0} unit="원" countUp={false} />
+            <StatCard title={mgr.payments.cards.deposit} value={d?.summary.totalDeposit ?? 0} unit="원" countUp={false} tone="mint" />
+            <StatCard title={mgr.payments.cards.rate} value={d?.summary.paymentRate ?? 0} unit="%" progress={d?.summary.paymentRate ?? 0} countUp={false} />
+          </div>
+          <section className={styles.section}>
+            <div className={styles.toolbar}>
+              <h2 style={{ margin: 0 }}>{mgr.payments.history}</h2>
+              {d ? <YearSelect id="pay-year" value={params.year || d.year} options={d.yearOptions} onChange={(v) => setParams({ year: v }, true)} /> : null}
+            </div>
+            {d ? <p className={styles.note} style={{ margin: '0 0 8px' }}>{mgr.payments.students(d.summary.uniqueStudents, d.summary.totalCount)}</p> : null}
+            <DataTable columns={columns} rows={d?.items} rowKey={(r) => r.studySeq} loading={q.isPending || q.isFetching} emptyTitle={mgr.payments.empty} emptyBody=" " />
+            {d ? <Pager page={d.page} totalPages={d.totalPages} block={5} onChange={(p) => setParams({ page: p })} /> : null}
+          </section>
+          <div style={{ margin: '0 0 22px' }}>
+            <Panel title={mgr.payments.insight} note={mgr.payments.insightNote}>
+              <ul className={styles.insights}>{mgr.payments.insightItems.map((i) => <li key={i.title}><h4>{i.title}</h4>{i.text}</li>)}</ul>
+            </Panel>
+          </div>
+          <Panel title={mgr.payments.proofTitle} note={mgr.payments.proofNote}>
+            <ul className={styles.stats}>{mgr.payments.proofItems.map((label) => <li key={label}><span>{label}</span><b style={{ fontSize: 13 }}>{mgr.payments.proofStatus}</b></li>)}</ul>
+          </Panel>
+        </>
+      )}
     </div>
   );
 }

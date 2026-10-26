@@ -220,36 +220,17 @@ export const CounselSchema = z.object({ idx: z.number(), category: ns, categoryN
 export type Counsel = z.infer<typeof CounselSchema>;
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Manager (교육담당자) — GET /manager/*
+// Manager (교육담당자) — shared rows; the /manager/* read models live in endpoints/manager.ts
 // ---------------------------------------------------------------------------------------------------------------------
 const optStr = z.string().nullable().optional();
 const optNum = z.number().nullable().optional();
 export const StudyPeriodSchema = z.object({ start: z.string(), end: z.string(), label: z.string().optional() });
 export type StudyPeriod = z.infer<typeof StudyPeriodSchema>;
 
-export const ManagerCompanySchema = z.object({ companyCode: z.string(), companyName: z.string().nullable(), ceo: optStr, hrd: optStr, tel: optStr, eduManager: optStr, trainees: z.number() });
-export type ManagerCompany = z.infer<typeof ManagerCompanySchema>;
-export const ManagerOverviewSchema = z.object({ scope: z.array(z.string()), today: z.string(), enrollments: z.number(), trainees: z.number(), active: z.number(), over15h: z.number(), passOk: z.number(), closed: z.number(), preDone: z.number(), postDone: z.number(), avgSeconds: z.number(), avgFormatted: z.string(), totalSeconds: z.number() });
-export type ManagerOverview = z.infer<typeof ManagerOverviewSchema>;
-export const TraineeRowSchema = z.object({
-  studySeq: z.number(), id: z.string(), name: optStr, depart: optStr, position: optStr, companyCode: z.string(), companyName: optStr, lectureCode: z.string(), courseName: z.string(), serviceType: optStr, termeIdx: z.number().optional(),
-  period: StudyPeriodSchema, seconds: z.number(), formatted: z.string(), percent: z.number(), over15h: z.boolean(), storedProgress: z.number(), passOk: z.boolean(), studyEnd: z.boolean(), active: z.boolean(), preDone: z.boolean(), postDone: z.boolean(), lastLearning: optStr, certCount: z.number(),
-});
-export type TraineeRow = z.infer<typeof TraineeRowSchema>;
-export const TraineePageSchema = pageOf(TraineeRowSchema);
 export const ChapterProgressRowSchema = z.object({ chapterSeq: z.number(), lectureCode: z.string().nullable().optional(), courseName: optStr, order: z.number().nullable().optional(), contentsIdx: optNum, title: optStr, lectureTimeMin: optNum, progress: optNum, studyTime: optNum, lastStudy: optStr, lastStudiedAt: optStr });
 export type ChapterProgressRow = z.infer<typeof ChapterProgressRowSchema>;
 export const DailyRowSchema = z.object({ date: z.string(), seconds: z.number(), creditedSec: z.number(), excessSec: z.number(), status: z.enum(['ok', 'cap', 'over']), statusLabel: z.string() });
 export type DailyRow = z.infer<typeof DailyRowSchema>;
-export const TraineeProgressSchema = z.object({
-  trainee: z.object({ id: z.string(), name: optStr }), studySeq: z.number(), companyCode: z.string(), lectureCode: z.string(), courseName: z.string(), period: StudyPeriodSchema, passOk: z.boolean(), studyEnd: z.boolean(),
-  seconds: z.number(), formatted: z.string(), percent: z.number(), codes: z.array(z.string()).default([]), isPackage: z.boolean().optional(), chapters: z.array(ChapterProgressRowSchema).default([]), daily: z.array(DailyRowSchema).default([]),
-});
-export type TraineeProgress = z.infer<typeof TraineeProgressSchema>;
-export const CompletionRowSchema = z.object({ companyCode: z.string(), companyName: optStr, lectureCode: z.string(), courseName: z.string(), period: StudyPeriodSchema, total: z.number(), passed: z.number(), failed: z.number(), closed: z.number(), over15h: z.number(), passRate: z.number() });
-export type CompletionRow = z.infer<typeof CompletionRowSchema>;
-export const PaymentRowSchema = z.object({ idx: z.number(), companyCode: z.string(), period: StudyPeriodSchema, bankPrice: z.number(), cardPrice: z.number(), payStatus: optStr, payStatusLabel: optStr, payMethod: optStr, orderNo: optStr, payDate: optStr, regDate: optStr, cancelDate: optStr, remark: optStr });
-export type PaymentRow = z.infer<typeof PaymentRowSchema>;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Admin (관리자) — /auth/admin/*, /admin/*
