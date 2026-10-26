@@ -89,6 +89,14 @@ export const MyStatusSchema = z.object({
   studyEnd: z.boolean().default(false),
   preAssessment: z.object({ submitted: z.boolean() }).optional(),
   postAssessment: z.object({ submitted: z.boolean() }).optional(),
+  /** data-logic.php parity (2026-10-26): which row the clock shows, 수료 label, 수료증 7-day wait, D-day, coach comment. */
+  usageState: z.enum(['ACTIVE', 'BEFORE', 'ENDED', 'NONE']).optional(),
+  pass: z.object({ passed: z.boolean(), label: z.string(), hint: z.string().default(''), persisted: z.boolean().default(false) }).optional(),
+  certificate: z.object({ studySeq: z.number().nullable(), printable: z.boolean(), waiting: z.boolean(), availableFrom: ns, waitTitle: ns }).optional(),
+  dDay: z.object({ days: z.number(), label: z.string(), tone: z.string() }).nullable().optional(),
+  latestPeriod: z.object({ studySeq: z.number(), start: z.string(), end: z.string() }).nullable().optional(),
+  currentMinutes: z.number().optional(),
+  coachComment: z.string().optional(),
 });
 export type MyStatus = z.infer<typeof MyStatusSchema>;
 
@@ -104,6 +112,12 @@ export const DashboardSchema = z.object({
   recent: z.array(RecentStudySchema).default([]),
   nextChapters: z.array(NextChapterSchema).default([]),
   unrated: z.array(z.object({ lectureCode: z.string(), name: ns })).default([]),
+  inProgress: z.array(z.object({
+    lectureCode: z.string(), studySeq: z.number(), studyLectureCode: z.string().optional(), name: ns, eduGoal: ns, serviceType: ns, ctype: ns, typeLabel: z.string().default(''), thumbnailUrl: ns,
+    recentDate: ns, chapter: z.number().nullable().optional(), contentsTime: z.string().default(''), seconds: num0, formatted: z.string().default(''), progress: num0, calculatedProgress: num0,
+    comment: z.string().default(''), action: z.string().default('학습하기'), resumeChapterSeq: z.number().nullable().optional(),
+  })).default([]),
+  contentCounts: z.object({ X: num0, Y: num0, Z: num0, heroTotal: num0 }).optional(),
 });
 export type Dashboard = z.infer<typeof DashboardSchema>;
 
@@ -188,20 +202,22 @@ export const RecordChapterSchema = z.object({ chapterSeq: z.number(), lectureCod
 export type RecordChapter = z.infer<typeof RecordChapterSchema>;
 export const RecordChaptersSchema = z.object({ studySeq: z.number(), lectureCode: z.string(), codes: z.array(z.string()).default([]), isPackage: z.boolean().default(false), chapters: z.array(RecordChapterSchema), totalSeconds: num0, formatted: z.string().default('') });
 export type RecordChapters = z.infer<typeof RecordChaptersSchema>;
-export const CertificateListItemSchema = z.object({ studySeq: z.number(), lectureCode: z.string(), courseName: ns, period: MyPeriodSchema.or(z.string()).nullable().optional(), issuedAt: ns });
+export const CertificateListItemSchema = z.object({ studySeq: z.number(), lectureCode: z.string(), courseName: ns, serviceType: ns, period: MyPeriodSchema.or(z.string()).nullable().optional(), studyEnd: z.boolean().optional(), closedAt: ns, printable: z.boolean().default(true), waiting: z.boolean().default(false), availableFrom: ns, issuedAt: ns });
 export type CertificateListItem = z.infer<typeof CertificateListItemSchema>;
+/** GET /my/certificates/:studySeq — the values include/certificate_pdf01.php prints. */
 export const CertificateSchema = z.object({
-  studySeq: z.number(), learner: z.object({ id: z.string(), name: z.string(), birthDay: ns }), course: z.object({ lectureCode: z.string(), name: ns, hrdCode: ns, contentsTime: ns }),
-  period: MyPeriodSchema.nullable().optional(), hours: z.object({ seconds: num0, formatted: z.string().default(''), wholeHours: num0 }), company: z.object({ code: ns, name: ns }).nullable().optional(), issuedAt: ns, pdf: z.string().nullable().optional(),
+  studySeq: z.number(),
+  item: z.object({ name: ns, birthDay: ns, companyName: ns, courseName: ns, lectureStart: ns, lectureEnd: ns, hours: num0 }),
+  seconds: num0, issueDate: z.string(), serviceType: ns, lectureCode: z.string(), siteName: z.string().default('아이넥스평생교육원'),
 });
 export type Certificate = z.infer<typeof CertificateSchema>;
-export const SavedItemSchema = z.object({ likeIdx: z.number().optional(), lectureCode: z.string(), savedAt: ns, name: ns, ctype: ns, image: ns, contentsTime: z.union([z.string(), z.number()]).nullable().optional(), category1: ns, category2: ns, professor: ns, visible: z.boolean().optional() });
+export const SavedItemSchema = z.object({ likeIdx: z.number().optional(), lectureCode: z.string(), savedAt: ns, name: ns, ctype: ns, serviceType: ns, image: ns, contentsTime: z.union([z.string(), z.number()]).nullable().optional(), category1: ns, category2: ns, professor: ns, visible: z.boolean().optional(), viewCount: z.number().optional(), rating: z.number().nullable().optional(), ratingCount: z.number().optional(), learning: z.enum(['LEARNING', 'DONE']).nullable().optional() });
 export type SavedItem = z.infer<typeof SavedItemSchema>;
 export const BadgeSchema = z.object({ id: z.string(), name: z.string(), category: z.string(), description: z.string().default(''), icon: z.string().default(''), achieved: z.boolean(), achievedDate: ns, progress: num0, requirement: z.string().optional() });
 export type Badge = z.infer<typeof BadgeSchema>;
 export const BadgesSchema = z.object({ summary: z.object({ total: num0, achieved: num0, remaining: num0 }), categories: z.array(z.string()).default([]), badgesByCategory: z.record(z.array(BadgeSchema)).default({}), badges: z.array(BadgeSchema).optional(), stats: z.object({ completedCourses: num0, totalMinutes: num0, totalHours: num0, longestStreak: num0, currentStreak: num0, totalStudyDays: num0, aiZoneCount: num0 }).optional() });
 export type Badges = z.infer<typeof BadgesSchema>;
-export const RankRowSchema = z.object({ id: z.string(), score: num0, studyMinutes: num0, completedCourses: num0, avgProgress: num0, companyCode: ns, rank: z.number().optional() });
+export const RankRowSchema = z.object({ id: z.string(), score: num0, studyMinutes: num0, completedCourses: num0, avgProgress: num0, companyCode: ns, rank: z.number().optional(), isMe: z.boolean().optional() });
 export const RankingSchema = z.object({ scope: z.string(), scopeLabel: z.string().default(''), rank: num0, companyRank: num0, companyName: ns, companyTotal: num0, score: num0, totalUsers: num0, my: RankRowSchema.nullable().optional(), top10: z.array(RankRowSchema).default([]), aroundMe: z.array(RankRowSchema).default([]), formula: z.string().optional() });
 export type Ranking = z.infer<typeof RankingSchema>;
 export const WeeklySchema = z.object({
@@ -214,10 +230,77 @@ export const WeeklySchema = z.object({
 });
 export type Weekly = z.infer<typeof WeeklySchema>;
 export const CorrectionNoticesSchema = z.object({
-  items: z.array(z.object({ id: z.union([z.string(), z.number()]).optional(), totalDeltaSec: num0, formatted: z.string().default(''), appliedAt: ns, acknowledgedAt: ns, acknowledged: z.boolean().default(false) })).default([]),
+  items: z.array(z.object({ id: z.union([z.string(), z.number()]).optional(), totalDeltaSec: num0, formatted: z.string().default(''), delta: z.object({ hours: z.number(), minutes: z.number(), label: z.string() }).optional(), appliedAt: ns, acknowledgedAt: ns, acknowledged: z.boolean().default(false) })).default([]),
   corrections: z.array(z.object({ idx: z.number(), action: ns, oldSeconds: num0, newSeconds: num0, deltaSeconds: num0, note: ns, appliedAt: ns })).default([]),
 });
 export type CorrectionNotices = z.infer<typeof CorrectionNoticesSchema>;
+
+/** 나의학습실 parity (2026-10-26): GET /my/courses (tab-history.php). */
+export const CourseHistoryRowSchema = z.object({
+  lectureCode: z.string(), studySeq: z.number(), studyLectureCode: z.string().optional(), name: ns, serviceType: ns, serviceTypeName: z.string().default(''), ctype: ns,
+  chapter: num0, contentsTime: z.string().default(''), seconds: num0, minutes: num0, formatted: z.string().default(''), progress: num0, calculatedProgress: num0,
+  passOk: z.boolean().default(false), completed: z.boolean().default(false), status: z.string().default('progress'), statusText: z.string().default(''),
+  lastStudiedAt: ns, lastStudyDate: ns, period: z.object({ start: z.string(), end: z.string() }).nullable().optional(), enrollmentServiceType: ns,
+  resumeChapterSeq: z.number().nullable().optional(), rating: z.number().nullable().optional(), certificate: z.object({ eligible: z.boolean() }).optional(),
+});
+export type CourseHistoryRow = z.infer<typeof CourseHistoryRowSchema>;
+export const CourseHistorySchema = z.object({
+  items: z.array(CourseHistoryRowSchema), page: z.number(), size: z.number(), total: z.number(),
+  summary: z.object({ totalCourses: num0, completed: num0, inProgress: num0, totalMinutes: num0, formatted: z.string().default('') }),
+});
+export type CourseHistory = z.infer<typeof CourseHistorySchema>;
+/** GET /my/courses/tables (lecture_status_tables.php). */
+export const CourseTableSchema = z.object({
+  serviceType: z.string(), typeName: z.string().default(''), page: z.number(), size: z.number(), total: z.number(),
+  items: z.array(z.object({ no: z.number(), lectureCode: z.string(), studySeq: z.number(), studyLectureCode: z.string().optional(), name: ns, contentsTime: z.string().default(''), seconds: num0, studyTime: z.string(), progress: num0, startDate: ns, recentDate: ns, resumeChapterSeq: z.number().nullable().optional(), certificate: z.object({ eligible: z.boolean() }) })),
+});
+export type CourseTable = z.infer<typeof CourseTableSchema>;
+/** GET /my/level (api/my/level.php). */
+export const MyLevelSchema = z.object({
+  level: z.number(), levelName: z.string(), totalXP: num0, currentLevelMin: num0, currentLevelMax: z.number().nullable(), nextLevelXP: z.number().nullable(), xpToNextLevel: num0,
+  progressPercent: num0, isMaxLevel: z.boolean().default(false), currentStreak: num0, longestStreak: num0, totalStudyMinutes: num0, completedCourses: num0,
+  guide: z.object({ rules: z.array(z.object({ xp: z.string(), text: z.string() })), dailyCap: z.string(), bands: z.array(z.object({ level: z.number(), name: z.string(), range: z.string() })) }).optional(),
+});
+export type MyLevel = z.infer<typeof MyLevelSchema>;
+/** GET /my/insight (api/my/dashboard.php aiInsight). */
+export const MyInsightSchema = z.object({ nextGoal: z.string(), performanceComment: z.string(), stats: z.object({ totalMinutes: num0, totalHours: num0, completedCourses: num0, studyDays: num0 }), source: z.string().default('rule') });
+export type MyInsight = z.infer<typeof MyInsightSchema>;
+/** GET /my/report (AR-14 + tab-report.php KPIs). */
+export const MyReportPeriodSchema = z.object({ start: z.string(), end: z.string(), label: z.string().default('') });
+export const MyReportSchema = z.object({
+  enrollments: z.array(z.object({ studySeq: z.number(), lectureCode: z.string(), courseName: ns, serviceType: ns, mode: z.string(), period: MyReportPeriodSchema, state: z.string() })).default([]),
+  selected: z.number().nullable(),
+  subject: z.object({ name: ns, companyName: ns, lectureCode: z.string().optional(), courseName: ns, serviceType: ns, mode: z.string().optional(), period: MyReportPeriodSchema.optional(), state: z.string().optional() }),
+  summary: z.object({
+    totalSeconds: num0, formatted: z.string().default(''), completionSeconds: num0, carryoverSeconds: num0, percent: z.number().nullable(), achieved: z.boolean().nullable(),
+    passOk: z.boolean(), studyEnd: z.boolean(), completion: z.object({ label: z.string(), note: z.string().default('') }), contentCount: num0, completedContents: num0,
+  }).nullable(),
+  recent: z.array(CourseHistoryRowSchema).default([]),
+  activity: z.object({
+    week: z.object({ monday: z.string(), sunday: z.string(), rangeLabel: z.string(), seconds: num0, minutes: num0, formatted: z.string() }),
+    coursesStudied: num0, completedCourses: num0, uncompletedCourses: num0, completionRate: num0, avgCourseProgress: num0, studyDays: num0,
+    top5: z.array(z.object({ lectureCode: z.string(), name: ns, minutes: num0, progress: num0 })).default([]),
+    daily28: z.array(z.object({ date: z.string(), seconds: num0, hours: num0 })).default([]),
+    completedThisWeek: z.array(z.object({ lectureCode: z.string(), name: ns })).default([]),
+    donut: z.object({ completed: num0, incomplete: num0, total: num0 }),
+  }),
+  ai: z.object({ status: z.string() }).optional(),
+  notice: z.string().default(''),
+  checkedAt: z.string().default(''),
+});
+export type MyReportData = z.infer<typeof MyReportSchema>;
+/** GET /my/archiving (tab-company.php 기업 아카이빙). */
+export const ArchivingRowSchema = z.object({ idx: z.number(), title: z.string(), regDate: z.string().default(''), fileType: z.string().default('-'), status: ns, statusText: z.string().default('-') });
+export const ArchivingListSchema = z.object({ items: z.array(ArchivingRowSchema).default([]), uploadReady: z.boolean().default(false), writesOpen: z.boolean().default(false) });
+export type ArchivingList = z.infer<typeof ArchivingListSchema>;
+export const ArchivingDetailSchema = ArchivingRowSchema.omit({ fileType: true }).extend({
+  content: z.string().default(''), fileName: ns, hasFile: z.boolean().default(false), canDownload: z.boolean().default(false),
+  answerName: z.string().default(''), answerContent: z.string().default(''), answerDate: z.string().default(''), hasAnswer: z.boolean().default(false),
+});
+export type ArchivingDetail = z.infer<typeof ArchivingDetailSchema>;
+/** GET /my/events (lecture_event.html 출석 체크). */
+export const MyEventsSchema = z.object({ title: z.string(), rules: z.array(z.string()).default([]), stages: z.array(z.object({ stage: z.number(), label: z.string(), count: num0, stamps: z.array(z.boolean()) })).default([]) });
+export type MyEvents = z.infer<typeof MyEventsSchema>;
 export const ConsentsSchema = z.object({ mandatory: z.boolean().default(false), mandatoryDate: ns, sending: z.boolean().default(false), sendingDate: ns, marketing: z.string().default('N'), marketingDate: ns });
 export const LearnerProfileSchema = z.object({
   idx: z.number().optional(), id: z.string(), name: z.string(), memberType: ns, email: ns, mobile: ns, tel: ns, birthDay: ns, gender: ns, zipcode: ns, address01: ns, address02: ns,

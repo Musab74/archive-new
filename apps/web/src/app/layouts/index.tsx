@@ -11,6 +11,8 @@ import { Skeleton } from '../../shared/ui/Skeleton';
 import { HeaderChromeContext } from '../../shared/ui/headerChrome';
 import { SiteVisitCounter } from '../../features/admin/pages/site-cms/SiteVisitCounter';
 import { SiteChrome } from './SiteChrome';
+/** sections/correction-notice-popup.php ran on every 나의학습실 page: lazy so other layouts do not load it. */
+const CorrectionNoticePopup = lazy(() => import('../../features/my/CorrectionNoticePopup'));
 
 const ManagerShell = lazy(() => import('../../features/manager/ManagerShell'));
 const AdminShell = lazy(() => import('../../features/admin/pages/site/AdminShellParity'));
@@ -65,9 +67,14 @@ export function MyRoomLayout() {
         <div className={styles.room}>
           <aside className={styles.side}>
             <h2>{nav.myRoom}</h2>
-            <nav aria-label={nav.myRoom}>{myNav.map((n) => <NavLink key={n.to} to={n.to} end={n.end}>{n.label}</NavLink>)}</nav>
+            <nav aria-label={nav.myRoom}>
+              {myNav.map((n) => <NavLink key={n.to} to={n.to} end={n.end}>{n.label}</NavLink>)}
+              {/* public/include/mypage_header.html:616-622 법정교육바로가기 (new window) */}
+              <a href={myCopy.nav.legalEduUrl} target="_blank" rel="noopener noreferrer">{myCopy.nav.legalEdu} ↗</a>
+            </nav>
           </aside>
           <div className={styles.roomMain}><PageTransition><Outlet /></PageTransition></div>
+          <Suspense fallback={null}><CorrectionNoticePopup /></Suspense>
         </div>
       </main>
       <Footer />

@@ -14,4 +14,4 @@
 .playerBar a{color:#fff;font-weight:var(--fw-bold);display:inline-flex;align-items:center;gap:8px}
 .playerMain{flex:1;min-width:0}
 .adminBar{background:var(--c-ink);color:#fff;font-size:12px;padding:6px var(--gutter);text-align:center;letter-spacing:.04em}
-@media (max-width:768px){.room{grid-template-columns:1fr}.side{border-right:0;border-bottom:1px solid var(--c-line-2);padding:14px var(--gutter)}.side nav{display:flex;gap:4px;overflow-x:auto}.side a{white-space:nowrap}}
+@media (max-width:768px){.room{grid-template-columns:minmax(0,1fr)}.side{min-width:0;border-right:0;border-bottom:1px solid var(--c-line-2);padding:14px var(--gutter)}.side nav{display:flex;gap:4px;overflow-x:auto}.side a{white-space:nowrap}}
