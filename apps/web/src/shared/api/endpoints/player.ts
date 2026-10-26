@@ -40,4 +40,11 @@ export const playerApi = {
   beaconTick: (body: ProgressTick): boolean => sendKeepalive('/player/progress', body),
   /** Fire-and-forget lock release for pagehide / unmount, so closing the tab frees the PlayLock at once (not after 90 s). */
   release: (playToken: string): boolean => sendKeepalive('/player/session/release', { playToken }),
+  /** 학습요점 layer a packaged lesson opens with PlayStudyInfo (player/study_info.php). */
+  studyInfo: (lectureCode: string, contentsIdx: number, signal?: AbortSignal) => api.get<StudyInfo>('/player/study-info', { query: { lectureCode, contentsIdx }, schema: StudyInfoSchema, signal }),
+  /** 학습내용 질문하기 from a lesson (player/study_counsel_ok.php → Counsel). */
+  counsel: (body: { lectureCode: string; contentsIdx: number; category: string; title: string; contents: string }) => api.post<{ ok: boolean; idx: number }>('/player/counsel', body, { schema: z.object({ ok: z.boolean(), idx: z.number() }) }),
 };
+
+export const StudyInfoSchema = z.object({ lectureCode: z.string(), contentsIdx: z.number(), professor: z.string().default(''), title: z.string().default(''), goal: z.string().default(''), content: z.string().default(''), activity: z.string().default('') });
+export type StudyInfo = z.infer<typeof StudyInfoSchema>;

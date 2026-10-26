@@ -8,6 +8,14 @@ export function resolveMediaUrl(url: string | null | undefined): string | null {
 
 /** Legacy PHP identity-verification popup (interim until the SPA has its own 본인인증 flow). */
 export const IDENTITY_POPUP_URL = 'https://www.hrdeedu.co.kr/player/motp.php';
+/** window.open features player2.php:914 uses for the mOTP popup. */
+export const IDENTITY_POPUP_FEATURES = 'width=552,height=962,top=100,left=100,fullscreen=no,menubar=no,status=no,toolbar=no,titlebar=yes,location=no,scrollbar=no';
+
+/** The popup URL with the query the API built (player2.php:917: class_tme, EvalCd, LectureCode, COURSE_/CLASS_AGENT_PK, Study_Seq, …). */
+export function identityPopupUrl(popupQuery: string | null | undefined): string {
+  const q = (popupQuery ?? '').replace(/^\?/, '');
+  return q ? `${IDENTITY_POPUP_URL}?${q}` : IDENTITY_POPUP_URL;
+}
 
 /**
  * Packaged-HTML (type A) chapter URL: picks `mobileUrl` on narrow viewports (≤768px, like the PHP user-agent switch),

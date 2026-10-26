@@ -5,7 +5,7 @@ import { isAppError } from '../../shared/api/client';
 import type { PlayerDescriptor, TickAck } from '../../shared/api/schemas';
 import { TickScheduler, type TickStep } from '../../shared/player/tickScheduler';
 import { initialPlayerState, playerReducer, type PlayerState } from '../../shared/player/playerReducer';
-import { ElapsedCounter, iframeDocument, isPackageChapter, packageTickPosition, readPlayhead } from '../../shared/player/packageSource';
+import { ElapsedCounter, iframeDocument, installTypeAAutoNext, isPackageChapter, packageLastStudy, packageTickPosition, readPlayhead, seoulYmd } from '../../shared/player/packageSource';
 import { IDLE_LIMIT_MS, IDLE_WARN_MS, startIdleTimer } from '../../shared/auth/idleTimer';
 
 export interface EngineTarget { studySeq: number; lectureCode: string; chapterNumber: string }
@@ -42,20 +42,21 @@ export interface PlayerEngine {
 }
 
 /**
- * Builds the legacy progress body from the descriptor; `chapterNumber` is a string like the PHP form field.
- * `progressTime` is 0 for real media; for packaged content without a readable playhead it carries the synthetic
- * position (resume base + elapsed) while `positionSec` is 0, which the API substitutes (the PHP ProgressTime fallback).
+ * Builds the legacy progress body from the descriptor; `chapterNumber` is Chapter.OrderByNum as a string, like the PHP
+ * form field (the EMON score trigger writes it as 진도_N). `progressTime` is 0 for real media; for packaged content without
+ * a readable playhead it carries the synthetic position (resume base + elapsed) while `positionSec` is 0, which the API
+ * substitutes (the PHP ProgressTime fallback). `lastStudy` is the page/second this save reports (player2.php:3449-3471).
  */
-export function tickBody(d: PlayerDescriptor, step: TickStep, positionSec: number, playToken: string, progressTime = 0): ProgressTick {
+export function tickBody(d: PlayerDescriptor, step: TickStep, positionSec: number, playToken: string, progressTime = 0, lastStudy?: string): ProgressTick {
   return {
     studySeq: d.study.seq,
     lectureCode: d.contentLectureCode,
     studyLectureCode: d.study.lectureCode,
     chapterSeq: d.chapter.chapterSeq,
-    chapterNumber: String(d.chapter.number),
+    chapterNumber: String(d.chapter.order ?? d.chapter.number),
     contentsIdx: d.chapter.contentsIdx,
     contentsDetailSeq: d.chapter.contentsDetailSeq,
-    lastStudy: d.chapter.lastStudy ?? '',
+    lastStudy: (lastStudy ?? d.chapter.lastStudy ?? '').slice(0, 150),
     completeTime: d.chapter.completeTimeSec,
     progressStep: step,
     positionSec: Math.max(0, Math.floor(positionSec)),
@@ -65,6 +66,8 @@ export function tickBody(d: PlayerDescriptor, step: TickStep, positionSec: numbe
 }
 
 const ACTIVITY_EVENTS = ['pointerdown', 'keydown', 'touchstart'] as const;
+const SEEK_DEBOUNCE_MS = 250; // player2.php:3667
+const AUTONEXT_RETRY_MS = 250; // player2.php:1240-1246 (40 tries)
 
 /**
  * The play token survives a reload of the same tab (sessionStorage is per tab), so F5 re-opens this tab's own session
@@ -112,6 +115,17 @@ export function usePlayerEngine(target: EngineTarget | null): PlayerEngine {
     return Math.max(0, Math.floor(videoRef.current?.currentTime ?? 0));
   }, [packagePair]);
   const progressTime = useCallback(() => (packageRef.current ? packagePair().progressTime : 0), [packagePair]);
+  /**
+   * LastStudy per save (getCurrentLastStudyForPC, player2.php:3449-3471): Start posts the page/URL the window opened on; later saves post
+   * the package's current section page, or the video second (detail A) / '30' (예비경로) for video lessons.
+   */
+  const lastStudy = useCallback((step: TickStep) => {
+    const d = descriptorRef.current;
+    if (!d) return 'blank';
+    if (step === 'Start') return d.chapter.startLastStudy || 'blank';
+    if (packageRef.current) return packageLastStudy(iframeRef.current, d.chapter.url);
+    return d.chapter.urlSelect === 'A' ? String(Math.max(0, Math.floor(videoRef.current?.currentTime ?? 0))) : '30';
+  }, []);
 
   const makeScheduler = useCallback((d: PlayerDescriptor) => {
     schedulerRef.current?.dispose();
@@ -119,36 +133,56 @@ export function usePlayerEngine(target: EngineTarget | null): PlayerEngine {
       intervalMs: d.tick.intervalMs,
       getPosition: position,
       getProgressTime: progressTime,
-      send: (step, pos, pt) => playerApi.tick(tickBody(d, step, pos, d.playToken, pt)),
-      beacon: (step, pos, pt) => playerApi.beaconTick(tickBody(d, step, pos, d.playToken, pt)),
+      getLastStudy: lastStudy,
+      send: (step, pos, pt, ls) => playerApi.tick(tickBody(d, step, pos, d.playToken, pt, ls)),
+      beacon: (step, pos, pt, ls) => playerApi.beaconTick(tickBody(d, step, pos, d.playToken, pt, ls)),
       onAck: (step, ack) => dispatch({ type: 'TICK_ACK', step, ack }),
       onError: (step, e) => { dispatch({ type: 'TICK_FAILED', step }); if (isAppError(e) && e.isAuth) dispatch({ type: 'SESSION_EXPIRED' }); },
       onStatus: (status) => dispatch({ type: 'SAVE_STATUS', status }),
     });
     schedulerRef.current = s;
     return s;
-  }, [position, progressTime]);
+  }, [position, progressTime, lastStudy]);
 
-  /** Elapsed counter for packaged content: 1 credited second → ELAPSED + daily-cap check (same rule as the video path). */
-  const makeCounter = useCallback((d: PlayerDescriptor) => {
+  /**
+   * 8-hour client stop (player2.php:4089-4210): today's server seconds + what this window counted reach 8 h → stop with no further
+   * save (End included — "End도 추가 credit 방지"). TestID learners are exempt; the count restarts at Seoul midnight.
+   */
+  const capRef = useRef({ date: '', base: 0, offset: 0 });
+  const dailyCapReached = useCallback((counted: number) => {
+    const d = descriptorRef.current;
+    if (!d || !d.gates.dailyCapApplies) return false;
+    const ymd = seoulYmd();
+    if (ymd && capRef.current.date && ymd !== capRef.current.date) capRef.current = { date: ymd, base: 0, offset: counted };
+    return capRef.current.base + (counted - capRef.current.offset) >= d.totals.dailyCapClientStopSec;
+  }, []);
+  const stopForDailyCap = useCallback(() => {
+    videoRef.current?.pause();
+    counterRef.current?.stop();
+    schedulerRef.current?.dispose();
+    dispatch({ type: 'DAILY_CAP' });
+  }, []);
+
+  /**
+   * Elapsed counter for packaged content: 1 counted second → ELAPSED + daily-cap check (same rule as the video path).
+   * Like player2.php's 1 s timer it keeps counting in a hidden tab and without input (idle gating off); it runs only while the
+   * window is playing, and the 2-hour no-input logout still ends the session.
+   */
+  const makeCounter = useCallback((_d: PlayerDescriptor) => {
     counterRef.current?.dispose();
     const c = new ElapsedCounter({
-      visible: typeof document === 'undefined' || document.visibilityState !== 'hidden',
+      idleMs: 0,
       onSecond: (total) => {
         setPackageElapsedSec(total);
         dispatch({ type: 'ELAPSED', seconds: 1 });
-        if (d.totals.todaySec + total >= d.totals.dailyCapClientStopSec) {
-          c.stop();
-          schedulerRef.current?.end();
-          dispatch({ type: 'DAILY_CAP' });
-        }
+        if (dailyCapReached(total)) stopForDailyCap();
       },
     });
     counterRef.current = c;
     setPackageElapsedSec(0);
     setPackageCounting(false);
     return c;
-  }, []);
+  }, [dailyCapReached, stopForDailyCap]);
 
   const inflight = useRef<{ key: string; promise: Promise<PlayerDescriptor> } | null>(null);
   const mounted = useRef(true);
@@ -172,6 +206,7 @@ export function usePlayerEngine(target: EngineTarget | null): PlayerEngine {
       .then((d) => {
         if (seq !== openSeq.current || !mounted.current) { if (d.playToken && !mounted.current) void playerApi.close(d.playToken).catch(() => undefined); return; }
         storeToken(d.playToken);
+        capRef.current = { date: d.totals.date || seoulYmd(), base: d.totals.todaySec, offset: 0 };
         packageRef.current = isPackageChapter(d.chapter);
         playheadRef.current = null;
         setPackagePlayheadSec(null);
@@ -188,7 +223,9 @@ export function usePlayerEngine(target: EngineTarget | null): PlayerEngine {
 
   useEffect(() => { mounted.current = true; open(); }, [open]);
 
-  // Unmount / SPA navigation: close the chapter without waiting (beacon End + keepalive release).
+  // Unmount / SPA navigation: close the chapter without waiting (beacon End + keepalive release). A chapter switch keeps the lock and
+  // hands its token to the next chapter's open instead (player2.php:4757-4772 passes _playToken), so the switch cannot race the release.
+  const switching = useRef(false);
   useEffect(() => () => {
     mounted.current = false;
     const s = schedulerRef.current;
@@ -196,7 +233,14 @@ export function usePlayerEngine(target: EngineTarget | null): PlayerEngine {
     if (s && s.hasStarted && !s.hasEnded) s.end({ beacon: true });
     s?.dispose();
     counterRef.current?.dispose();
-    if (d?.playToken && !closed.current) { playerApi.release(d.playToken); storeToken(''); }
+    if (d?.playToken && !closed.current && !switching.current) { playerApi.release(d.playToken); storeToken(''); }
+  }, []);
+
+  // Tab hidden → save the current position at once (player2.php:4472-4495 sends a Middle beacon); playback is not paused.
+  useEffect(() => {
+    const onVis = () => { if (document.visibilityState === 'hidden') { const s = schedulerRef.current; if (s && s.running) s.tickNow(); } };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
   }, []);
 
   // pagehide (tab closed, reload, leaving the site) → beacon End, then release the PlayLock so another window can start at once.
@@ -262,14 +306,35 @@ export function usePlayerEngine(target: EngineTarget | null): PlayerEngine {
     setPackageCounting(!!counterRef.current?.isCounting);
   }, [isPackage, blockedKind]);
 
-  // Packaged content: visibility + user activity gate the elapsed counter (120 s without input pauses it).
+  // 4-hour player session (player2.php:4094-4140 isSessionExpired): End once, stop, and show the expired state.
+  const sessionHours = state.descriptor?.tick.sessionMaxHours ?? 0;
+  useEffect(() => {
+    if (!token || !(sessionHours > 0)) return;
+    const id = setTimeout(() => {
+      videoRef.current?.pause();
+      counterRef.current?.stop();
+      const s = schedulerRef.current;
+      if (s && s.hasStarted && !s.hasEnded) s.end();
+      dispatch({ type: 'HEARTBEAT_FAILED', error: 'session_expired', message: '세션이 만료되었습니다.' });
+    }, sessionHours * 3600 * 1000);
+    return () => clearTimeout(id);
+  }, [token, sessionHours]);
+
+  // Packaged content: a package that reports a seek (ArchivePlayerSeek {from, to}) gets a 'Seek' save at the new position,
+  // debounced 250 ms (player2.php:3695-3757).
   useEffect(() => {
     if (!isPackage) return;
-    const onVis = () => { counterRef.current?.setVisible(document.visibilityState !== 'hidden'); setPackageCounting(!!counterRef.current?.isCounting); };
-    const onActivity = () => { counterRef.current?.activity(); setPackageCounting(!!counterRef.current?.isCounting); };
-    document.addEventListener('visibilitychange', onVis);
-    ACTIVITY_EVENTS.forEach((ev) => document.addEventListener(ev, onActivity, { passive: true }));
-    return () => { document.removeEventListener('visibilitychange', onVis); ACTIVITY_EVENTS.forEach((ev) => document.removeEventListener(ev, onActivity)); };
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return;
+      const data = (e.data ?? {}) as { type?: string; to?: number };
+      if (data.type !== 'ArchivePlayerSeek') return;
+      const to = Math.max(0, Math.floor(Number(data.to) || 0));
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { timer = null; schedulerRef.current?.seek(to); }, SEEK_DEBOUNCE_MS);
+    };
+    window.addEventListener('message', onMessage);
+    return () => { window.removeEventListener('message', onMessage); if (timer) clearTimeout(timer); };
   }, [isPackage]);
 
   // Packaged content: poll the same-origin iframe for a playhead every second; an advancing playhead counts as activity.
@@ -322,14 +387,25 @@ export function usePlayerEngine(target: EngineTarget | null): PlayerEngine {
     dispatch({ type: 'PAUSE' });
   }, []);
 
-  // Package iframe loaded: wire activity events inside the (same-origin) frame and auto-start when the gates are clear.
+  // Package iframe loaded (every section page is a new document): wire activity events inside the (same-origin) frame, block its
+  // context menu (player2.php:5437), install the auto-next helper (player2.php:1229-1246) and auto-start when the gates are clear.
+  const autoNextTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => () => { if (autoNextTimer.current) clearInterval(autoNextTimer.current); }, []);
   const onPackageLoaded = useCallback(() => {
     packageLoadedRef.current = true;
     const doc = iframeDocument(iframeRef.current);
     if (doc) {
       const onActivity = () => { counterRef.current?.activity(); dispatch({ type: 'IDLE_ACTIVITY' }); };
-      try { ACTIVITY_EVENTS.forEach((ev) => doc.addEventListener(ev, onActivity, { passive: true })); } catch { /* cross-origin */ }
+      try {
+        ACTIVITY_EVENTS.forEach((ev) => doc.addEventListener(ev, onActivity, { passive: true }));
+        doc.addEventListener('contextmenu', (e) => e.preventDefault());
+      } catch { /* cross-origin */ }
     }
+    if (autoNextTimer.current) clearInterval(autoNextTimer.current);
+    let tries = 0;
+    const install = () => { if (installTypeAAutoNext(iframeDocument(iframeRef.current)) || ++tries > 40) { if (autoNextTimer.current) clearInterval(autoNextTimer.current); autoNextTimer.current = null; } };
+    setTimeout(install, 100);
+    autoNextTimer.current = setInterval(install, AUTONEXT_RETRY_MS);
     let first: number | null = null;
     try { first = readPlayhead(doc); } catch { first = null; }
     playheadRef.current = first;
@@ -359,13 +435,9 @@ export function usePlayerEngine(target: EngineTarget | null): PlayerEngine {
         if (elapsedRef.current >= 1) { const whole = Math.floor(elapsedRef.current); elapsedRef.current -= whole; dispatch({ type: 'ELAPSED', seconds: whole }); }
       }
     }
-    // Daily cap: today's server seconds + what was watched in this window.
-    if (d.totals.todaySec + watchedRef.current >= d.totals.dailyCapClientStopSec) {
-      v.pause();
-      schedulerRef.current?.end();
-      dispatch({ type: 'DAILY_CAP' });
-    }
-  }, []);
+    // Daily cap: today's server seconds + what was watched in this window (no End save after the cap).
+    if (dailyCapReached(Math.floor(watchedRef.current))) stopForDailyCap();
+  }, [dailyCapReached, stopForDailyCap]);
 
   const onLoadedMetadata = useCallback(() => {
     const v = videoRef.current;
@@ -386,6 +458,7 @@ export function usePlayerEngine(target: EngineTarget | null): PlayerEngine {
     counterRef.current?.stop();
     const s = schedulerRef.current;
     if (s && s.hasStarted && !s.hasEnded) { s.end(); await s.flush(); }
+    if (descriptorRef.current?.playToken) { switching.current = true; storeToken(descriptorRef.current.playToken); }
   }, []);
 
   const exit = useCallback(async () => {

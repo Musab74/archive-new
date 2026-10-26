@@ -116,7 +116,7 @@ describe('TickScheduler', () => {
     await flush();
     t.setPos(45);
     t.s.end({ beacon: true });
-    expect(t.beacon).toHaveBeenCalledWith('End', 45, 0); // progressTime is 0 for real media
+    expect(t.beacon).toHaveBeenCalledWith('End', 45, 0, ''); // progressTime is 0 for real media; no getLastStudy → ''
     expect(t.sent.map((x) => x.step)).toEqual(['Start']);
     expect(t.s.status).toBe('SAVED');
   });

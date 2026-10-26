@@ -85,10 +85,10 @@ export function blockReasonFor(code: string, status?: number): BlockReason {
   }
 }
 
-/** Where the window lands after the session descriptor arrives: identity gate → daily cap → ready. */
+/** Where the window lands after the session descriptor arrives — player2.php order: 8-hour limit (864-880) → 본인인증 (884-924) → ready. */
 export function phaseForDescriptor(d: PlayerDescriptor): PlayerPhase {
-  if (d.gates.identity === 'required') return { kind: 'identityCheck' };
   if (d.gates.dailyCapReached) return { kind: 'blocked', reason: 'dailyCap' };
+  if (d.gates.identity === 'required') return { kind: 'identityCheck' };
   return { kind: 'ready' };
 }
 
@@ -150,3 +150,9 @@ export function playerReducer(state: PlayerState, ev: PlayerEvent): PlayerState 
 
 /** True when the custom controls may start playback. */
 export const canPlay = (p: PlayerPhase): boolean => p.kind === 'ready' || p.kind === 'paused' || p.kind === 'ended';
+
+/** player2.php:5208-5228 — the exit rating shows when the learner has no review for the content and watched ≥ 50 % of the chapter. */
+export function exitRatingDue(ownReviews: number, ratedInSession: boolean, watchedSec: number, completeTimeSec: number): boolean {
+  if (!(completeTimeSec > 0)) return false;
+  return ownReviews === 0 && !ratedInSession && watchedSec / completeTimeSec >= 0.5;
+}

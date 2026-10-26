@@ -26,9 +26,11 @@ const descriptor: PlayerDescriptor = {
   chapters: [],
   resume: { positionSec: 300, studyTimeSec: 0 },
   totals: { recognizedSec: 0, todaySec: 0, dailyCapSec: 28800, dailyCapClientStopSec: 28770 },
-  gates: { identity: 'ok', dailyCapReached: false, alreadyDone: false },
+  gates: { identity: 'ok', dailyCapReached: false, dailyCapApplies: true, alreadyDone: false },
   tick: { intervalMs: 60000, heartbeatMs: 60000, idleTimeoutMs: 7200000 },
   identityUrl: null,
+  review: { mine: 0 },
+  assessment: { postDone: false },
 };
 
 import { usePlayerEngine } from '../features/player/usePlayerEngine';
@@ -78,7 +80,7 @@ describe('usePlayerEngine with a type A chapter', () => {
     unmount();
   });
 
-  it('pauses the elapsed counter while the tab is hidden and after 120 s without input', async () => {
+  it('keeps counting like player2.php (hidden tab, no input) while playing; End beacon carries the cumulative synthetic position', async () => {
     const { result, unmount } = renderHook(() => usePlayerEngine(target));
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
     result.current.iframeRef.current = fakeIframe(null);
@@ -88,26 +90,17 @@ describe('usePlayerEngine with a type A chapter', () => {
     expect(result.current.packageElapsedSec).toBe(10);
     expect(result.current.packageCounting).toBe(true);
 
+    // "Background/minimized tabs must continue earning study time" (player2.php:4307-4309): hidden does not pause.
     const vis = vi.spyOn(document, 'visibilityState', 'get');
     vis.mockReturnValue('hidden');
     await act(async () => { document.dispatchEvent(new Event('visibilitychange')); await vi.advanceTimersByTimeAsync(30_000); });
-    expect(result.current.packageElapsedSec).toBe(10);
-    expect(result.current.packageCounting).toBe(false);
+    expect(result.current.packageElapsedSec).toBe(40);
     vis.mockReturnValue('visible');
-    await act(async () => { document.dispatchEvent(new Event('visibilitychange')); await vi.advanceTimersByTimeAsync(5_000); });
-    expect(result.current.packageElapsedSec).toBe(15);
-
-    // Idle: pointerdown re-arms the 120 s idle timeout; the 120th second is still credited, then the counter stops
-    // (one extra second so the 1 s status poll has mirrored isCounting into state).
-    await act(async () => { document.dispatchEvent(new Event('pointerdown')); await vi.advanceTimersByTimeAsync(121_000); });
-    expect(result.current.packageElapsedSec).toBe(135);
-    expect(result.current.packageCounting).toBe(false);
-    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
-    expect(result.current.packageElapsedSec).toBe(135);
-    await act(async () => { document.dispatchEvent(new Event('keydown')); await vi.advanceTimersByTimeAsync(2_000); });
-    expect(result.current.packageElapsedSec).toBe(137);
+    // No input for 3 minutes: still counting (the 2-hour no-input logout is the only idle rule).
+    await act(async () => { await vi.advanceTimersByTimeAsync(180_000); });
+    expect(result.current.packageElapsedSec).toBe(220);
     expect(result.current.packageCounting).toBe(true);
     unmount();
-    expect(beaconed.at(-1)).toMatchObject({ progressStep: 'End', positionSec: 0, progressTime: 437 });
+    expect(beaconed.at(-1)).toMatchObject({ progressStep: 'End', positionSec: 0, progressTime: 520 });
   });
 });

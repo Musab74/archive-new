@@ -8,7 +8,8 @@
  *
  * - `parsePlayhead` — "mm:ss" / "hh:mm:ss" → seconds (null when unparseable).
  * - `readPlayhead` — looks for a playhead inside a same-origin iframe document.
- * - `ElapsedCounter` — whole seconds that advance only while running, visible and not idle (fake-timer friendly).
+ * - `ElapsedCounter` — whole seconds that advance only while running (and, when configured, visible and not idle; fake-timer friendly).
+ * - `normalizeArchiveLastStudy` / `packageLastStudy` — the LastStudy each save posts for a package (its current section page).
  */
 
 /** Chapters served as packaged HTML: `contentsType === 'A'` or an .html/.htm URL. */
@@ -69,7 +70,7 @@ export function iframeDocument(iframe: HTMLIFrameElement | null | undefined): Do
 export const PACKAGE_IDLE_MS = 120_000;
 
 export interface ElapsedCounterOptions {
-  /** No pointer/keyboard activity for this long pauses the counter (default 120 s). */
+  /** No pointer/keyboard activity for this long pauses the counter (default 120 s; 0 = never, as in player2.php). */
   idleMs?: number;
   /** Called once per credited second with the new total. */
   onSecond?: (totalSec: number) => void;
@@ -110,7 +111,7 @@ export class ElapsedCounter {
   activity(): void {
     this.idle = false;
     this.clearIdle();
-    if (this.running) this.idleTimer = setTimeout(() => { this.idle = true; this.idleTimer = null; this.sync(); }, this.idleMs);
+    if (this.running && this.idleMs > 0) this.idleTimer = setTimeout(() => { this.idle = true; this.idleTimer = null; this.sync(); }, this.idleMs);
     this.sync();
   }
   reset(): void { this.total = 0; }
@@ -139,4 +140,87 @@ export type PackageSource = 'playhead' | 'elapsed';
 export function packageTickPosition(playheadSec: number | null, elapsedSec: number, resumeBaseSec: number): { positionSec: number; progressTime: number } {
   if (playheadSec !== null && playheadSec > 0) return { positionSec: Math.floor(playheadSec), progressTime: 0 };
   return { positionSec: 0, progressTime: Math.max(0, Math.floor(resumeBaseSec)) + Math.max(0, Math.floor(elapsedSec)) };
+}
+
+/**
+ * window.normalizeArchiveLastStudy (player2.php:3388-3407): pathname only, one leading `/contents` stripped, '' for blank/root.
+ * `https://host/contents/D/01/02/index.html?x=1` → `/D/01/02/index.html`.
+ */
+export function normalizeArchiveLastStudy(raw: string | null | undefined): string {
+  if (raw == null) return '';
+  const s = String(raw).trim();
+  if (!s || s === 'blank') return '';
+  let path = s;
+  if (/^https?:\/\//i.test(s)) { try { path = new URL(s).pathname || ''; } catch { path = s; } }
+  else if (/^\/\//.test(s)) { try { path = new URL('https:' + s).pathname || ''; } catch { path = s; } }
+  path = path.split(/[?#]/)[0];
+  if (!path || path === '/') return '';
+  if (path.indexOf('/contents') === 0) {
+    if (path === '/contents' || path === '/contents/') return '';
+    path = path.substring('/contents'.length);
+    if (!path) return '';
+    if (path.charAt(0) !== '/') path = '/' + path;
+  }
+  return path === '/' ? '' : path;
+}
+
+/**
+ * getTypeALastStudyForPC (player2.php:3427-3446): the frame's current pathname (each section page is its own document),
+ * else its src attribute, else the chapter's own page — normalised; 'blank' when nothing is known. Max 150 chars (column size).
+ */
+export function packageLastStudy(iframe: HTMLIFrameElement | null | undefined, defaultPage: string | null | undefined): string {
+  let raw = '';
+  try { raw = iframe?.contentWindow?.location?.pathname ?? ''; } catch { raw = ''; }
+  if (!raw && iframe) { try { raw = new URL(iframe.getAttribute('src') || iframe.src || '', window.location.href).pathname; } catch { raw = ''; } }
+  const v = normalizeArchiveLastStudy(raw) || normalizeArchiveLastStudy(defaultPage);
+  return (v || 'blank').slice(0, 150);
+}
+
+/**
+ * The auto-next helper player2.php injects into every packaged section page (player2.php:1187-1247, verbatim): after the
+ * package's own completeStudy() it moves to the next page (`._nextBtn`, or gotoMenu(currentPageNo+1)); on the last page it
+ * posts `{type:'completed'}` to the player (which PHP does not act on either).
+ */
+export const TYPE_A_AUTONEXT_SCRIPT = "(function(){"
+  + "if(window.__hrdeTypeAAutoNextInstalled)return;"
+  + "window.__hrdeTypeAAutoNextInstalled=true;"
+  + "function hasNext(){"
+  + "try{if(window.contentsData&&contentsData.menus&&typeof window.currentPageNo!=='undefined'){return Number(currentPageNo)+1<contentsData.menus.length;}}catch(e){}"
+  + "try{if(window.contents&&typeof window.targetNumber!=='undefined'&&typeof contents.lastNo!=='undefined'){return Number(targetNumber)<Number(contents.lastNo)-1;}}catch(e){}"
+  + "return !!document.querySelector('._nextBtn');"
+  + "}"
+  + "function goNext(){"
+  + "if(!hasNext()){try{parent.postMessage({type:'completed',source:'hrde-type-a-autonext'},'*');}catch(e){}return;}"
+  + "var btn=document.querySelector('._nextBtn');"
+  + "if(btn){btn.click();return;}"
+  + "try{if(typeof window.gotoMenu==='function'&&typeof window.currentPageNo!=='undefined'){window.gotoMenu(Number(currentPageNo)+1);}}catch(e){}"
+  + "}"
+  + "function wrapCompleteStudy(){"
+  + "if(typeof window.completeStudy!=='function'||window.completeStudy.__hrdeAutoNextWrapped)return false;"
+  + "var original=window.completeStudy;"
+  + "window.completeStudy=function(){var result=original.apply(this,arguments);setTimeout(goNext,500);return result;};"
+  + "window.completeStudy.__hrdeAutoNextWrapped=true;"
+  + "return true;"
+  + "}"
+  + "wrapCompleteStudy();"
+  + "var tries=0;"
+  + "var timer=setInterval(function(){if(wrapCompleteStudy()||++tries>40)clearInterval(timer);},250);"
+  + "})();";
+
+/** tryInstallTypeAAutoNext: true once the helper is in this document (idempotent per document); false when not reachable yet. */
+export function installTypeAAutoNext(doc: Document | null | undefined): boolean {
+  try {
+    if (!doc || !doc.documentElement) return false;
+    if (doc.querySelector('script[data-hrde-type-a-autonext]')) return true;
+    const script = doc.createElement('script');
+    script.setAttribute('data-hrde-type-a-autonext', 'true');
+    script.text = TYPE_A_AUTONEXT_SCRIPT;
+    (doc.head || doc.documentElement).appendChild(script);
+    return true;
+  } catch { return false; }
+}
+
+/** Asia/Seoul calendar day (player2.php hrdeSeoulYmd) — the 8-hour count restarts when it changes. */
+export function seoulYmd(now: Date = new Date()): string {
+  try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now); } catch { return now.toISOString().slice(0, 10); }
 }

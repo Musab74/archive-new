@@ -1009,11 +1009,18 @@ export const player = {
     serverNote: '인정시간은 서버에 저장된 수강기록으로 확인합니다. 반복 수강시간은 추가 인정되지 않습니다.',
     pending: '저장 확인 전',
   },
-  toc: { title: '학습 목차', continue: '계속하기', go: '차시 이동', current: '학습 중', done: '학습완료', minutes: (m: number) => `${m}분` },
+  toc: { title: '학습 목차', continue: '계속하기', go: '차시 이동', current: '학습 중', done: '학습완료', replay: '다시보기', minutes: (m: number) => `${m}분`, lastStudied: (t: string) => `최종학습 ${t}` },
   help: { title: '학습 도움', body: '재생·저장 문제가 있다면 고객지원에서 도움을 받으세요.', exitNote: '학습을 마칠 때 저장상태와 평점 등록 여부를 확인해 주세요.', support: '고객지원' },
+  /** player2.php:1345-1406 course info block (학습목표 · 교강사). */
+  info: { title: '콘텐츠 정보', objective: '학습목표', teacher: '교강사' },
   identity: {
     title: '오늘의 본인인증이 필요합니다',
-    body: '환급형 학습을 시작하기 전에 1일 1회 본인인증을 진행해 주세요. 인증 창에서 인증을 마친 뒤 다시 확인을 누르면 학습을 시작합니다.',
+    enrollTitle: '과정 입과 본인인증이 필요합니다',
+    body: '학습을 시작하기 전에 1일 1회 본인인증을 진행해 주세요. 인증 창에서 인증을 마친 뒤 다시 확인을 누르면 학습을 시작합니다.',
+    enrollBody: '이 과정을 처음 학습하기 전에 한 번 본인인증을 진행해 주세요. 인증 창에서 인증을 마친 뒤 다시 확인을 누르면 학습을 시작합니다.',
+    /** play_study_auth.php:51-56 — 입과 인증 전 부정훈련 금지서약 */
+    agree: '유의사항을 숙지했으며 부정훈련 금지서약에 동의합니다.',
+    agreeRequired: '유의사항 숙지 및 부정훈련 금지서약에 동의하셨다면 동의함에 체크해주세요. 미동의할 경우 강의를 수강하실 수 없습니다.',
     open: '본인인증 창 열기',
     recheck: '인증 다시 확인',
     popupBlocked: '인증 창을 열지 못했습니다. 팝업 허용 상태를 확인한 뒤 다시 시도해 주세요.',
@@ -1038,6 +1045,10 @@ export const player = {
     endedTitle: '차시 재생이 끝났습니다.',
     endedBody: '저장상태를 확인한 뒤 다음 차시로 이동하거나 학습을 종료해 주세요.',
     nextChapter: '다음 차시',
+    /** m_player/player2.php:3868-3949 — 15 hours reached but 사후진단 not done. */
+    postTitle: '학습이 완료되었습니다! 수료를 위해 사후진단을 진행해주세요.',
+    postBody: '나의 학습실 > 역량진단 탭에서도 언제든지 진행할 수 있습니다.',
+    postCta: '사후진단 시작하기',
   },
   exitDialog: {
     title: '학습을 마치시겠어요?',
@@ -1054,6 +1065,9 @@ export const player = {
     rateDone: '평점이 등록되었습니다.',
     rateFail: '평점이 저장되지 않았습니다. 선택한 점수를 확인하고 다시 등록해 주세요.',
     rateSelect: '평점을 선택해 주세요.',
+    /** player2.php:5637-5638 — what the exit rating stores when the learner leaves the text empty. */
+    rateOnlyTitle: '평점만 등록',
+    rateOnlyContents: '평점만 등록했습니다.',
   },
   /** Packaged-HTML (type A) chapters embedded in an iframe. */
   package: {
@@ -1072,11 +1086,41 @@ export const player = {
     statusElapsed: '경과 시간 기준 인정',
     statusWaiting: '콘텐츠 준비 중',
     statusHintPlayhead: '콘텐츠의 재생 위치를 읽어 학습기록에 저장합니다.',
-    statusHintElapsed: '재생 위치를 읽을 수 없어 학습창이 보이는 동안의 경과 시간으로 학습기록을 저장합니다. 2분 이상 조작이 없으면 경과 시간 집계를 잠시 멈춥니다.',
+    statusHintElapsed: '재생 위치를 읽을 수 없어 학습창이 열려 있는 동안의 경과 시간으로 학습기록을 저장합니다. 인정시간은 서버에서 저장 간격(경과 시간 + 5초)까지만 반영합니다.',
     elapsed: (t: string) => `경과 ${t}`,
     position: (t: string) => `위치 ${t}`,
-    paused: '집계 일시정지 (화면 가림 또는 미조작)',
+    paused: '집계 일시정지',
     startOverlay: '학습 콘텐츠가 준비되면 자동으로 학습을 시작합니다.',
+  },
+  /** Layers packaged lessons open on the player window (player/study_info.php, player/study_counsel.php). */
+  help2: {
+    infoTitle: '학습요점',
+    professor: '내용전문가',
+    goal: '차시 목표',
+    content: '훈련 내용',
+    activity: '학습 활동',
+    infoEmpty: '등록된 학습요점이 없습니다.',
+    infoFail: '학습요점을 불러오지 못했습니다.',
+    close: '닫기',
+    counselTitle: '학습내용 질문하기',
+    counselNote: '질문내용은 강사님 확인 후 학습지원센터 > 1:1 문의에서 확인하실 수 있습니다.',
+    subject: '제목',
+    subjectPlaceholder: '제목 입력',
+    category: '문의종류',
+    categoryPlaceholder: '선택하세요',
+    body: '내용',
+    bodyPlaceholder: '내용 입력',
+    submit: '질문하기',
+    needCategory: '문의종류를 선택하세요.',
+    needTitle: '제목을 입력하세요.',
+    needBody: '내용을 입력하세요.',
+    confirm: '등록하시겠습니까?',
+    done: '등록되었습니다.',
+    fail: '등록중 문제가 발생했습니다.\n\n잠시후에 다시 시도하세요.',
+    categories: [
+      { value: 'A', label: '학습 내용 문의' }, { value: 'B', label: '시스템 문의' }, { value: 'C', label: '이의 제기' },
+      { value: 'D', label: '수강 관련 문의' }, { value: 'E', label: '결제 관련 문의' },
+    ],
   },
 };
 
