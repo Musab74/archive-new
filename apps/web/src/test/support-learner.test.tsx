@@ -207,13 +207,17 @@ describe('고객지원 learner pages', () => {
       enrollments: [{ studySeq: 1, lectureCode: 'L1', title: '라이브 특강', professor: '김강사', contentsTime: '1', lectureStart: '2026-10-01', lectureEnd: '2026-12-31', window: 'open', windowLabel: '이용 중' }],
       schedule: { available: false, reason: '라이브 일정·참여기록은 라이브 클래스 서버에 있습니다.' }, discussions: { available: false, reason: '토론방 게시판은 현재 데이터베이스에 없습니다.', items: [] } });
     routes['POST /support/live/entry'] = () => json({ launchUrl: 'https://live.hrdeedu.co.kr?token=abc', records: false, notice: 'x' });
-    const open = vi.fn(() => ({}) as Window);
+    const tab = { opener: {} as unknown };
+    const open = vi.fn(() => tab as Window);
     vi.stubGlobal('open', open);
     mount(<LivePage />, '/live');
     expect(await screen.findByText('라이브 특강')).toBeInTheDocument();
     expect(screen.getByText('이용 중')).toBeInTheDocument();
     expect(screen.getByText('토론방 게시판은 현재 데이터베이스에 없습니다.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '입장하기' }));
-    await waitFor(() => expect(open).toHaveBeenCalledWith('https://live.hrdeedu.co.kr?token=abc', '_blank', 'noopener'));
+    // new tab without 'noopener' (that feature makes window.open return null → the page reported a blocked popup); opener cut instead
+    await waitFor(() => expect(open).toHaveBeenCalledWith('https://live.hrdeedu.co.kr?token=abc', '_blank'));
+    expect(tab.opener).toBeNull();
+    expect(screen.queryByText('새 창을 열지 못했습니다. 팝업 허용 상태를 확인한 뒤 다시 입장해 주세요.')).not.toBeInTheDocument();
   });
 });
