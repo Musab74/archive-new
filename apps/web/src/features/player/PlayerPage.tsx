@@ -79,6 +79,17 @@ function PlayerWindow({ target, chapterSeq }: { target: EngineTarget; chapterSeq
   const popupRef = useRef<Window | null>(null);
 
   const course = useQuery({ queryKey: ['catalog', 'course', target.lectureCode, true], queryFn: ({ signal }) => catalogApi.course(target.lectureCode, signal), staleTime: 5 * 60_000 });
+  // canRate (= a Progress row exists for the content) is read when the window opens; the first acknowledged save creates that row, so a
+  // learner who opened the content for the first time is asked for the exit rating like in player2.php:5208-5228 (no own review, ≥ 50 %).
+  const savedOnce = state.saveStatus === 'SAVED';
+  const canRateRechecked = useRef(false);
+  const refetchCourse = course.refetch;
+  const canRateFalse = course.data?.canRate === false;
+  useEffect(() => {
+    if (!savedOnce || !canRateFalse || canRateRechecked.current) return;
+    canRateRechecked.current = true;
+    void refetchCourse();
+  }, [savedOnce, canRateFalse, refetchCourse]);
   // Empty text stores the PHP defaults (player2.php:5637-5638); the star is never pre-filled (AR-06 평점 미선택을 자동 5점으로 채우지 않음).
   const rate = useMutation({ mutationFn: () => catalogApi.review(target.lectureCode, { starPoint: star, title: copy.exitDialog.rateOnlyTitle, contents: comment.trim() || copy.exitDialog.rateOnlyContents }), onSuccess: () => { setRateMsg(copy.exitDialog.rateDone); void course.refetch(); }, onError: () => setRateMsg(copy.exitDialog.rateFail) });
 
@@ -135,7 +146,7 @@ function PlayerWindow({ target, chapterSeq }: { target: EngineTarget; chapterSeq
     const lastHb = phase.reason === 'playlock' && phase.details && typeof phase.details === 'object' && 'lastHeartbeat' in phase.details ? String((phase.details as { lastHeartbeat?: string }).lastHeartbeat ?? '') : '';
     return (
       <div className={styles.state}>
-        <StateBlock code={code} kicker={b.kicker} title={b.title} body={<>{phase.message ?? b.body}{lastHb ? <><br /><small>{copy.blocked.playlock.lastHeartbeat(fmtDateTime(lastHb) || lastHb)}</small></> : null}{phase.reason === 'playlock' ? <><br /><small>{copy.blocked.playlock.takeoverNote}</small></> : null}</>}
+        <StateBlock code={code} kicker={b.kicker} title={b.title} body={<>{phase.message ? phase.message.split(/\r?\n/).map((line, i) => <span key={i}>{i > 0 ? <br /> : null}{line}</span>) : b.body}{lastHb ? <><br /><small>{copy.blocked.playlock.lastHeartbeat(fmtDateTime(lastHb) || lastHb)}</small></> : null}{phase.reason === 'playlock' ? <><br /><small>{copy.blocked.playlock.takeoverNote}</small></> : null}</>}
           actions={<>
             <Button variant="secondary" square size="sm" to={detailPath}>{copy.backToDetail}</Button>
             {phase.reason === 'preAssessment' ? <Button square size="sm" to="/assessment/pre">{copy.blocked.preAssessment.cta}</Button> : null}
@@ -233,7 +244,7 @@ function PlayerWindow({ target, chapterSeq }: { target: EngineTarget; chapterSeq
             <div className={styles.metrics}>
               <MetricCard compact title={copy.metrics.chapterTime} value={state.ack.studyTime === null ? copy.metrics.pending : hm(state.ack.studyTime)} caption={copy.metrics.chapterProgress + ` ${Math.round(chapterProgress)}%`} progress={chapterProgress} />
               {refund ? (
-                <MetricCard compact tone="navy" title={copy.metrics.recognized} value={hm(d.totals.recognizedSec)} caption={state.ack.totalProgress !== null ? `${copy.metrics.totalProgress} ${state.ack.totalProgress}%` : copy.metrics.serverNote} progress={state.ack.totalProgress} />
+                <MetricCard compact tone="navy" title={copy.metrics.recognized} value={hm(recognizedNow)} caption={state.ack.totalProgress !== null ? `${copy.metrics.totalProgress} ${state.ack.totalProgress}%` : copy.metrics.serverNote} progress={state.ack.totalProgress} />
               ) : (
                 <MetricCard compact tone="mint" title={copy.metrics.today} value={hm(d.totals.todaySec)} caption={copy.metrics.general} />
               )}
@@ -253,12 +264,13 @@ function PlayerWindow({ target, chapterSeq }: { target: EngineTarget; chapterSeq
             <ol className={styles.toc}>
               {d.chapters.map((c, i) => {
                 const current = c.chapterSeq === d.chapter.chapterSeq;
+                const pct = current ? chapterProgress : c.progress; // the open chapter follows the server acks
                 return (
                   <li key={c.chapterSeq} className={cx(styles.tocItem, current && styles.tocCurrent)} aria-current={current ? 'true' : undefined}>
                     <span className={styles.tocNum}>{String(i + 1).padStart(2, '0')}</span>
                     <div className={styles.tocCopy}>
                       <span className={styles.tocTitle}>{c.title}</span>
-                      <span className={styles.tocMeta}>{copy.toc.minutes(c.minutes)} · {Math.round(c.progress)}%{c.progress >= 100 ? ` · ${copy.toc.done}` : ''}{c.lastStudiedAt ? ` · ${copy.toc.lastStudied(fmtDateTime(c.lastStudiedAt) || c.lastStudiedAt)}` : ''}</span>
+                      <span className={styles.tocMeta}>{copy.toc.minutes(c.minutes)} · {Math.round(pct)}%{pct >= 100 ? ` · ${copy.toc.done}` : ''}{c.lastStudiedAt ? ` · ${copy.toc.lastStudied(fmtDateTime(c.lastStudiedAt) || c.lastStudiedAt)}` : ''}</span>
                     </div>
                     {current ? <span className={styles.tocState}>{copy.toc.current}</span> : <Button variant="white" size="xs" square onClick={() => void goChapter(c.chapterSeq)}>{c.progress >= 100 ? copy.toc.replay : c.progress > 0 ? copy.toc.continue : copy.toc.go}</Button>}
                   </li>

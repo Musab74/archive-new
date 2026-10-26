@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type QueryClient } from '@tanstack/react-query';
 import { assessmentApi, reviewsApi } from '../../shared/api/endpoints/assessment';
 
 export const aqk = {
@@ -13,6 +13,14 @@ export const aqk = {
   board: (page: number, sw: string, lectureCode: string) => ['reviews', 'board', page, sw, lectureCode] as const,
   boardOne: (idx: number) => ['reviews', 'board', 'one', idx] as const,
 };
+
+/**
+ * After a save: refresh every assessment view except the open 사전/사후 forms. The form of a granted enrollment answers 403 once the last
+ * save consumed the grant (assessment_access_grant.php consume → no grant scope any more), so refetching it would replace the done screen
+ * with the gate; the open form keeps its own state instead.
+ */
+export const invalidateAfterSave = (qc: QueryClient) =>
+  qc.invalidateQueries({ predicate: (q) => q.queryKey[0] === 'assessment' && q.queryKey[1] !== 'pre-form' && q.queryKey[1] !== 'post-form' });
 
 const noRetry = (n: number, e: unknown) => n < 1 && !(e && typeof e === 'object' && 'status' in e && Number((e as { status: number }).status) >= 400 && Number((e as { status: number }).status) < 500);
 

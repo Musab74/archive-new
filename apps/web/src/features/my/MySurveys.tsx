@@ -12,7 +12,7 @@ import { TypeLabel } from '../../shared/ui/Pill';
 import { FormMessage } from '../../shared/ui/Form';
 import { assessment as assessmentCopy, my as copy, nav } from '../../shared/strings/ko';
 import { cx } from '../../shared/utils/format';
-import { aqk, scopeSearch, usePostForm, useSatisfactionList } from '../assessment/queries';
+import { invalidateAfterSave, scopeSearch, usePostForm, useSatisfactionList } from '../assessment/queries';
 import { QuestionTable } from '../assessment/QuestionTable';
 import { FormGate } from '../assessment/PreAssessmentPage';
 import { answersFor, isLikert, mergeAnswers, type AnswerMap } from '../assessment/validation';
@@ -75,7 +75,7 @@ export function SatisfactionPage() {
   const form = usePostForm(Number.isInteger(seq) && seq > 0 ? seq : null, params.get('grant') === '1');
   const crumbs = [{ label: nav.myRoom, to: '/my' }, { label: c.title, to: '/my/surveys' }, { label: c.detailTitle }];
   if (form.isPending) return <div className={styles.page} aria-busy="true"><Skeleton height={28} width="40%" /><Skeleton lines={5} /></div>;
-  if (form.isError) return <FormGate error={form.error} onRetry={() => void form.refetch()} crumbs={crumbs} />;
+  if (form.isError && !form.data) return <FormGate error={form.error} onRetry={() => void form.refetch()} crumbs={crumbs} />;
   return <SatisfactionForm key={form.data.studySeq} form={form.data} grant={form.data.isGrant || params.get('grant') === '1'} crumbs={crumbs} />;
 }
 
@@ -90,7 +90,7 @@ function SatisfactionForm({ form, grant, crumbs }: { form: PostForm; grant: bool
   const allDone = qs.length > 0 && answered === qs.length;
   const save = useMutation({
     mutationFn: () => assessmentApi.postAnswers({ studySeq: form.studySeq, step: 'satisfaction', answers: answersFor(qs, answers), final: true, grant }),
-    onSuccess: (r) => { setStatus(r.satisfactionStatus); setJustSent(true); setMsg(null); void qc.invalidateQueries({ queryKey: aqk.satisfaction }); void qc.invalidateQueries({ queryKey: aqk.all }); },
+    onSuccess: (r) => { setStatus(r.satisfactionStatus); setJustSent(true); setMsg(null); void invalidateAfterSave(qc); },
     onError: (e) => setMsg(isAppError(e) ? e.message : assessmentCopy.submitFail),
   });
   return (

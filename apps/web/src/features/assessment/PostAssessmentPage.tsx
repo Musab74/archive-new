@@ -15,7 +15,7 @@ import { FormMessage } from '../../shared/ui/Form';
 import { assessment as copy, nav } from '../../shared/strings/ko';
 import { cx } from '../../shared/utils/format';
 import { qk } from '../my/queries';
-import { aqk, scopeFromSearch, scopeSearch, usePostForm } from './queries';
+import { invalidateAfterSave, scopeFromSearch, scopeSearch, usePostForm } from './queries';
 import { QuestionTable } from './QuestionTable';
 import { FormGate, firstMissing } from './PreAssessmentPage';
 import { clearDraft, readDraft, writeDraft, emptyDraft } from './draft';
@@ -25,6 +25,12 @@ type Page = 'common' | 'job' | 'satisfaction';
 type Step = 'intro' | Page | 'done';
 const STEP_INDEX: Record<Step, number> = { intro: 0, common: 0, job: 1, satisfaction: 2, done: 3 };
 
+/** True when an answer to one of this form's 사후 questions (공통·리더십, 직무, 만족도) is saved — the 사전 answers of the same enrollment do not count. */
+export function postStarted(form: Pick<PostForm, 'common' | 'leader' | 'job' | 'satisfaction' | 'saved'>): boolean {
+  const ids = new Set([...form.common, ...form.leader, ...form.job, ...form.satisfaction].map((q) => q.idx));
+  return Object.keys(form.saved.answers).some((k) => ids.has(Number(k)));
+}
+
 /** AR-10 사후역량진단 — archive/post/post_test01-03.html: 공통·리더십 → 직무 → HRDe아카이브 향상도(만족도), 별점 1–5 (비향상 → 향상). */
 export default function PostAssessmentPage() {
   const [params] = useSearchParams();
@@ -32,7 +38,7 @@ export default function PostAssessmentPage() {
   const form = usePostForm(scope.studySeq, scope.grant);
   const crumbs = [{ label: nav.myRoom, to: '/my' }, { label: copy.crumbResult, to: '/my/assessment' }, { label: copy.crumbPost }];
   if (form.isPending) return <div className={styles.page} aria-busy="true"><Skeleton height={28} width="40%" /><Skeleton lines={6} /></div>;
-  if (form.isError) return <FormGate error={form.error} onRetry={() => void form.refetch()} crumbs={crumbs} />;
+  if (form.isError && !form.data) return <FormGate error={form.error} onRetry={() => void form.refetch()} crumbs={crumbs} />;
   return <PostFlow key={form.data.studySeq} form={form.data} grantFlag={scope.grant} crumbs={crumbs} />;
 }
 
@@ -64,7 +70,7 @@ function PostFlow({ form, grantFlag, crumbs }: { form: PostForm; grantFlag: bool
     mutationFn: (p: Page) => assessmentApi.postAnswers({ studySeq: seq, step: p, answers: answersFor(questionsOf(p), answers), final: p === pages[pages.length - 1], grant }),
     onSuccess: (r, p) => {
       setMsg(null);
-      void qc.invalidateQueries({ queryKey: aqk.all });
+      void invalidateAfterSave(qc);
       void qc.invalidateQueries({ queryKey: qk.status });
       const next = pages[pages.indexOf(p) + 1];
       if (next) { setStep(next); return; }
@@ -92,7 +98,8 @@ function PostFlow({ form, grantFlag, crumbs }: { form: PostForm; grantFlag: bool
   const badges = <div className={styles.labels}>{grant ? <TypeLabel tone="warm" small>{copy.post.grantBadge}</TypeLabel> : null}{form.isRetroClosedW ? <TypeLabel tone="mint" small>{copy.post.retroBadge}</TypeLabel> : null}{form.period.start ? <TypeLabel tone="gray" small>{form.period.start} ~ {form.period.end}</TypeLabel> : null}</div>;
 
   if (step === 'intro') {
-    const started = Object.keys(form.saved.answers).length > 0;
+    // saved.answers holds every answer of the enrollment (the 사전 ones too): only a saved 사후 question makes this "이어하기"
+    const started = postStarted(form);
     return (
       <div className={styles.page}>
         <Breadcrumb items={crumbs} />
