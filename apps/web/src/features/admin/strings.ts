@@ -82,7 +82,7 @@ const ko = {
     abnormal: { title: '이상 데이터 로그', lead: '배치 점검이 남긴 이상 징후와 처리 상태입니다.', code: '코드', status: '상태', legend: '코드별 건수', cols: { date: '감지일', category: '분류', code: '코드', severity: '심각도', id: '아이디', name: '이름', seq: 'Seq', lecture: '과정', metric: '지표', status: '상태', note: '처리 메모', source: '출처' } },
   },
   courses: {
-    title: '과정', lead: 'Course 목록 (패키지 포함). ctype: X 이러닝 · Y 마이크로러닝 · Z 숏폼 · W 비환급 · A 패키지.',
+    title: '과정', lead: 'Course 목록 (패키지 포함). ctype: X 이러닝 · Z 마이크로러닝 · Y 숏폼 · W 비환급 · A 패키지.',
     filters: { q: '코드·과정명·HRD코드', ctype: '유형', useYN: '노출', packageYN: '패키지' },
     cols: { idx: 'idx', code: '코드', name: '과정명', ctype: '유형', useYN: '노출', hrd: 'HRD코드', category: '분류', time: '교육시간', chapters: '차시', enrollments: '수강', views: '조회', regDate: '등록일' },
     edit: { title: '과정 수정', basic: '기본 정보', text: '소개·대상·목표', meta: '분류·키워드', readonly: '읽기 전용 (URL·가격·회차는 별도 화면)', terms: '회차', name: '과정명', useYN: '노출', category1: '분류 1', category2: '분류 2', keyword: (n: number) => `키워드 ${n}`, intro: '소개', eduTarget: '교육대상', eduGoal: '교육목표', contentsTime: '교육시간', chapters: '차시 구성 보기', hideWarn: 'UseYN=N으로 바꾸면 사이트에서 즉시 숨겨집니다(수강 중인 학습자는 계속 학습 가능).' },
@@ -138,7 +138,7 @@ export type AdmCopy = typeof ko;
 /** English console copy — same shape as `ko` (the compiler enforces every key). */
 const en: AdmCopy = {
   brand: 'AINEX ARCHIVE · Admin',
-  ctypes: { X: 'E-learning', Y: 'Micro-learning', Z: 'Short-form', W: 'Non-refundable', A: 'Package' } as Record<string, string>,
+  ctypes: { X: 'E-learning', Z: 'Micro-learning', Y: 'Short-form', W: 'Non-refundable', A: 'Package' } as Record<string, string>,
   login: {
     title: 'Admin sign-in',
     lead: 'Sign in with your operator account. The second factor is the last 4 digits of your registered mobile number.',
@@ -215,7 +215,7 @@ const en: AdmCopy = {
     abnormal: { title: 'Anomaly log', lead: 'Anomalies flagged by batch checks and their handling status.', code: 'Code', status: 'Status', legend: 'Count by code', cols: { date: 'Detected', category: 'Category', code: 'Code', severity: 'Severity', id: 'User ID', name: 'Name', seq: 'Seq', lecture: 'Course', metric: 'Metric', status: 'Status', note: 'Handling note', source: 'Source' } },
   },
   courses: {
-    title: 'Courses', lead: 'Course list (incl. packages). ctype: X e-learning · Y micro-learning · Z short-form · W non-refundable · A package.',
+    title: 'Courses', lead: 'Course list (incl. packages). ctype: X e-learning · Z micro-learning · Y short-form · W non-refundable · A package.',
     filters: { q: 'Code · title · HRD code', ctype: 'Type', useYN: 'Visible', packageYN: 'Package' },
     cols: { idx: 'idx', code: 'Code', name: 'Course title', ctype: 'Type', useYN: 'Visible', hrd: 'HRD code', category: 'Category', time: 'Hours', chapters: 'Chapters', enrollments: 'Enrolled', views: 'Views', regDate: 'Created' },
     edit: { title: 'Edit course', basic: 'Basics', text: 'Intro · audience · goals', meta: 'Category · keywords', readonly: 'Read-only (URL, price and terms are managed elsewhere)', terms: 'Terms', name: 'Course title', useYN: 'Visible', category1: 'Category 1', category2: 'Category 2', keyword: (n: number) => `Keyword ${n}`, intro: 'Introduction', eduTarget: 'Audience', eduGoal: 'Learning goals', contentsTime: 'Hours', chapters: 'View chapters', hideWarn: 'Setting UseYN=N hides the course on the site immediately (enrolled learners can keep studying).' },

@@ -250,6 +250,10 @@ test('공지 첨부: original file name, counted view', async ({ page, checks, d
 
 ## Known limitations and gotchas
 
+- **Closing a tab drops keepalive requests.** With the browser-wide request blocking on, Playwright loses most `fetch(…, { keepalive: true })` /
+  `sendBeacon` calls a closing page sends (2 of 8 PlayLock releases arrived). Navigate the tab away first (same `pagehide` path a real
+  close takes), then close it — see `e2e/player/` for the pattern.
+
 - **Single session (LoginIng):** logging in as the same learner elsewhere (another test, a curl) ends the earlier session; the
   next poll/refresh of the old page answers OTHER_SESSION. Run one browser per learner at a time.
 - **PlayLock (90 s):** a player window that was not closed via pagehide keeps the lock; call `clearPlayLock(id)` before
