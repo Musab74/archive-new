@@ -52,12 +52,14 @@ export function RubyWidget() {
     window.addEventListener(RUBY_OPEN_EVENT, onOpen);
     return () => window.removeEventListener(RUBY_OPEN_EVENT, onOpen);
   }, []);
-  // ruby-widget.js: a click outside the panel closes it
+  // ruby-widget.js: a click outside the panel closes it. The listener is attached after the current event has finished: when
+  // 러비 is opened from outside (코비's 「우측 하단 러비」 hint dispatches ruby:open), React runs this effect while that same click
+  // is still bubbling, and a listener added right away would see it reach document and close the panel at once.
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => { if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener('click', onDoc);
-    return () => document.removeEventListener('click', onDoc);
+    const t = window.setTimeout(() => document.addEventListener('click', onDoc), 0);
+    return () => { window.clearTimeout(t); document.removeEventListener('click', onDoc); };
   }, [open]);
 
   const ask = async (text: string) => {

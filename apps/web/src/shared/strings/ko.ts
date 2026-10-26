@@ -314,7 +314,7 @@ export const home = {
       phone: '1811-9530',
       phoneHref: 'tel:18119530',
       columns: [
-        { title: '안내정책', links: [{ label: '훈련제도 안내', to: '/about' }, { label: '학습 유의사항', to: '/support/guide#notes' }, { label: '부정행위방지정책', to: '/support/guide#cheating' }] },
+        { title: '안내정책', links: [{ label: '훈련제도 안내', to: '/about' }, { label: '학습 유의사항', to: '/support/cheating?tab=guide' }, { label: '부정행위방지정책', to: '/support/cheating?tab=policy' }] },
         { title: '소통지원', links: [{ label: '공지사항', to: '/support/notice' }, { label: '자주 묻는 질문', to: '/support/faq' }, { label: '1:1 문의', to: '/support/counsel' }] },
       ],
     },
