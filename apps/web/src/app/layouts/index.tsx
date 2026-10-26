@@ -62,7 +62,7 @@ const myNav = [
 /** 나의 학습실: side navigation + content. */
 export function MyRoomLayout() {
   return (
-    <div className={styles.shell}>
+    <div className={`${styles.shell} ${styles.roomShell}`}>
       <Header />
       <main id="main" className={styles.main} tabIndex={-1}>
         <div className={styles.room}>
