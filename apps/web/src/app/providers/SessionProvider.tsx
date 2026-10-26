@@ -15,6 +15,15 @@ import { useToast } from './ToastProvider';
 
 type Interrupt = null | 'idle-warn' | 'idle-logout' | 'kick' | 'expired';
 
+const NO_FLAGS: LearnerSession['flags'] = { termsPending: false, mustChangePassword: false };
+/**
+ * GET /auth/me answers from the access token and carries no `flags` (필수동의 / 임시 비밀번호); the refresh payload that ran just
+ * before does. Keep those flags instead of replacing the user with a flag-less one (pages read user.flags).
+ */
+export function withSessionFlags(me: Omit<LearnerSession, 'flags'> & { flags?: LearnerSession['flags'] }, prev: LearnerSession | null): LearnerSession {
+  return { ...me, flags: me.flags ?? (prev && prev.id === me.id ? prev.flags : undefined) ?? NO_FLAGS };
+}
+
 /**
  * Holds the learner session (access token in memory, refresh cookie on the API origin).
  * - boot: silent POST /auth/refresh to restore a session
@@ -33,8 +42,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async (reason: 'user' | 'idle' | 'kick' | 'expired' = 'user') => {
     try { if (tokenStore.get()) await authApi.logout(); } catch { /* cookie may already be gone */ }
+    // member/logout.php sends the learner to the main page. Leave the current page first (committed synchronously): clearing the
+    // session while still on a protected page would let RequireAuth turn the logout into /auth/login?next=<that page>.
+    if (reason === 'user') await navigate('/', { flushSync: true });
     clearLocal();
-    if (reason === 'user') { toast(copy.session.logoutDone, { tone: 'ok' }); navigate('/'); }
+    if (reason === 'user') toast(copy.session.logoutDone, { tone: 'ok' });
     if (reason === 'idle') setInterrupt('idle-logout');
     if (reason === 'kick') setInterrupt('kick');
     if (reason === 'expired') setInterrupt('expired');
@@ -46,7 +58,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     (async () => {
       const ok = await refreshAccessToken();
       if (!alive) return;
-      if (ok) { try { const me = await authApi.me(); if (alive) { setUser(me); setPhase('authed'); return; } } catch { /* fallthrough */ } }
+      if (ok) { try { const me = await authApi.me(); if (alive) { setUser((prev) => withSessionFlags(me, prev)); setPhase('authed'); return; } } catch { /* fallthrough */ } }
       if (alive) setPhase(ok ? 'authed' : 'guest');
     })();
     return () => { alive = false; };
@@ -83,11 +95,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     const ok = await refreshAccessToken();
-    if (ok) { try { setUser(await authApi.me()); setPhase('authed'); } catch { /* keep */ } }
+    if (ok) { try { const me = await authApi.me(); setUser((prev) => withSessionFlags(me, prev)); setPhase('authed'); } catch { /* keep */ } }
     return ok;
   }, []);
 
-  const patchUser = useCallback((patch: Partial<LearnerSession>) => setUser((u) => (u ? { ...u, ...patch, flags: { ...u.flags, ...(patch.flags ?? {}) } } : u)), []);
+  const patchUser = useCallback((patch: Partial<LearnerSession>) => setUser((u) => (u ? { ...u, ...patch, flags: { ...NO_FLAGS, ...u.flags, ...(patch.flags ?? {}) } } : u)), []);
 
   const value = useMemo<SessionState>(() => ({ phase, user, roles: rolesOf(user), isAuthed: phase === 'authed' && !!user, login, logout, refresh, patchUser }), [phase, user, login, logout, refresh, patchUser]);
 

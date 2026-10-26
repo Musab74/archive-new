@@ -36,7 +36,9 @@ export function signupFormError(f: Record<Field, string>, idOk: boolean, recomOk
 export default function SignupInfoPage() {
   const navigate = useNavigate();
   const i = copy.signup.info;
-  const consent = readConsent();
+  // Read once: the successful signup clears the stored consent before moving on to the 가입 완료 step, and a re-read would send the
+  // new member back to the terms step instead.
+  const [consent] = useState(readConsent);
   useEffect(() => { if (!consent || !requiredAgreed(consent)) navigate('/auth/signup/terms', { replace: true }); }, [consent, navigate]);
   const [form, setForm] = useState<Record<Field, string>>({ name: '', mobile: '', id: '', password: '', confirm: '', email: '', recomId: '' });
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({});
@@ -104,7 +106,7 @@ export default function SignupInfoPage() {
         </div>
         <FormField label={i.email} required htmlFor="su-email" error={errors.email}><Input id="su-email" type="email" value={form.email} onChange={set('email')} autoComplete="email" maxLength={100} invalid={!!errors.email} /></FormField>
         <FormField label={i.recomId} optional htmlFor="su-recom" error={errors.recomId} help={recomState?.message}
-          action={<MiniButton onClick={() => { if (!form.recomId.trim()) setErrors((x) => ({ ...x, recomId: '추천인 ID를 입력하세요.' })); else recomCheck.mutate(); }} disabled={recomCheck.isPending}>{i.recomCheck}</MiniButton>}>
+          action={<MiniButton onClick={() => { if (!form.recomId.trim()) setErrors((x) => ({ ...x, recomId: '추천인 ID를 입력하세요.' })); else { setErrors((x) => ({ ...x, recomId: undefined })); recomCheck.mutate(); } }} disabled={recomCheck.isPending}>{i.recomCheck}</MiniButton>}>
           <Input id="su-recom" value={form.recomId} onChange={set('recomId')} maxLength={50} invalid={!!errors.recomId || recomState?.ok === false} />
         </FormField>
         <FormField label={i.company} optional htmlFor="su-company"

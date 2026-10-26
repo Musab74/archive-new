@@ -39,7 +39,7 @@ export default function FirstTermsPage() {
   const accept = useMutation({
     mutationFn: () => membersApi.acceptTerms({ sending: state.sending, marketing: marketingCode(state.marketingEmail, state.marketingSms) }),
     onSuccess: async () => {
-      patchUser({ flags: { termsPending: false, mustChangePassword: user?.flags.mustChangePassword ?? false } });
+      patchUser({ flags: { termsPending: false, mustChangePassword: user?.flags?.mustChangePassword ?? false } });
       await continueAfterStep(navigate, user?.id, next);
     },
     onError: (e) => setError(isAppError(e) ? e.message : errorCopy.network),

@@ -42,7 +42,7 @@ export default function PasswordChangePage() {
   const change = useMutation({
     mutationFn: () => authApi.changePassword({ currentPassword: form.current, newPassword: form.pw }),
     onSuccess: async () => {
-      patchUser({ flags: { termsPending: user?.flags.termsPending ?? false, mustChangePassword: false } });
+      patchUser({ flags: { termsPending: user?.flags?.termsPending ?? false, mustChangePassword: false } });
       toast(c.done, { tone: 'ok' });
       await continueAfterStep(navigate, user?.id, next);
     },
@@ -61,12 +61,12 @@ export default function PasswordChangePage() {
       <div className="page-heading"><div className="crumb">{c.crumb}</div><h1>{c.title}</h1><p>{c.lead}</p></div>
       <section className={styles.section}>
         <form className={`${styles.card} ${styles.single}`} onSubmit={onSubmit} noValidate>
-          <FormField label={c.current} required htmlFor="pc-cur" help={user?.flags.mustChangePassword ? c.currentHelp : undefined}><Input id="pc-cur" type="password" value={form.current} onChange={(e) => setForm((f) => ({ ...f, current: e.target.value }))} autoComplete="current-password" maxLength={200} /></FormField>
+          <FormField label={c.current} required htmlFor="pc-cur" help={user?.flags?.mustChangePassword ? c.currentHelp : undefined}><Input id="pc-cur" type="password" value={form.current} onChange={(e) => setForm((f) => ({ ...f, current: e.target.value }))} autoComplete="current-password" maxLength={200} /></FormField>
           <FormField label={c.newPassword} required htmlFor="pc-pw" help={copy.signup.info.passwordHelp}><Input id="pc-pw" type="password" value={form.pw} onChange={(e) => setForm((f) => ({ ...f, pw: e.target.value }))} autoComplete="new-password" maxLength={100} /></FormField>
           <FormField label={c.newPasswordConfirm} required htmlFor="pc-pw2"><Input id="pc-pw2" type="password" value={form.pw2} onChange={(e) => setForm((f) => ({ ...f, pw2: e.target.value }))} autoComplete="new-password" maxLength={100} /></FormField>
           <FormMessage>{error}</FormMessage>
           <Button type="submit" square loading={change.isPending}>{c.submit}</Button>
-          {user?.flags.mustChangePassword ? <><Button variant="secondary" square onClick={() => void later()}>{c.later}</Button><p className={styles.help}>{c.laterNote}</p></> : null}
+          {user?.flags?.mustChangePassword ? <><Button variant="secondary" square onClick={() => void later()}>{c.later}</Button><p className={styles.help}>{c.laterNote}</p></> : null}
           <div className={styles.note}>{c.note}</div>
         </form>
       </section>

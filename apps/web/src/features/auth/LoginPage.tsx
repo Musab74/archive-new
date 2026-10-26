@@ -15,11 +15,15 @@ const REMEMBER_KEY = 'auth.rememberId.v1';
 const MOBILE_AGENT = /(iPod|iPhone|Android|BlackBerry|SymbianOS|SCH-M\d+|Opera Mini|Windows CE|Nokia|SonyEricsson|webOS|PalmOS)/;
 const readRemembered = () => { try { return localStorage.getItem(REMEMBER_KEY) ?? ''; } catch { return ''; } };
 
+/**
+ * Refused logins show the login_ok.php alert the API answers ("아이디 또는 비밀번호를 잘못 입력했습니다.", the 휴면 안내,
+ * "탈퇴한 회원입니다."); the local copy is only used when the response carried no message.
+ */
 function messageFor(code: string, fallback: string): string {
   switch (code) {
-    case 'INVALID_CREDENTIALS': return copy.login.error;
-    case 'DORMANT': return copy.login.dormant;
-    case 'WITHDRAWN': return copy.login.withdrawn;
+    case 'INVALID_CREDENTIALS': return fallback || copy.login.error;
+    case 'DORMANT': return fallback || copy.login.dormant;
+    case 'WITHDRAWN': return fallback || copy.login.withdrawn;
     case 'OTHER_SESSION': return copy.login.otherSession;
     case 'WRITE_DISABLED': return copy.login.writeDisabled;
     case 'CONFLICT': return copy.login.tooMany;
