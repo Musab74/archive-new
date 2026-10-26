@@ -7,3 +7,7 @@ coverage/
 **/.env.*
 !**/.env.example
 !apps/web/.env.production
+# Playwright e2e (outputs normally go to the run folder; these catch a run without E2E_RUN_DIR outputs)
+apps/web/test-results/
+apps/web/playwright-report/
+apps/web/blob-report/

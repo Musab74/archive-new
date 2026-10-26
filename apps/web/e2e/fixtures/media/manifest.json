@@ -1,0 +1,25 @@
+{
+  "_comment": "Installed by e2e/stack.mjs (up / reseed): contents/ → <run>/state/contents (served at /contents/, = HLS_CONTENTS_ROOT), upload/ → <run>/state/upload (served at /upload/, = HRDE_UPLOAD_DIR). 'copies' reuses the one committed 90 s MP4 for every lesson path the seed references.",
+  "copies": [
+    {
+      "from": "lesson.mp4",
+      "to": [
+        "contents/D00001/01.mp4",
+        "contents/D00001/02.mp4",
+        "contents/D00002/01.mp4",
+        "contents/E2E/X01/01.mp4",
+        "contents/E2E/X01/02.mp4",
+        "contents/E2E/X01/03.mp4",
+        "contents/E2E/X01/04.mp4",
+        "contents/E2E/Z01/01.mp4",
+        "contents/E2E/Z01/02.mp4",
+        "contents/E2E/Y01/01.mp4",
+        "contents/E2E/R01/01.mp4",
+        "contents/E2E/X02/01.mp4",
+        "contents/E2E/H01/001/01/video/01.mp4",
+        "contents/E2E/H01/001/02/video/01.mp4"
+      ]
+    }
+  ],
+  "uploadFolders": ["Course", "Notice", "StudyPDS", "Counsel", "Archiving", "upload_popup", "webedit"]
+}

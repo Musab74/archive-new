@@ -29,5 +29,6 @@ export default defineConfig({
     },
   },
   // testTimeout: the parity pages render large legacy tables; under a full parallel run jsdom needs more than the 5 s default.
-  test: { environment: 'jsdom', globals: true, setupFiles: ['./src/test/setup.ts'], testTimeout: 20_000 },
+  // include: only src — the Playwright specs under e2e/ (*.spec.ts) run with `npm run test:e2e`, never under vitest.
+  test: { environment: 'jsdom', globals: true, setupFiles: ['./src/test/setup.ts'], testTimeout: 20_000, include: ['src/**/*.{test,spec}.{ts,tsx}'] },
 });
