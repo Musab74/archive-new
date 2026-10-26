@@ -16,19 +16,25 @@ const nav = [
   { to: '/manager/reports', label: mgr.nav.reports },
 ];
 
+/** sections/manager-company-filter-ui.php: "사업장 전체 / 사업장" select, shown only for managers with 2+ companies. */
 function CompanySelector() {
-  const { companies, companyCode, setCompanyCode, loading, error, company } = useManager();
+  const { companies, companyCode, setCompanyCode, loading, error, company, multiCompany } = useManager();
+  if (error) return <div className={styles.company}><small>{mgr.company.none}</small></div>;
+  if (!loading && !multiCompany) {
+    const only = companies[0];
+    return only ? <div className={styles.company}><label>{mgr.company.label}</label><b>{only.companyName}</b><small>{only.companyCode} · {mgr.company.trainees(only.trainees)}</small></div> : null;
+  }
   return (
     <div className={styles.company}>
       <label htmlFor="mgr-company">{mgr.company.label}</label>
-      <AppSelect id="mgr-company" value={companyCode} onValueChange={setCompanyCode} disabled={!!error} loading={loading} icon="building"
-        options={[{ value: '', label: loading ? '불러오는 중…' : mgr.company.all }, ...companies.map((c) => ({ value: c.companyCode, label: c.companyName ?? c.companyCode }))]} />
-      <small>{error ? mgr.company.none : company ? `${company.companyCode} · ${mgr.company.trainees(company.trainees)}` : companies.length ? `${companies.length}개 기업 · 전체 합계` : loading ? '' : mgr.company.none}</small>
+      <AppSelect id="mgr-company" value={companyCode} onValueChange={setCompanyCode} loading={loading} icon="building"
+        options={[{ value: '', label: loading ? '불러오는 중…' : mgr.company.all }, ...companies.map((c) => ({ value: c.companyCode, label: c.companyName }))]} />
+      <small>{company ? `${company.companyCode} · ${mgr.company.trainees(company.trainees)}${company.primary ? ` · ${mgr.company.primary}` : ''}` : companies.length ? `${companies.length}개 기업 · 전체 합계` : ''}</small>
     </div>
   );
 }
 
-/** 기업 교육담당자 shell (AR-21): public header/footer + side navigation with the company selector. */
+/** 기업 교육담당자 shell (AR-21): public header/footer + side navigation with the 사업장 selector. */
 export default function ManagerShell() {
   return (
     <ManagerProvider>
