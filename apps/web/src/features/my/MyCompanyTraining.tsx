@@ -8,6 +8,7 @@ import { Button } from '../../shared/ui/Button';
 import { Modal, Dialog } from '../../shared/ui/Modal';
 import { FormField, Input, Textarea } from '../../shared/ui/Form';
 import { StateBlock } from '../../shared/ui/StateBlock';
+import { LegacyHtml } from '../../shared/ui/LegacyHtml';
 import { Skeleton } from '../../shared/ui/Skeleton';
 import { my as copy } from '../../shared/strings/ko';
 import { cx } from '../../shared/utils/format';
@@ -16,6 +17,8 @@ const c = copy.company;
 const a = c.archive;
 const EXT = ['mp4', 'vod', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'hwp'];
 const MAX = 52_428_800;
+/** strcut_utf8($Title, 50): 47 characters + "..." when longer than 50; empty → "-". */
+const cut = (t: string) => (!t ? '-' : [...t].length > 50 ? `${[...t].slice(0, 47).join('')}...` : t);
 
 /**
  * AR-15 기업자체교육 = the old "기업자체교육(아카이빙)" tab (tab-company.php): the learner's own Archiving requests (list, register with an
@@ -54,9 +57,9 @@ export default function MyCompanyTraining() {
             <tbody>
               {list.data.items.map((r, i) => (
                 <tr key={r.idx}>
-                  <td className={styles.num}>{list.data.items.length - i}</td>
-                  <td><button type="button" className="text-link" onClick={() => setDetailIdx(r.idx)}>{r.title.length > 50 ? `${r.title.slice(0, 50)}…` : r.title}</button></td>
-                  <td>{r.regDate}</td>
+                  <td className={styles.num}>{i + 1}</td>
+                  <td><button type="button" className="text-link" onClick={() => setDetailIdx(r.idx)}>{cut(r.title)}</button></td>
+                  <td>{r.regDate || '-'}</td>
                   <td>{r.fileType}</td>
                   <td><span className={cx(styles.pill, r.status === 'B' ? styles.pillOk : styles.pillWarn)}>{r.statusText}</span></td>
                 </tr>
@@ -75,7 +78,7 @@ export default function MyCompanyTraining() {
 
       <RegisterModal open={openForm} uploadReady={!!list.data?.uploadReady} onClose={() => setOpenForm(false)} onDone={() => { setOpenForm(false); toast(a.done, { tone: 'ok' }); void qc.invalidateQueries({ queryKey: ['my', 'archiving'] }); }} />
       <Modal open={detailIdx !== null} onClose={() => setDetailIdx(null)} title={a.detailTitle} actions={<Button square variant="secondary" onClick={() => setDetailIdx(null)}>{a.close}</Button>}>
-        {detail.isPending ? <Skeleton lines={4} /> : detail.isError ? <StateBlock code="NOT_FOUND" hideActions /> : (
+        {detail.isPending ? <Skeleton lines={4} /> : detail.isError ? <p role="alert" className={styles.note}>{isAppError(detail.error) && detail.error.status === 404 ? a.loadFail : a.loadError}</p> : (
           <div className={styles.formGrid}>
             <dl className={styles.kv}>
               <div><dt>{a.form.title}</dt><dd>{detail.data.title}</dd></div>
@@ -83,11 +86,9 @@ export default function MyCompanyTraining() {
               <div><dt>{a.cols.status}</dt><dd>{detail.data.statusText}</dd></div>
             </dl>
             <p style={{ whiteSpace: 'pre-wrap', margin: 0, fontSize: 14 }}>{detail.data.content}</p>
-            {detail.data.hasFile ? (detail.data.canDownload
-              ? <div><Button size="sm" square variant="secondary" onClick={() => void myRoomApi.archivingDownload(detail.data.idx, detail.data.fileName ?? 'file').catch((e) => toast(isAppError(e) ? e.message : a.downloadWait, { tone: 'danger' }))}>{a.download} · {detail.data.fileName}</Button></div>
-              : <p className={styles.note}>{a.downloadWait}</p>) : null}
-            <h3 style={{ fontSize: 14, margin: 0 }}>{a.answerTitle}</h3>
-            {detail.data.hasAnswer ? <><p className={styles.note}>{detail.data.answerName} · {detail.data.answerDate}</p><p style={{ whiteSpace: 'pre-wrap', margin: 0, fontSize: 14 }}>{detail.data.answerContent.replace(/<[^>]+>/g, '')}</p></> : <p className={styles.note}>{a.answerWait}</p>}
+            {detail.data.canDownload ? <div><Button size="sm" square variant="secondary" onClick={() => void myRoomApi.archivingDownload(detail.data.idx, detail.data.fileName ?? 'file').catch((e) => toast(isAppError(e) ? e.message : a.loadError, { tone: 'danger' }))}>{a.download} · {detail.data.fileName}</Button></div> : null}
+            {detail.data.status === 'A' ? <p className={styles.note}>{a.downloadWait}</p> : null}
+            {detail.data.hasAnswer ? <><h3 style={{ fontSize: 14, margin: 0 }}>{a.answerTitle}</h3><p className={styles.note}>{detail.data.answerName} · {detail.data.answerDate}</p><LegacyHtml html={detail.data.answerContent} /></> : detail.data.status === 'A' ? <p className={styles.note}>{a.answerWait}</p> : null}
           </div>
         )}
       </Modal>
@@ -124,8 +125,8 @@ function RegisterModal({ open, uploadReady, onClose, onDone }: { open: boolean; 
     <>
       <Modal open={open && !confirm} onClose={onClose} title={a.formTitle} size="lg">
         <form className={styles.formGrid} onSubmit={submit} noValidate>
-          <FormField label={a.form.title} required htmlFor="arc-title"><Input id="arc-title" value={title} maxLength={250} onChange={(e) => setTitle(e.target.value)} /></FormField>
-          <FormField label={a.form.content} required htmlFor="arc-content"><Textarea id="arc-content" value={content} onChange={(e) => setContent(e.target.value)} /></FormField>
+          <FormField label={a.form.title} required htmlFor="arc-title"><Input id="arc-title" value={title} maxLength={250} placeholder={a.placeholderTitle} onChange={(e) => setTitle(e.target.value)} /></FormField>
+          <FormField label={a.form.content} required htmlFor="arc-content"><Textarea id="arc-content" value={content} placeholder={a.placeholderContent} onChange={(e) => setContent(e.target.value)} /></FormField>
           <FormField label={a.form.file} required htmlFor="arc-file" help={uploadReady ? a.fileTypes : a.uploadOff}>
             <input id="arc-file" ref={fileRef} type="file" accept=".mp4,.vod,.pdf,.doc,.docx,.xls,.xlsx,.hwp" onChange={(e) => setFile(e.target.files?.[0] ?? null)} disabled={!uploadReady} />
           </FormField>

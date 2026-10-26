@@ -235,6 +235,12 @@ export const CourseHistorySchema = z.object({
   summary: z.object({ totalCourses: num0, completed: num0, inProgress: num0, totalMinutes: num0, formatted: z.string().default('') }),
 });
 export type CourseHistory = z.infer<typeof CourseHistorySchema>;
+/** GET /my/courses/tables (lecture_status_tables.php). */
+export const CourseTableSchema = z.object({
+  serviceType: z.string(), typeName: z.string().default(''), page: z.number(), size: z.number(), total: z.number(),
+  items: z.array(z.object({ no: z.number(), lectureCode: z.string(), studySeq: z.number(), studyLectureCode: z.string().optional(), name: ns, contentsTime: z.string().default(''), seconds: num0, studyTime: z.string(), progress: num0, startDate: ns, recentDate: ns, resumeChapterSeq: z.number().nullable().optional(), certificate: z.object({ eligible: z.boolean() }) })),
+});
+export type CourseTable = z.infer<typeof CourseTableSchema>;
 /** GET /my/level (api/my/level.php). */
 export const MyLevelSchema = z.object({
   level: z.number(), levelName: z.string(), totalXP: num0, currentLevelMin: num0, currentLevelMax: z.number().nullable(), nextLevelXP: z.number().nullable(), xpToNextLevel: num0,

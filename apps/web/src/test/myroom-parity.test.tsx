@@ -12,6 +12,8 @@ import MySaved from '../features/my/MySaved';
 import MyCompanyTraining from '../features/my/MyCompanyTraining';
 import MyRanking from '../features/my/MyRanking';
 import MyCertificates from '../features/my/MyCertificates';
+import MyCourseTables from '../features/my/MyCourseTables';
+import CorrectionNoticePopup from '../features/my/CorrectionNoticePopup';
 import { resumeLink, usageOf } from '../features/my/queries';
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -43,6 +45,9 @@ function apiMock() {
     const url = String(input).replace(/^.*\/v1/, ''); const method = init?.method ?? 'GET';
     let body: unknown; try { body = typeof init?.body === 'string' ? JSON.parse(init.body) : init?.body; } catch { body = init?.body; }
     calls.push({ m: method, url, body });
+    if (url.startsWith('/my/courses/tables')) { const t = new URL(`http://x${url}`).searchParams.get('serviceType'); return json({ serviceType: t, typeName: '', page: 1, size: 10, total: t === 'X' ? 1 : 0, items: t === 'X' ? [{ no: 1, lectureCode: 'D00001', studySeq: 5, name: '리더십', contentsTime: '60분', seconds: 90061, studyTime: '01:01:01', progress: 100, startDate: '2026-10-01 09:00:00', recentDate: '2026-10-25 10:00:00', resumeChapterSeq: 1002, certificate: { eligible: true } }] : [] }); }
+    if (url.startsWith('/my/notices/ack')) return json({ ok: true, updated: 1 });
+    if (url.startsWith('/my/notices')) return json({ items: [{ id: 'user01', totalDeltaSec: -5400, formatted: '01시간 30분', delta: { hours: -2, minutes: -30, label: '-2시간 -30분' }, appliedAt: '2026-10-20 10:00:00', acknowledgedAt: null, acknowledged: false }], corrections: [] });
     if (url.startsWith('/my/courses')) return json(courses);
     if (url.startsWith('/my/saved/remove')) return json({ ok: true, removed: 1 });
     if (url.startsWith('/my/saved')) return json(saved);
@@ -134,6 +139,21 @@ describe('my-room parity pages', () => {
     expect(await screen.findByText('abc***')).toBeInTheDocument();
     expect(within(screen.getByText('zzz***').closest('tr')!).getAllByRole('cell')[0]).toHaveTextContent('11'); // around-me shows the real position, not 1..7
     expect(await screen.findByText('3/10')).toBeInTheDocument();
+  });
+
+  it('상세보기 tables: X / Z / Y order, H:i:s, 이수증 only at 100 %, PHP empty text', async () => {
+    mount(<MyCourseTables />, '/my');
+    expect(await screen.findByText('01:01:01')).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual(['이러닝', '마이크로러닝', '숏폼']);
+    expect(screen.getAllByText('학습이력이 존재하지 않습니다.')).toHaveLength(2);
+    expect(screen.getByRole('button', { name: '이수증' })).toBeInTheDocument();
+  });
+
+  it('학습시간 재계산 안내 popup: PHP copy with the signed delta, 확인했습니다 acknowledges', async () => {
+    mount(<CorrectionNoticePopup />, '/my');
+    expect(await screen.findByText('회원님의 누적 학습시간이 약 -2시간 -30분 만큼 조정되었습니다.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '확인했습니다' }));
+    await waitFor(() => expect(calls.some((c) => c.m === 'POST' && c.url === '/my/notices/ack')).toBe(true));
   });
 
   it('수료증 list: refund rows wait until LectureEnd + 7 days, others print', async () => {

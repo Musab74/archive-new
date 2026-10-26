@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { api, API_BASE, AppError, refreshAccessToken } from '../client';
 import { tokenStore } from '../../auth/tokenStore';
 import {
-  ArchivingDetailSchema, ArchivingListSchema, CourseHistorySchema, MyEventsSchema, MyInsightSchema, MyLevelSchema, MyReportSchema,
+  ArchivingDetailSchema, ArchivingListSchema, CourseHistorySchema, CourseTableSchema, type CourseTable, MyEventsSchema, MyInsightSchema, MyLevelSchema, MyReportSchema,
   type ArchivingDetail, type ArchivingList, type CourseHistory, type MyEvents, type MyInsight, type MyLevel, type MyReportData,
   BadgesSchema, CertificateListItemSchema, CertificateSchema, CompanySchema, CompletionRecordSchema, CorrectionNoticesSchema, CounselSchema, DashboardSchema, HistoryRecordSchema, LearnerProfileSchema, MyStatusSchema, OkSchema, pageOf, RankingSchema, RecordChaptersSchema, SavedItemSchema, WeeklySchema,
   type Badges, type Certificate, type CertificateListItem, type Company, type CompletionRecord, type CorrectionNotices, type Counsel, type Dashboard, type HistoryRecord, type LearnerProfile, type MyStatus, type Ranking, type RecordChapters, type SavedItem, type Weekly,
@@ -70,6 +70,7 @@ export const myRoomApi = {
   certificates: (signal?: AbortSignal) => api.get<CertificateListItem[]>('/my/certificates', { schema: z.array(CertificateListItemSchema), signal }),
   certificate: (studySeq: number, signal?: AbortSignal) => api.get<Certificate>(`/my/certificates/${studySeq}`, { schema: CertificateSchema, signal }),
   courses: (q: CourseHistoryQuery, signal?: AbortSignal) => api.get<CourseHistory>('/my/courses', { query: q as Q, schema: CourseHistorySchema, signal }),
+  courseTable: (serviceType: 'X' | 'Y' | 'Z', page: number, signal?: AbortSignal) => api.get<CourseTable>('/my/courses/tables', { query: { serviceType, page }, schema: CourseTableSchema, signal }),
   level: (signal?: AbortSignal) => api.get<MyLevel>('/my/level', { schema: MyLevelSchema, signal }),
   insight: (signal?: AbortSignal) => api.get<MyInsight>('/my/insight', { schema: MyInsightSchema, signal }),
   report: (studySeq?: number, signal?: AbortSignal) => api.get<MyReportData>('/my/report', { query: { studySeq }, schema: MyReportSchema, signal }),

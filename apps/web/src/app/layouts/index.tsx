@@ -10,6 +10,8 @@ import { cx } from '../../shared/utils/format';
 import { Skeleton } from '../../shared/ui/Skeleton';
 import { HeaderChromeContext } from '../../shared/ui/headerChrome';
 import { SiteVisitCounter } from '../../features/admin/pages/site-cms/SiteVisitCounter';
+/** sections/correction-notice-popup.php ran on every 나의학습실 page: lazy so other layouts do not load it. */
+const CorrectionNoticePopup = lazy(() => import('../../features/my/CorrectionNoticePopup'));
 
 const ManagerShell = lazy(() => import('../../features/manager/ManagerShell'));
 const AdminShell = lazy(() => import('../../features/admin/pages/site/AdminShellParity'));
@@ -70,6 +72,7 @@ export function MyRoomLayout() {
             </nav>
           </aside>
           <div className={styles.roomMain}><PageTransition><Outlet /></PageTransition></div>
+          <Suspense fallback={null}><CorrectionNoticePopup /></Suspense>
         </div>
       </main>
       <Footer />

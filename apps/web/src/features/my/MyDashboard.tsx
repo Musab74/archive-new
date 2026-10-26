@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import styles from './My.module.css';
 import { myRoomApi } from '../../shared/api/endpoints/myroom';
 import { isAppError } from '../../shared/api/client';
@@ -8,7 +7,6 @@ import { useSession } from '../../shared/auth/useSession';
 import { useToast } from '../../app/providers/ToastProvider';
 import { Button } from '../../shared/ui/Button';
 import { Icon } from '../../shared/ui/Icon';
-import { Modal } from '../../shared/ui/Modal';
 import { ProgressRing } from '../../shared/ui/ProgressRing';
 import { MetricCard } from '../../shared/ui/MetricCard';
 import { StateBlock } from '../../shared/ui/StateBlock';
@@ -16,13 +14,16 @@ import { Skeleton } from '../../shared/ui/Skeleton';
 import { AxisPromo } from '../../shared/ui/AxisPromo';
 import { TypeLabel } from '../../shared/ui/Pill';
 import { my as copy, learnHome, contentType } from '../../shared/strings/ko';
-import { fmtDateTime, qk, todayLabel, usageOf, useDashboard, useEnrollments, useMyStatus } from './queries';
+import { fmtDateTime, todayLabel, usageOf, useDashboard, useEnrollments, useMyStatus } from './queries';
+import MyCourseTables from './MyCourseTables';
 import { hm } from '../../shared/player/time';
 import { ringProps } from '../home/LearningHome';
 import { cx } from '../../shared/utils/format';
 
 /** tab-status.php $formatMinutes: "{h}시간 {m}분", hours dropped when 0. */
 const minutesLabel = (m: number) => `${Math.floor(m / 60) > 0 ? `${Math.floor(m / 60)}시간 ` : ''}${m % 60}분`;
+/** study_time_utils.php carry-over format "%02d시간 %02d분". */
+const hhmm = (sec: number) => `${String(Math.floor(sec / 3600)).padStart(2, '0')}시간 ${String(Math.floor((sec % 3600) / 60)).padStart(2, '0')}분`;
 
 /**
  * AR-11 나의 학습실 홈 (no AI ZONE block — 00_적용안내.md §2): status ring, 상태(수료/수료증), 학습 리마인더, 학습 코멘트, 진단 카드,
@@ -30,14 +31,11 @@ const minutesLabel = (m: number) => `${Math.floor(m / 60) > 0 ? `${Math.floor(m 
  */
 export default function MyDashboard() {
   const { user } = useSession();
-  const qc = useQueryClient();
   const { toast } = useToast();
   const status = useMyStatus();
   const dashboard = useDashboard();
   const enrollments = useEnrollments();
-  const notices = useQuery({ queryKey: qk.notices, queryFn: ({ signal }) => myRoomApi.notices(signal) });
-  const [noticeClosed, setNoticeClosed] = useState(false);
-  const ack = useMutation({ mutationFn: () => myRoomApi.ackNotices(), onSettled: () => void qc.invalidateQueries({ queryKey: qk.notices }) });
+  const [tablesOpen, setTablesOpen] = useState(false);
   const usage = useMemo(() => usageOf(status.data, enrollments.data?.items), [status.data, enrollments.data]);
   const ring = ringProps(status.data, status.isError);
   const s = status.data;
@@ -45,12 +43,9 @@ export default function MyDashboard() {
   const c = copy.home;
   const sessionLost = [status, dashboard].some((q) => q.isError && isAppError(q.error) && q.error.isAuth);
   if (sessionLost) return <div className={styles.page}><StateBlock code="SESSION_EXPIRED" /></div>;
-  const pendingNotice = notices.data?.items.find((n) => !n.acknowledged) ?? null;
-  const closeNotice = () => { setNoticeClosed(true); ack.mutate(); };
   const counts = dashboard.data?.contentCounts;
   const typeCounts = dashboard.data?.countsByType ?? {};
   const inProgress = dashboard.data?.inProgress ?? [];
-  const recent = dashboard.data?.recent ?? [];
   const unrated = dashboard.data?.unrated ?? [];
   const asOf = status.dataUpdatedAt ? fmtDateTime(new Date(status.dataUpdatedAt).toISOString().replace('T', ' ')) : todayLabel();
   const printCertificate = async () => {
@@ -67,14 +62,6 @@ export default function MyDashboard() {
         <div className={styles.headAside}><span className={styles.note}>{c.asOf(asOf)}</span><Button variant="secondary" size="xs" square onClick={() => { void status.refetch(); void dashboard.refetch(); }}>{c.recheck}</Button></div>
       </div>
 
-      <Modal open={!!pendingNotice && !noticeClosed} onClose={closeNotice} title={c.correction.title} symbol="info" actions={<Button square onClick={closeNotice} loading={ack.isPending}>{c.correction.ack}</Button>}>
-        <p>{c.correction.lead}</p>
-        <p className={styles.alert} style={{ margin: '12px 0' }}><b>{c.correction.box(pendingNotice?.delta?.label ?? hm(Math.abs(pendingNotice?.totalDeltaSec ?? 0)))}</b></p>
-        <p className={styles.note}>{c.correction.rule}</p>
-        <p className={styles.note}>{c.correction.scope}</p>
-        {pendingNotice?.appliedAt ? <p className={styles.note}>{c.correction.appliedAt(pendingNotice.appliedAt)}</p> : null}
-        <p className={styles.note}>{c.correction.contact} <Link to="/my/notices">{c.noticeDetail}</Link></p>
-      </Modal>
 
       <div className={styles.statusRow}>
         <section className={cx(styles.card)} aria-label={refund ? c.statusRefund : c.statusGeneral}>
@@ -94,7 +81,7 @@ export default function MyDashboard() {
                     {s?.currentMinutes !== undefined ? (
                       <p className={styles.ringNote} title={s.carryoverSeconds ? c.carryTitle : undefined}>
                         <b>{c.newTime}</b> {c.newTimeValue(minutesLabel(s.currentMinutes))}
-                        {s.carryoverSeconds ? <><br />{c.carryLine(s.carryoverPeriodLabel || '1차 수강', hm(s.carryoverSeconds))}<br />{c.newLine(s.period?.label ?? '-', minutesLabel(s.currentMinutes))}</> : null}
+                        {s.carryoverSeconds ? <><br />{c.carryLine(s.carryoverPeriodLabel || '1차 수강', hhmm(s.carryoverSeconds))}<br />{c.newLine(s.latestPeriod ? `${s.latestPeriod.start} ~ ${s.latestPeriod.end}` : '-', minutesLabel(s.currentMinutes))}</> : null}
                       </p>
                     ) : null}
                   </>
@@ -139,12 +126,13 @@ export default function MyDashboard() {
       </div>
 
       <section className={styles.card} aria-labelledby="counts-h">
-        <div className={styles.cardHead}><h2 id="counts-h">{c.contentCounts}</h2>{counts ? <span className={styles.pill}>{c.contentCountsTotal(counts.heroTotal)}</span> : null}</div>
+        <div className={styles.cardHead}><h2 id="counts-h">{c.contentCounts}</h2><div className={styles.segRow}>{counts ? <span className={styles.pill}>{c.contentCountsTotal(counts.heroTotal)}</span> : null}<Button variant="secondary" size="xs" square onClick={() => setTablesOpen((v) => !v)} aria-expanded={tablesOpen}>{tablesOpen ? c.tablesClose : c.tablesOpen}</Button></div></div>
         {dashboard.isPending ? <Skeleton height={80} /> : dashboard.isError ? <StateBlock code="LIST_ERROR" onRetry={() => void dashboard.refetch()} /> : counts ? (
           <div className={styles.grid3}>
             {(['X', 'Y', 'Z'] as const).map((k) => <MetricCard key={k} compact title={contentType[k] ?? k} value={c.countUnit(counts[k])} caption={typeCounts[k] ? `${c.counts.inProgress} ${typeCounts[k].inProgress} · ${c.counts.completed} ${typeCounts[k].completed}` : undefined} />)}
           </div>
         ) : <p className={styles.note}>{c.recentEmptyBody}</p>}
+        {tablesOpen ? <div style={{ marginTop: 18 }}><MyCourseTables /></div> : null}
       </section>
 
       <section className={styles.card} aria-labelledby="recent-h">
@@ -170,17 +158,8 @@ export default function MyDashboard() {
               );
             })}
           </ul>
-        ) : recent.length === 0 ? (
-          <StateBlock code="EMPTY" symbol="spark" title={c.recentEmptyTitle} body={c.inProgressEmpty} actions={<Button square size="sm" to="/catalog">{learnHome.browse}</Button>} />
         ) : (
-          <ul className={styles.list}>
-            {recent.map((r) => (
-              <li key={`${r.studySeq}-${r.chapterSeq}-${r.progressIdx ?? ''}`} className={styles.item}>
-                <div className={styles.itemCopy}><span className={styles.cat}>{r.courseName}</span><span className={styles.itemTitle}>{r.title}</span><span className={styles.itemMeta}>{fmtDateTime(r.studiedAt)} · {Math.floor(r.progress)}% · {hm(r.studyTime)}</span></div>
-                <Button variant={r.progress >= 100 ? 'secondary' : 'primary'} square size="sm" to={`/learn/${r.studySeq}/${r.chapterSeq}?lectureCode=${encodeURIComponent(r.lectureCode)}`}>{r.progress >= 100 ? c.relearn : c.continueCta}</Button>
-              </li>
-            ))}
-          </ul>
+          <StateBlock code="EMPTY" symbol="spark" title={c.inProgressEmpty} body={c.recentEmptyBody} actions={<Button square size="sm" to="/catalog">{learnHome.browse}</Button>} />
         )}
         {unrated.length ? <div className={styles.alert} role="status" style={{ marginTop: 14 }}><Icon name="star" size={18} /><div><b>{c.unrated(unrated.length)}</b> {c.unratedBody}</div><Button variant="secondary" square size="xs" to={`/courses/${encodeURIComponent(unrated[0].lectureCode)}`}>{c.unratedCta}</Button></div> : null}
       </section>

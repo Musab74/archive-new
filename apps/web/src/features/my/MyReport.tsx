@@ -119,7 +119,7 @@ export default function MyReport() {
                 <MetricCard compact title={c.activity.week} value={act.week.formatted} caption={c.activity.weekNote(act.week.rangeLabel)} />
                 <MetricCard compact title={c.activity.avg} value={`${act.avgCourseProgress}%`} />
                 <MetricCard compact title={c.activity.rate} value={`${act.completionRate}%`} caption={c.activity.rateNote(act.completedCourses, act.coursesStudied)} />
-                <MetricCard compact title={c.activity.days} value={`${act.studyDays}일`} />
+                {refund && sum.percent !== null ? <MetricCard compact title={c.activity.goal} value={`${sum.percent}%`} caption={c.remainingNote} progress={sum.percent} /> : <MetricCard compact title={c.activity.days} value={`${act.studyDays}일`} />}
               </div>
               <div className={styles.grid2} style={{ marginTop: 18 }}>
                 <div>
@@ -130,7 +130,7 @@ export default function MyReport() {
                   <h3 style={{ fontSize: 15 }}>{c.doneWeekTitle}</h3>
                   {act.completedThisWeek.length === 0 ? <p className={styles.note}>{c.doneWeekEmpty}</p> : act.completedThisWeek.map((t) => <div key={t.lectureCode} className={styles.bar}><span>{t.name ?? t.lectureCode}</span></div>)}
                   <h3 style={{ fontSize: 15, marginTop: 14 }}>{c.donutTitle}</h3>
-                  <p className={styles.note}>{c.donut(act.donut.completed, act.donut.incomplete)}</p>
+                  <p className={styles.note}>{act.donut.total ? c.donut(act.donut.total, act.donut.completed, act.donut.incomplete) : c.donutEmpty}</p>
                 </div>
               </div>
               <h3 style={{ fontSize: 15, marginTop: 18 }}>{c.dailyTitle}</h3>

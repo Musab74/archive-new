@@ -64,7 +64,7 @@ export default function MyRanking() {
         </section>
       </div>
       <section className={styles.card} aria-labelledby="bd-h">
-        <div className={styles.cardHead}><h2 id="bd-h">{c.badgesTitle}</h2>{badges.data ? <span className={styles.pill}>{c.badgesSummary(badges.data.summary.achieved, badges.data.summary.total)}</span> : null}</div>
+        <div className={styles.cardHead}><h2 id="bd-h">{c.badgesTitle}</h2>{badges.data ? <span className={styles.pill}>{c.badgesGot(badges.data.summary.achieved, badges.data.summary.total)}</span> : null}</div>
         {badges.isPending ? <Skeleton height={160} /> : badges.isError ? <StateBlock code="LIST_ERROR" title={c.errorTitle} body={c.errorBody} onRetry={() => void badges.refetch()} /> : (
           <>
             {badges.data.stats ? <div className={styles.grid4} style={{ marginBottom: 16 }}>
@@ -81,7 +81,7 @@ export default function MyRanking() {
                     <div key={b.id} className={cx(styles.badge, !b.achieved && styles.badgeLocked)} aria-label={`${b.name} · ${b.achieved ? c.achieved : c.locked}`}>
                       <span className={styles.badgeIcon} aria-hidden="true">{b.icon || '🏅'}</span>
                       <b>{b.name}</b>
-                      <small>{b.achieved ? (b.achievedDate ? fmtDate(b.achievedDate) : c.achieved) : b.requirement ?? b.description}</small>
+                      <small title={b.description}>{b.achieved ? `${c.badgeDone}${b.achievedDate ? ` · ${fmtDate(b.achievedDate)}` : ''}` : `${Math.floor(b.progress)}% · ${b.requirement ?? b.description}`}</small>
                       {!b.achieved ? <div className={styles.badgeBar} aria-hidden="true"><span style={{ width: `${Math.min(100, b.progress)}%` }} /></div> : null}
                     </div>
                   ))}
