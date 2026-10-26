@@ -89,6 +89,8 @@ export const footer = {
   groups: [
     { title: '학습', links: [{ label: '콘텐츠 탐색', to: '/catalog' }, { label: 'AI ZONE', to: '/ai-zone' }, { label: '라이브·토론방', to: '/live' }, { label: '진단·로드맵', to: '/my/assessment' }] },
     { title: '고객지원', links: [{ label: '이용안내', to: '/support/guide' }, { label: '공지사항', to: '/support/notice' }, { label: '자주 묻는 질문', to: '/support/faq' }, { label: '1:1 문의', to: '/support/counsel' }, { label: '기업교육 상담', to: '/support/inquiry/new' }] },
+    // archive/include/footer.html footer_menu: 회사소개, 훈련제도 안내 (archive/introduce/*)
+    { title: '소개', links: [{ label: '훈련제도 안내', to: '/about' }, { label: '회사소개', to: '/about/company' }] },
   ],
   labels: { company: '', ceo: '대표', phone: '대표전화', fax: '팩스', email: '학습문의', companyNumber: '사업자등록번호', salesReport: '통신판매업신고', privacyManager: '개인정보보호책임자', address: '' },
   externalHint: '새 창에서 열림',
@@ -130,7 +132,8 @@ export const common = {
   skipToContent: '본문으로 건너뛰기',
 };
 
-export const contentType: Record<string, string> = { X: '이러닝', Y: '마이크로러닝', Z: '숏폼', W: '비환급', A: '패키지' };
+/** Course.ctype / ServiceType letters as the PHP site labels them (hrd_manager/course.php, archive main nav): X 이러닝 · Z 마이크로러닝 · Y 숏폼. */
+export const contentType: Record<string, string> = { X: '이러닝', Z: '마이크로러닝', Y: '숏폼', W: '비환급', A: '패키지', R: '라이브' };
 export const competencies = {
   common: { label: '공통역량', desc: '일의 기본을 탄탄하게' },
   job: { label: '직무역량', desc: '나의 분야를 더 깊게' },
@@ -187,6 +190,13 @@ export const aiZone = {
     empty: '조건에 맞는 추천을 찾지 못했습니다. 목표를 조금 더 구체적으로 적어 주세요.',
     error: '로드맵을 만들지 못했습니다. 잠시 후 다시 시도해 주세요.',
     note: '추천은 제공 콘텐츠 범위에서 생성되며, 수료·환급·자격과 관련된 판단에 사용하지 않습니다.',
+    pick: (t: string) => `${t} 선택`,
+    save: '찜한 콘텐츠에 담기',
+    saveNone: '저장할 과정을 선택해주세요',
+    saved: (n: number) => `선택한 ${n}개 과정이 찜한 콘텐츠에 담겼습니다.`,
+    savedNone: '선택한 과정은 이미 찜한 콘텐츠에 담겨 있습니다.',
+    saveFail: '찜한 콘텐츠에 담지 못했습니다. 잠시 후 다시 시도해 주세요.',
+    goSaved: '찜한 콘텐츠 보기',
   },
   academy: { title: '정규과정은 AINEX 교육원에서', desc: '별도 교육원의 AI 교육과정과\n운영 안내를 확인하세요.', cta: 'AINEX 교육원 바로가기' },
   states: {
@@ -237,7 +247,7 @@ export const home = {
     refund: { label: '환급형', title: '인정 수강시간을 관리하는\n기업 아카이브 학습', key: '인정 수강시간 15시간 이상', p1: '실제 수강한 시간을 누적하고, 훈련 종료 후 인정 수강시간을 기준으로 수료 여부를 확인합니다.', p2: '동일 과정 반복 수강과 참여기업 자체 제작 콘텐츠는 인정시간에 추가되지 않습니다.', link: '환급형 이용안내' },
     general: { label: '비환급형', title: '정해진 기간 동안\n필요한 만큼 자유롭게', key: '이용기간 중심의 자유학습', p1: '기업 또는 개인에게 제공된 이용기간과 콘텐츠 범위 안에서, 원하는 콘텐츠를 자유롭게 학습합니다.', p2: '남은 이용기간과 최근 학습기록을 확인하고, 멈춘 곳부터 다시 이어 학습합니다.', link: '비환급형 이용안내' },
   },
-  featured: { num: '02', title: '어떤 배움이 필요한가요?', lead: '공개된 대표 콘텐츠를 먼저 살펴보세요.', viewAll: '콘텐츠 전체 보기', tabs: [{ key: '', label: '전체' }, { key: 'X', label: '이러닝' }, { key: 'Y', label: '마이크로러닝' }, { key: 'Z', label: '숏폼' }], tabsAria: '대표 콘텐츠 유형', searchPlaceholder: '콘텐츠명·직무·관심 분야' },
+  featured: { num: '02', title: '어떤 배움이 필요한가요?', lead: '공개된 대표 콘텐츠를 먼저 살펴보세요.', viewAll: '콘텐츠 전체 보기', tabs: [{ key: '', label: '전체' }, { key: 'X', label: '이러닝' }, { key: 'Z', label: '마이크로러닝' }, { key: 'Y', label: '숏폼' }], tabsAria: '대표 콘텐츠 유형', searchPlaceholder: '콘텐츠명·직무·관심 분야' },
   browse: { num: '03', title: '역량과 분야로 찾는 배움', lead: '내가 하는 일에 맞춰 콘텐츠를 찾아보세요.', jobLabel: '직무역량 · 12개 분야' },
   journey: {
     label: '04_진단과 추천 학습',
@@ -304,7 +314,7 @@ export const home = {
       phone: '1811-9530',
       phoneHref: 'tel:18119530',
       columns: [
-        { title: '안내정책', links: [{ label: '훈련제도 안내', to: '/support/guide' }, { label: '학습 유의사항', to: '/support/guide#notes' }, { label: '부정행위방지정책', to: '/support/guide#cheating' }] },
+        { title: '안내정책', links: [{ label: '훈련제도 안내', to: '/about' }, { label: '학습 유의사항', to: '/support/guide#notes' }, { label: '부정행위방지정책', to: '/support/guide#cheating' }] },
         { title: '소통지원', links: [{ label: '공지사항', to: '/support/notice' }, { label: '자주 묻는 질문', to: '/support/faq' }, { label: '1:1 문의', to: '/support/counsel' }] },
       ],
     },
@@ -331,8 +341,9 @@ export const catalog = {
   type: '콘텐츠 유형',
   allTypes: '전체',
   sort: '콘텐츠 정렬',
-  sorts: [{ value: 'latest', label: '운영 편성순' }, { value: 'popular', label: '인기순' }, { value: 'rating', label: '평점순' }, { value: 'title', label: '제목순' }],
+  sorts: [{ value: 'latest', label: '운영 편성순' }, { value: 'popular', label: '조회순' }, { value: 'rating', label: '평점순' }, { value: 'title', label: '제목순' }],
   relevance: '검색 관련도순',
+  likedSort: '찜한 콘텐츠순',
   counting: '콘텐츠를 확인하고 있습니다.',
   count: (n: number) => `콘텐츠 ${n.toLocaleString('ko-KR')}개`,
   selected: '선택한 조건',
@@ -349,6 +360,14 @@ export const catalog = {
   detailView: (t: string) => `${t} 상세 보기`,
   like: '찜하기',
   unlike: '찜 해제',
+  states: {
+    guest: { kicker: '비로그인 진입', title: '공개 콘텐츠부터 둘러보세요.', body: '학습을 시작할 때 로그인 후 본인의 이용권한을 확인합니다.', action: '로그인' },
+    ended: { kicker: '기간 종료', title: '아카이브 이용기간이 종료되었습니다.', body: '본인 이용정보와 문의는 계속 확인할 수 있습니다.', action: '회원·이용정보' },
+    before: { kicker: '이용 시작 전', title: '아카이브 이용 시작 전입니다.', body: '이용기간이 시작되면 학습할 수 있습니다. 콘텐츠 정보는 미리 둘러볼 수 있습니다.', action: '회원·이용정보' },
+    accessError: { kicker: '이용정보 확인 실패', title: '이용정보를 확인하지 못했습니다.', body: '이용 가능한 콘텐츠를 확인한 뒤 목록을 표시합니다.', action: '이용정보 다시 확인' },
+    support: '고객지원',
+  },
+  publicNote: '공개로 제공되는 콘텐츠를 둘러보세요.',
 };
 
 export const content = {
@@ -386,6 +405,21 @@ export const content = {
   learnLoginBody: '공개된 소개와 승인된 미리보기만 제공하며, 원본 학습은 로그인 후 이용권한을 확인한 뒤 연결합니다.',
   keywords: '키워드',
   publicBadge: '공개',
+  meta2: { jobField: '직무분야', interest: '관심분야', ability: '역량', made: '제작', uploaded: '업로드' },
+  rateNeedsStudy: '학습 이력이 확인된 콘텐츠에서 평점을 등록할 수 있습니다.',
+  rateUpdate: '평점 수정',
+  myRating: (n: number) => `내가 남긴 평점 ${n}점`,
+  reviewsMore: '후기 더 보기',
+  learnChecking: '이용권한을 확인하고 있습니다.',
+  learnBlockedTitle: '지금은 이 콘텐츠를 학습할 수 없습니다.',
+  learnNoEnrollment: '이 과정에 대한 활성 수강 정보가 없습니다.',
+  learnPreTitle: '사전역량진단을 먼저 완료해주세요.',
+  learnPreBody: '학습을 시작하기 전에 이번 이용건의 사전역량진단을 진행해 주세요.',
+  learnPreCta: '사전역량진단',
+  learnFail: '이용권한을 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+  goProfile: '회원·이용정보',
+  goSupport: '고객지원',
+  singleVideo: '단일 영상',
 };
 
 export const support = {
@@ -717,6 +751,8 @@ export const learnHome = {
   remaining: (left: string) => `15시간까지 ${left}`,
   learning: '학습 중',
   totalNote: (total: string) => `총 학습기록 ${total}과 구분하여 표시합니다.`,
+  /** archive/include/top_header.html: '1차 수강기간 : <label> / <hh시간 mm분>' when an earlier enrollment carries time over. */
+  carryover: (label: string, time: string) => `1차 수강기간 ${label || '1차 수강'} · ${time}`,
   daysLeft: (n: number) => `${n}일 남음`,
   daysLeftShort: (n: number) => `${n}일`,
   generalTitle: '이용기간 동안 자유롭게 학습하세요',
@@ -1406,6 +1442,148 @@ export const live = {
   recordTitle: '참여기록은 어떻게 확인하나요?',
   recordBody: '입장 버튼을 누른 시각이나 연결 성공만으로 출석·인정 수강시간을 확정하지 않습니다. 라이브 종료 후 LMS에서 확인된 본인 참여기록을 조회합니다.',
   timezone: '일정은 한국시간 기준입니다. 입장가능 시각은 해당 수업의 실제 설정값으로 확인합니다.',
+};
+
+/** AI ZONE content hub (archive/aizone/main.html: AI 콘텐츠 허브 / 실습형 AI / AI 관련 자격). */
+export const aiHub = {
+  title: 'AI 콘텐츠 허브',
+  lead: '세부 분야·콘텐츠 형태·학습시간·제작년도·평점으로 AI 콘텐츠를 좁혀 보세요.',
+  tabs: [{ key: 'content', label: 'AI 콘텐츠 허브' }, { key: 'handson', label: '실습형 AI' }, { key: 'certification', label: 'AI 관련 자격' }],
+  tabsAria: 'AI 콘텐츠 구분',
+  filters: '과정 필터',
+  reset: '초기화',
+  apply: '적용하기',
+  search: '과정명 검색',
+  field: '세부 분야',
+  type: '콘텐츠 형태',
+  minTime: '최소 학습시간',
+  minYear: '제작년도',
+  minRating: '최소 평점',
+  minutes: (n: number) => `${n}분 이상`,
+  year: (n: number) => `${n}년 이후`,
+  rating: (n: number) => (n > 0 ? `${n.toFixed(1)}점 이상` : '제한 없음'),
+  sortAria: '정렬',
+  sorts: [{ value: 'popular', label: '조회순' }, { value: 'new', label: '최신순' }, { value: 'rating', label: '평점순' }],
+  categories: [
+    { value: 'ai-basic', label: 'AI 기초' }, { value: 'ai-data', label: 'AI 데이터 리터러시' }, { value: 'ai-security', label: 'AI 보안' }, { value: 'ai-prompt', label: 'AI 프롬프트' },
+    { value: 'ai-api', label: 'AI API 활용' }, { value: 'ai-creative', label: 'AI 창의·혁신' }, { value: 'ai-job', label: 'AI 직무 활용' }, { value: 'ai-industry', label: 'AI 산업·공공' },
+    { value: 'ai-project', label: 'AI 프로젝트 관리' }, { value: 'ai-coding', label: 'AI 코딩' },
+  ],
+  types: [{ value: 'X', label: '이러닝' }, { value: 'Z', label: '마이크로러닝' }, { value: 'Y', label: '숏폼' }, { value: 'R', label: '라이브' }],
+  count: (n: number) => `${n.toLocaleString('ko-KR')}개`,
+  empty: '조건에 맞는 과정이 없습니다. 필터를 조정해보세요.',
+  emptyHandson: '실습 콘텐츠가 없습니다',
+  emptyCert: '자격 과정이 없습니다',
+  difficulty: '난이도',
+};
+
+/** 러비 (Q&A chatbot, chatbot/ruby-config.js) and 코비 (learning coach, chatbot/kobe-widget.js). */
+export const chatbot = {
+  ruby: {
+    toggle: '러비',
+    title: 'Chat Bot 러비',
+    open: '챗봇 러비 열기',
+    close: '챗봇 닫기',
+    welcome: '안녕하세요. HRDe 학습도우미 챗봇 러비입니다. 궁금한 내용을 입력해 주세요.',
+    placeholder: '질문을 입력해 주세요',
+    send: '전송',
+    quick: ['수료 기준이 뭐예요?', '진도가 안 올라가요', '수료증은 어디서 받아요?', 'AI Zone이 뭐예요?'],
+    links: '학습 바로가기',
+    tooLong: '질문이 너무 길어요. 핵심 내용 위주로 1,000자 이내로 입력해 주세요.',
+    timeout: '응답이 지연되고 있습니다. 잠시 후 다시 시도해 주세요.',
+    network: '네트워크 오류가 발생했습니다. 연결을 확인한 뒤 다시 시도해 주세요.',
+    failed: '현재 답변을 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+    rateLimited: '요청이 너무 많습니다. 1분 후 다시 시도해 주세요.',
+    ticketFailed: '접수 중 오류가 발생했습니다. 1811-9530으로 연락 주시면 즉시 도와드리겠습니다.',
+    loginRequired: '로그인이 필요한 서비스입니다. 로그인 후 이용해 주세요.',
+    login: '로그인하기',
+    messages: '대화 내용',
+  },
+  kobe: {
+    toggle: '코비',
+    toggleSub: 'AI',
+    open: '코비 열기',
+    close: '코비 닫기',
+    title: 'AI 학습코치 코비',
+    preparing: '학습 코칭 메시지를 준비 중입니다.',
+    failed: '학습 코칭 정보를 불러오지 못했습니다. 페이지를 새로고침하거나 잠시 후 다시 시도해 주세요.',
+    rubyHintBefore: '학습·수료·정책 문의는 ',
+    rubyHintLink: '우측 하단 러비',
+    rubyHintAfter: '에게 질문해 주세요.',
+    courses: '추천 과정',
+  },
+};
+
+/** popup/include_popup.php layer. */
+export const popup = {
+  hideToday: '오늘 하루 창 열지 않기',
+  close: '닫기',
+  region: '알림 팝업',
+};
+
+/** archive/introduce/archive.html (훈련제도 안내) and company.html (회사소개). Static text as on the old site. */
+export const about = {
+  nav: [{ to: '/about', label: '훈련제도 안내' }, { to: '/about/company', label: '회사소개' }],
+  crumb: '소개',
+  archive: {
+    title: 'HRDe 아카이브란?',
+    lead: '기업에 HRDe만의 노하우가 담긴 고품질 콘텐츠로 구성된 HRDe아카이브(원격훈련 수강 플랫폼)를 제공하여 학습자가 다양한 콘텐츠를 자유롭게 수강할 수 있도록 더 많은 선택과 기회를 제공하는 학습자 중심의 직업훈련 도모를 위한 원격훈련 제도입니다.',
+    facts: [
+      { label: '지원 대상', value: '모든 우선지원대상기업\n및 1,000인 이하 기업' },
+      { label: '훈련 기간', value: '최소 4개월 ~ 2026-11-30까지\n훈련 가능' },
+      { label: 'HRDe아카이브 훈련비', value: '140,000원' },
+      { label: '지원 기준', value: '개인별 학습시간 15시간\n충족 시 지원' },
+    ],
+    support: [
+      { label: '정부 지원금', rows: [['우선지원 대상기업', '90% 지원'], ['1,000인 미만 대규모기업', '80% 지원']] },
+      { label: '사업주 부담금', rows: [['우선지원 대상기업', '10% 부담'], ['1,000인 미만 대규모기업', '20% 부담']] },
+    ],
+    supportNote: '* 15시간 이상 이수하여 수료시에만 정부지원금 지원 가능',
+    applyPeriod: '신청기간 ︱2026년 7월 31일까지',
+    processTitle: 'HRDe 아카이브 운영 프로세스',
+    process: [
+      { n: 'STEP 01', title: '계약체결 및 실시신고', when: '교육시작 10일 전', desc: '고객사 맞춤 상담, 구독 계약 체결' },
+      { n: 'STEP 02', title: 'HRDe 아카이브 과정 시작', when: '교육시작', desc: '필수안내사항 오리엔테이션' },
+      { n: 'STEP 03', title: 'HRDe 아카이브 과정 운영', when: '계약기간', desc: '과정 큐레이션 및 진도율 관리' },
+      { n: 'STEP 04', title: 'HRDe 아카이브 운영 종료', when: '종료 후 2주 이내', desc: '고객사별 아카이브 REPORT' },
+      { n: 'STEP 05', title: '수료보고 및 계산서 발행', when: '종료 후 1개월 이내', desc: '사업주 자부담금 납부 비용 정산' },
+    ],
+    cycle: ['학습 전 사전역량진단', '학습 중 큐레이션 추천', '학습 후 사후역량진단', '학습 완료 만족도조사'],
+    refundTitle: '고용보험환급과정 안내',
+    refundLead: '고용보험 가입 사업주가 인정받은 훈련과정에 대한 훈련비용을 부담하여 재직근로자 등을 대상으로 훈련을 실시한 경우 소정의 훈련비용을 지원해주는 과정',
+    refundBlocks: [
+      { title: '지원 금액', items: ['사업주가「보험료징수법」에 따라 해당 연도에 내야 할 고용안정 · 직업능력개발 사업의 개산 보험료 및 특례보험료의 100분의 100', '우선지원대상기업의 경우에는 100분의 240에 해당하는 금액', '비용지원 한도 최소금액(500만원)에 미달하는 경우에는 500만원까지 지원', '「고용보험법」제35조에 따라 지원 · 융자 제한의 행정처분을 받은 사업주에 대해서는 그 처분의 효력이 끝나는 보험연도부터 3년간 비용지원한도 최소 금액은 개산 보험료의 240%에 해당하는 금액'] },
+      { title: '지원 한도', items: ['사업주에게 지원되는 직업능력개발 훈련비용의 지원한도는 그 사업주가 훈련실시 시작일 해당 연도에 납부하여야 할 직업능력개발사업 개산보험료를 기준으로 함', '대규모(우선지원)기업으로 적용을 받던 사업주가 익년도에 확정 정산 등의 결과로 우선지원(대규모)기업으로 변경되었다 할지라도, 이는 확정보험료가 변경된 경우이며, 해당 연도에 납부하여야 하는 개산보험료로 볼 수는 없으므로 훈련비용의 지원한도는 변경 되지 않음', '해당 연도 중에 개산보험료에 대하여 증가 또는 감액신청을 하여 납부 또는 감액 조정통지를 받은 경우에는 동 개산보험료 및 사업규모를 기준으로 훈련비용 지원이 변경될 수 있음', '훈련실시 기간이 2개 년도에 거쳐 실시되는 경우에는 훈련이 실시된 해당 연도의 지원한도 내에서만 비용지원 가능'] },
+      { title: '지원 한도 예외', items: ['다른 사업에 고용된 근로자를 대상으로 훈련과정을 인정받아 훈련을 실시할 경우 고용안정 · 직업능력개발사업의 개산보험료의 80%까지 추가 지원', '양성훈련 지원금 및 유급휴가훈련의 임금의 일부는 지원한도적용에서 제외'] },
+      { title: '구비 서류', items: ['신청일: 훈련종료 후 또는 매 3개월 간의 훈련실시 후 30일 이내', '훈련비용 신청 소멸시효는 훈련종료일로부터 3년', '신청방법: 온라인(HRD-Net)으로 신청 또는 오프라인(방문, 우편, 팩스 등) 서류 제출', '온라인 신청 시 지원금 별 증빙서류 스캔 첨부', '오프라인 신청 시 훈련비용지원신청서와 수료자명단, 지원금 별 증빙서류제출'] },
+    ],
+    stepsTitle: 'HRDe 아카이브 환급절차',
+    steps: ['아카이브 과정 수료', '아카이브 과정 수료 기준 충족', '훈련비 환급'],
+    stepsNotes: ['다른 고용보험 환급과 중복 지원이 가능하지만, 사업주 훈련 지원금 한도 내에서 지원이 가능합니다', '사업주 훈련 지원금 잔액은 HRD-Net에서 확인할 수 있습니다', 'HRD-Net에 접속한 후 법인인증서로 로그인하고, my서비스 → 사업주 훈련 → 지급가능 금액 조회를 클릭하면 잔액을 확인할 수 있습니다.'],
+    cta: '기업교육 상담',
+  },
+  company: {
+    title: 'HRDe 아카이브는 앞서 나가기 위해 노력합니다.',
+    lead: '제대로된 교육과 시스템, 서비스로 학습자 여러분을 기다리고 있습니다',
+    pillars: [
+      { title: '콘텐츠 개발', desc: 'HRDe 아카이브는 학습자의 만족도를 위한 콘텐츠를 직접 개발하고 있습니다.' },
+      { title: 'LMS 개발', desc: 'HRDe 아카이브는 학습자의 쾌적한 훈련 환경을 위한 LMS를 직접 개발하고 있습니다.' },
+      { title: '기업훈련 시스템', desc: 'HRDe 아카이브는 학습자를 위한 기업훈련 시스템을 운영하고 있습니다.' },
+    ],
+    vision: 'HRDe 아카이브 비전',
+    visionText: 'WE CAN DO THE BEST QUALITY',
+    location: 'HRDe 아카이브 오시는 길',
+    address: '주소',
+    phone: '전화번호',
+    email: 'email',
+    // company.html fixed values; the site information (SiteInfomation) overrides address / phone / e-mail when set.
+    fallback: { address: '경기도 용인시 기흥구 흥덕1로 13 흥덕IT밸리 타워동 104,105호', phone: '031-217-4002', email: 'hrde@hrde.co.kr' },
+    transit: '교통편',
+    bus: '일반버스',
+    busLines: '2-1, 2-2, 4-1, 10, 10-2, 10-5, 11-3, 13-1, 27, 34, 37, 46-1, 53, 58, 63, 65, 66, 66-4, 720-1, 720-3',
+    express: '광역버스',
+    expressLines: '1007-1, 5006, 5007, 7000',
+  },
 };
 
 export const ko = { brand, nav, megaMenu, footer, common, contentType, competencies, jobFields, leadershipFields, aiZone, axis, home, catalog, content, support, auth, legal, states, errors, placeholders, placeholderNote };

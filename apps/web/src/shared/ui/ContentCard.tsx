@@ -22,13 +22,13 @@ export interface ContentCardProps {
 /** Content type → icon + support-palette tone (thumbnail badge and the designed fallback tile). */
 export const TYPE_STYLE: Record<string, { icon: IconName; tone: string }> = {
   X: { icon: 'monitor', tone: 'var(--cat-blue)' },
-  Y: { icon: 'bolt', tone: 'var(--cat-teal)' },
-  Z: { icon: 'shorts', tone: 'var(--cat-coral)' },
+  Z: { icon: 'bolt', tone: 'var(--cat-teal)' }, // 마이크로러닝
+  Y: { icon: 'shorts', tone: 'var(--cat-coral)' }, // 숏폼
   W: { icon: 'book', tone: 'var(--cat-violet)' },
   A: { icon: 'layers', tone: 'var(--cat-indigo)' },
 };
 
-export const contentTypeStyle = (ctype: string) => TYPE_STYLE[ctype] ?? TYPE_STYLE.Y!;
+export const contentTypeStyle = (ctype: string) => TYPE_STYLE[ctype] ?? TYPE_STYLE.Z!;
 
 /**
  * Catalog card: 16:9 thumbnail (real image, or a designed tile tinted by content type) with type + duration badges,

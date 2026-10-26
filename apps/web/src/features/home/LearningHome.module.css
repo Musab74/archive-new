@@ -79,3 +79,5 @@
   .liveRow{grid-template-columns:1fr}
   .stateWrap{padding:20px var(--gutter)}
 }
+
+.recCard{display:flex;flex-direction:column;gap:8px;min-width:0}

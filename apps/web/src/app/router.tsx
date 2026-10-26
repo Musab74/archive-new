@@ -17,6 +17,8 @@ const PublicHome = lazy(() => import('../features/home/PublicHome'));
 const CatalogPage = lazy(() => import('../features/catalog/CatalogPage'));
 const ContentDetail = lazy(() => import('../features/content/ContentDetail'));
 const AiZonePage = lazy(() => import('../features/aizone/AiZonePage'));
+const AboutArchivePage = lazy(() => import('../features/about/AboutPages').then((m) => ({ default: m.AboutArchivePage })));
+const AboutCompanyPage = lazy(() => import('../features/about/AboutPages').then((m) => ({ default: m.AboutCompanyPage })));
 const SupportLayout = lazy(() => import('../features/support/SupportLayout'));
 const GuidePage = lazy(() => import('../features/support/GuidePage'));
 const NoticeListPage = lazy(() => import('../features/support/NoticeListPage'));
@@ -99,6 +101,8 @@ export const router = createBrowserRouter([
           { path: 'courses/:lectureCode', element: lazyEl(<ContentDetail />) },
           { path: 'contents/:lectureCode', element: lazyEl(<ContentDetail />) },
           { path: 'ai-zone', element: lazyEl(<AiZonePage />) },
+          { path: 'about', element: lazyEl(<AboutArchivePage />) },
+          { path: 'about/company', element: lazyEl(<AboutCompanyPage />) },
           {
             path: 'support',
             element: lazyEl(<SupportLayout />),

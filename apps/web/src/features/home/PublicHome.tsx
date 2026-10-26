@@ -71,7 +71,8 @@ function FeaturedSection() {
 function BrowseSection() {
   const reveal = useReveal();
   const child = useRevealChild();
-  const kw = useQuery({ queryKey: ['catalog', 'keywords'], queryFn: ({ signal }) => catalogApi.keywords(signal), staleTime: 10 * 60_000 });
+  // ContentsKeyword Category 2 = 직무분야 (the 12 job fields of AR-01 '역량과 분야로 찾는 배움')
+  const kw = useQuery({ queryKey: ['catalog', 'keywords', '2'], queryFn: ({ signal }) => catalogApi.keywords(signal, '2'), staleTime: 10 * 60_000 });
   const fields = useMemo(() => {
     const names = (kw.data?.items ?? []).map((k) => k.name).filter(Boolean);
     return names.length >= 12 ? names.slice(0, 12) : jobFields;
@@ -166,7 +167,7 @@ export default function PublicHome() {
               {isAuthed ? <Button variant="secondary" square to="/home">{nav.myRoom}</Button> : <Button variant="secondary" square to="/auth/login">{copy.heroLogin}</Button>}
             </>} />
         );
-      case 'intro': return <IntroBand key={key} label={e.intro.label} title={e.intro.title(siteName)} body={e.intro.body(siteName)} cta={{ label: e.intro.cta, to: '/support/guide' }} steps={e.intro.steps as IntroStep[]} />;
+      case 'intro': return <IntroBand key={key} label={e.intro.label} title={e.intro.title(siteName)} body={e.intro.body(siteName)} cta={{ label: e.intro.cta, to: '/about' }} steps={e.intro.steps as IntroStep[]} />;
       case 'contentTabs': return <ContentTabs key={key} label={e.tabs.label} title={e.tabs.title} lead={e.tabs.lead} aria={e.tabs.aria} items={e.tabs.items} more={e.tabs.more} />;
       case 'ctaBand': return <CtaBand key={key} label={e.cta.label} title={e.cta.title(siteName)} lead={e.cta.lead} apply={{ label: e.cta.apply, to: '/support/inquiry/new' }} phone={{ label: e.cta.phone, href: e.cta.phoneHref }} columns={e.cta.columns} />;
       case 'aiZone': return <AiZoneStrip key={key} />;

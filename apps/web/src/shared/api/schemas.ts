@@ -32,6 +32,10 @@ export const CourseDetailSchema = CourseCardSchema.extend({
   lastChapterSeq: z.number().int().nullable().optional(),
   progress: z.number().nullable().optional(),
   isPublic: z.boolean().optional(),
+  /** Keyword4 역량 labels; isPackage / singleVideo (Course.Chapter 0 = player1 single video) from GET /catalog/courses/:code. */
+  abilities: z.array(z.string()).optional(),
+  isPackage: z.boolean().optional(),
+  singleVideo: z.boolean().optional(),
 });
 export type CourseDetail = z.infer<typeof CourseDetailSchema>;
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activeFilterCount, parseCatalogParams, serializeCatalogParams, toApiQuery, DEFAULT_CATALOG_PARAMS } from '../features/catalog/catalogParams';
+import { activeFilterCount, parseCatalogParams, serializeCatalogParams, toApiQuery, topCategoryOf, aiDirectionOf, DEFAULT_CATALOG_PARAMS } from '../features/catalog/catalogParams';
 
 describe('catalog URL params', () => {
   it('returns defaults for an empty query', () => {
@@ -37,5 +37,27 @@ describe('catalog URL params', () => {
     const fallback = toApiQuery({ ...DEFAULT_CATALOG_PARAMS, competency: 'leadership', field: '팀 리더십' }, cats);
     expect(fallback.category1).toBeUndefined();
     expect(fallback.keyword).toBe('팀 리더십');
+  });
+
+  it('uses the PHP ctype letters: 마이크로러닝 = Z, 숏폼 = Y', () => {
+    expect(toApiQuery({ ...DEFAULT_CATALOG_PARAMS, type: 'micro' }).ctype).toBe('Z');
+    expect(toApiQuery({ ...DEFAULT_CATALOG_PARAMS, type: 'short' }).ctype).toBe('Y');
+    expect(parseCatalogParams(new URLSearchParams('type=Z')).type).toBe('micro');
+    expect(parseCatalogParams(new URLSearchParams('type=Y')).type).toBe('short');
+  });
+
+  it('keeps 검색 관련도순 only with a search text and accepts 찜한 콘텐츠순', () => {
+    expect(parseCatalogParams(new URLSearchParams('sort=relevance')).sort).toBe('latest');
+    expect(parseCatalogParams(new URLSearchParams('q=AI&sort=relevance')).sort).toBe('relevance');
+    expect(parseCatalogParams(new URLSearchParams('sort=liked')).sort).toBe('liked');
+  });
+
+  it('matches the old category names (리더십 ↔ 리더십역량) and maps AI ZONE to the ai filter', () => {
+    const cats = [{ id: 9, name: '리더십', parentId: null }, { id: 1, name: '공통역량', parentId: null }];
+    expect(topCategoryOf(cats, 'leadership')?.id).toBe(9);
+    expect(toApiQuery({ ...DEFAULT_CATALOG_PARAMS, competency: 'leadership' }, cats).category1).toBe(9);
+    expect(toApiQuery({ ...DEFAULT_CATALOG_PARAMS, competency: 'ai' }, cats)).toMatchObject({ ai: 'all' });
+    expect(toApiQuery({ ...DEFAULT_CATALOG_PARAMS, competency: 'ai', field: 'AI·AX 프로젝트' }, cats)).toMatchObject({ ai: 'project' });
+    expect(aiDirectionOf('없는 방향')).toBe('all');
   });
 });

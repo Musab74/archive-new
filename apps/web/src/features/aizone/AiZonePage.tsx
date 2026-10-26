@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import styles from './AiZonePage.module.css';
 import { catalogApi } from '../../shared/api/endpoints/catalog';
@@ -18,19 +19,16 @@ import { FormField, Input, Select, Textarea, FormMessage } from '../../shared/ui
 import { aiZone as copy, catalog as catalogCopy, jobFields, footer as footerCopy } from '../../shared/strings/ko';
 import { useReveal, useRevealChild } from '../../shared/motion/useReveal';
 import { isAppError } from '../../shared/api/client';
+import { AiHub } from './AiHub';
 
 const dirLink = (title: string) => `/catalog?competency=ai&field=${encodeURIComponent(title)}`;
 
+/** AR-04 '나에게 제공되는 AI 콘텐츠': the same catalog list (AR-03) scoped by the old AI ZONE condition, one direction per pill. */
 function AiCatalog() {
   const [group, setGroup] = useState('');
   const [page, setPage] = useState(1);
-  const categories = useQuery({ queryKey: ['catalog', 'categories'], queryFn: ({ signal }) => catalogApi.categories(signal), staleTime: 10 * 60_000 });
-  const query = toApiQuery({ q: '', competency: 'ai', field: group, type: '', sort: 'latest', page }, categories.data?.items ?? []);
-  const byCategory = useQuery({ queryKey: ['catalog', 'courses', query], queryFn: ({ signal }) => catalogApi.courses({ ...query, size: 6 }, signal), enabled: !categories.isPending || categories.isError });
-  const categoryEmpty = byCategory.isSuccess && byCategory.data.total === 0;
-  // AI contents are not assigned to the AI ZONE category in the live catalog; match them by keyword like the old site did.
-  const byKeyword = useQuery({ queryKey: ['catalog', 'courses', 'ai-keyword', group, page], queryFn: ({ signal }) => catalogApi.courses({ q: group ? `AI ${group}` : 'AI', sort: 'popular', page, size: 6 }, signal), enabled: categoryEmpty });
-  const list = categoryEmpty ? byKeyword : byCategory;
+  const query = { ...toApiQuery({ q: '', competency: 'ai', field: group, type: '', sort: 'popular', page }), size: 6 };
+  const list = useQuery({ queryKey: ['catalog', 'courses', query], queryFn: ({ signal }) => catalogApi.courses(query, signal), placeholderData: keepPreviousData });
   return (
     <Section title={copy.catalogTitle} lead={copy.catalogLead} aside={<Button variant="text" size="sm" to="/catalog?competency=ai" iconRight={<Icon name="arrow" size={15} />}>{copy.viewAll}</Button>}>
       <div className={styles.pills} role="group" aria-label={copy.directionsTitle}>
@@ -55,7 +53,15 @@ function RoadmapGenerator() {
   const [field, setField] = useState('');
   const [level, setLevel] = useState('beginner');
   const [error, setError] = useState('');
-  const gen = useMutation({ mutationFn: () => catalogApi.roadmap({ goal: goal.trim(), field, level }) });
+  const gen = useMutation({ mutationFn: () => catalogApi.roadmap({ goal: goal.trim(), field, level }), onSuccess: () => { setPicked([]); setSaveMsg(null); } });
+  const [picked, setPicked] = useState<string[]>([]);
+  const [saveMsg, setSaveMsg] = useState<{ text: string; error?: boolean } | null>(null);
+  // aizone/main.html saveMyRoadmap(): the checked roadmap courses go to 찜한 콘텐츠 (here the learner's CourseLike rows, AR-13)
+  const save = useMutation({
+    mutationFn: async (codes: string[]) => { for (const code of codes) await catalogApi.like(code, true); return codes.length; },
+    onSuccess: (n) => setSaveMsg({ text: n ? copy.generator.saved(n) : copy.generator.savedNone }),
+    onError: (e) => setSaveMsg({ text: isAppError(e) ? e.message : copy.generator.saveFail, error: true }),
+  });
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!isAuthed) { setError(copy.generator.loginNeeded); return; }
@@ -89,9 +95,18 @@ function RoadmapGenerator() {
               {gen.data.summary ? <p>{gen.data.summary}</p> : null}
               <ol>
                 {gen.data.items.map((it) => (
-                  <li key={it.order}><b>{String(it.order).padStart(2, '0')}</b><div>{it.lectureCode ? <a href={`/courses/${encodeURIComponent(it.lectureCode)}`}>{it.title}</a> : it.title}{it.reason ? <small>{it.reason}</small> : null}</div></li>
+                  <li key={it.order}>
+                    <b>{String(it.order).padStart(2, '0')}</b>
+                    <div>{it.lectureCode ? <Link to={`/courses/${encodeURIComponent(it.lectureCode)}`}>{it.title}</Link> : it.title}{it.reason ? <small>{it.reason}</small> : null}</div>
+                    {it.lectureCode ? <input type="checkbox" aria-label={copy.generator.pick(it.title)} checked={picked.includes(it.lectureCode)} onChange={(e) => setPicked((p) => (e.target.checked ? [...p, it.lectureCode!] : p.filter((x) => x !== it.lectureCode)))} /> : null}
+                  </li>
                 ))}
               </ol>
+              <div className="action-row">
+                <Button variant="secondary" square size="sm" loading={save.isPending} icon={<Icon name="heart" size={15} />} onClick={() => (picked.length ? save.mutate(picked) : setSaveMsg({ text: copy.generator.saveNone, error: true }))}>{copy.generator.save}</Button>
+                {saveMsg && !saveMsg.error ? <Button variant="text" size="sm" to="/my/saved">{copy.generator.goSaved}</Button> : null}
+              </div>
+              {saveMsg ? <FormMessage tone={saveMsg.error ? 'error' : 'ok'}>{saveMsg.text}</FormMessage> : null}
             </>
           )) : !gen.isError ? <p className={styles.note}>{copy.generator.lead}</p> : null}
         </div>
@@ -100,7 +115,7 @@ function RoadmapGenerator() {
   );
 }
 
-/** AR-04 AI ZONE: gradient hero with four directions, direction cards → catalog filters, AI catalog, roadmap generator, recommendation path, 교육원 link, AXIS banner. */
+/** AR-04 AI ZONE: gradient hero with four directions, direction cards → catalog filters, AI catalog, the old AI 콘텐츠 허브 (실습형 AI · AI 관련 자격), roadmap generator, recommendation path, 교육원 link, AXIS banner. */
 export default function AiZonePage() {
   const { config } = useDesign();
   const reveal = useReveal();
@@ -135,6 +150,7 @@ export default function AiZonePage() {
         </motion.div>
       </Section>
       <AiCatalog />
+      <AiHub />
       <RoadmapGenerator />
       <section className={`band ${styles.path}`} aria-labelledby="ai-path">
         <h2 id="ai-path">{copy.pathTitle}</h2>
