@@ -22,18 +22,24 @@ test('board requires login', async ({ page, checks }) => {
   await expect(page.locator('tbody tr')).toHaveCount(0);
 });
 
-test('list: visible rows newest first, masked authors, hidden and deleted rows skipped; search', async ({ page, checks }) => {
+test('list: visible rows newest first, masked authors, hidden and deleted rows skipped; search', async ({ page, db, checks }) => {
+  // the board rule itself, read from the DB (other areas' specs may add reviews to a shared run): Del N, UseYN Y, RegDate DESC, 25/page
+  const visible = await db.query<{ Title: string }>("SELECT Title FROM Review WHERE Del = 'N' AND UseYN = 'Y' ORDER BY RegDate DESC, idx DESC LIMIT 25");
+  const total = Number(await db.scalar("SELECT COUNT(*) FROM Review WHERE Del = 'N' AND UseYN = 'Y'"));
   await openAs(page, 'xsupport02', '/support/reviews');
   await expect(page.getByRole('heading', { level: 1, name: '수강후기' })).toBeVisible();
-  await expect(page.getByText('총 4건')).toBeVisible();
-  await expect.poll(() => titles(page)).toEqual(['[E2E] 짧아서 좋아요', '[E2E] 패키지 차시가 편해요', '[E2E] 짧고 알찬 보고서 강의', '[E2E] 실무에 바로 적용했어요']);
+  await expect(page.getByText(`총 ${total}건`)).toBeVisible();
+  await expect.poll(() => titles(page)).toEqual(visible.map((r) => r.Title));
+  const shown = await titles(page);
+  const fixture = ['[E2E] 짧아서 좋아요', '[E2E] 패키지 차시가 편해요', '[E2E] 짧고 알찬 보고서 강의', '[E2E] 실무에 바로 적용했어요'];
+  expect(shown.filter((t) => fixture.includes(t))).toEqual(fixture); // 26002, 26001, 9603, 9601
   for (const hidden of ['[E2E] 숨김 처리된 후기', '[E2E] 숨김 처리된 패키지 후기', '[E2E] 삭제된 후기']) await expect(page.getByText(hidden)).toHaveCount(0);
-  const first = page.locator('tbody tr').first();
-  await expect(first.getByRole('link', { name: '[E2E] 패키지형 HTML 차시 체험' })).toHaveAttribute('href', '/support/reviews/26002');
-  await expect(first.getByRole('img', { name: '평점 4' })).toBeVisible();
+  const row26002 = page.locator('tbody tr').filter({ has: page.locator('a[href="/support/reviews/26002"]') }).first();
+  await expect(row26002.getByRole('link', { name: '[E2E] 패키지형 HTML 차시 체험' })).toBeVisible();
+  await expect(row26002.getByRole('img', { name: '평점 4' })).toBeVisible();
   if ((page.viewportSize()?.width ?? 1440) >= 768) {
-    await expect(first).toContainText('xsu***'); // masked like the course page (survey.html showed Name / ID)
-    await expect(page.locator('tbody tr').nth(3)).toContainText('e2e***');
+    await expect(row26002).toContainText('xsu***'); // masked like the course page (survey.html showed Name / ID)
+    await expect(page.locator('tbody tr').filter({ has: page.locator('a[href="/support/reviews/9601"]') }).first()).toContainText('e2e***');
   }
   await checks.checkpoint('reviews-board');
   // search: Title OR course name
@@ -43,10 +49,12 @@ test('list: visible rows newest first, masked authors, hidden and deleted rows s
   await expect.poll(() => titles(page)).toEqual(['[E2E] 짧고 알찬 보고서 강의']);
   await page.getByRole('textbox', { name: '검색어를 입력해주세요' }).fill('데이터 리터러시'); // course name only
   await page.getByRole('button', { name: '검색', exact: true }).click();
-  await expect.poll(() => titles(page)).toEqual(['[E2E] 실무에 바로 적용했어요']);
+  const byCourse = await db.query<{ Title: string }>("SELECT a.Title FROM Review a JOIN Course b ON b.LectureCode = a.LectureCode WHERE a.Del = 'N' AND a.UseYN = 'Y' AND (a.Title LIKE '%데이터 리터러시%' OR b.ContentsName LIKE '%데이터 리터러시%') ORDER BY a.RegDate DESC, a.idx DESC");
+  await expect.poll(() => titles(page)).toEqual(byCourse.map((r) => r.Title));
+  expect(byCourse.map((r) => r.Title)).toContain('[E2E] 실무에 바로 적용했어요');
 });
 
-test('course filter with its average (hidden ★1 not counted), 필터 해제', async ({ page, checks }) => {
+test('course filter with its average (hidden ★1 not counted), 필터 해제', async ({ page, db, checks }) => {
   await openAs(page, 'xsupport02', '/support/reviews?lectureCode=E2EH01');
   await expect.poll(() => titles(page)).toEqual(['[E2E] 짧아서 좋아요', '[E2E] 패키지 차시가 편해요']);
   await expect(page.getByText('총 2건')).toBeVisible();
@@ -56,7 +64,7 @@ test('course filter with its average (hidden ★1 not counted), 필터 해제', 
   await checks.checkpoint('reviews-board-course');
   await page.getByRole('button', { name: '필터 해제' }).click();
   await expect(page).not.toHaveURL(/lectureCode=/);
-  await expect(page.getByText('총 4건')).toBeVisible();
+  await expect(page.getByText(`총 ${Number(await db.scalar("SELECT COUNT(*) FROM Review WHERE Del = 'N' AND UseYN = 'Y'"))}건`)).toBeVisible();
 });
 
 test('detail counts a view and links the course filter; a hidden review is not shown', async ({ page, db, checks }) => {
