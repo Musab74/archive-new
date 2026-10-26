@@ -9,6 +9,8 @@
 .side a:hover{background:var(--c-paper);color:var(--c-primary)}
 .side a[aria-current="page"]{background:var(--c-ink);color:#fff;font-weight:var(--fw-bold)}
 .roomMain{min-width:0}
+/* 나의학습실 출력용 보기 (학습결과보고서 · 수료증 window.print): only the page content prints — no site header/footer, menu or widgets. */
+@media print{.roomShell > :not(main){display:none!important}.roomShell .room{display:block}.roomShell .side{display:none!important}}
 .player{background:#0b1220;color:#fff;min-height:100dvh;display:flex;flex-direction:column}
 .playerBar{height:56px;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid rgba(255,255,255,.1)}
 .playerBar a{color:#fff;font-weight:var(--fw-bold);display:inline-flex;align-items:center;gap:8px}

@@ -7,8 +7,8 @@ import { useManager } from '../ManagerContext';
 import { useSearchState } from '../../../shared/utils/useSearchState';
 import { AButton, AInput, Callout, DataTable, FilterBar, FilterField, StatusBadge, type Column } from '../../../shared/ui/admin';
 import { Skeleton } from '../../../shared/ui/Skeleton';
-import { formatDate, formatMinutes } from '../../../shared/utils/format';
-import { ManagerError } from '../managerUi';
+import { formatDate } from '../../../shared/utils/format';
+import { ManagerError, floorPct, secToMin } from '../managerUi';
 import { assessmentReportHref } from './TraineesPage';
 import { educationReportHref } from './CompletionPage';
 import { mgr } from '../strings';
@@ -96,13 +96,13 @@ export function TraineeReportPage() {
           <h2>{mgr.trainee.chapters}</h2>
           <table>
             <thead><tr><th>순서</th><th>콘텐츠</th><th>차시</th><th>강의시간</th><th>진도</th><th>학습시간</th><th>최근 학습</th></tr></thead>
-            <tbody>{d.chapters.map((ch) => <tr key={ch.chapterSeq}><td>{ch.order ?? ''}</td><td className={styles.left}>{ch.courseName ?? ch.lectureCode}</td><td className={styles.left}>{ch.title}</td><td>{ch.lectureTimeMin != null ? `${ch.lectureTimeMin}분` : '—'}</td><td>{Math.round(ch.progress ?? 0)}%</td><td>{formatMinutes(Math.round((ch.studyTime ?? 0) / 60))}</td><td>{ch.lastStudiedAt ?? ch.lastStudy ?? '—'}</td></tr>)}</tbody>
+            <tbody>{d.chapters.map((ch) => <tr key={ch.chapterSeq}><td>{ch.order ?? ''}</td><td className={styles.left}>{ch.courseName ?? ch.lectureCode}</td><td className={styles.left}>{ch.title}</td><td>{ch.lectureTimeMin != null ? `${ch.lectureTimeMin}분` : '—'}</td><td>{floorPct(ch.progress)}</td><td>{secToMin(ch.studyTime)}</td><td>{ch.lastStudiedAt ?? ch.lastStudy ?? '—'}</td></tr>)}</tbody>
           </table>
           <h2>{mgr.trainee.daily}</h2>
           {d.daily.length ? (
             <table>
               <thead><tr><th>날짜</th><th>학습</th><th>인정</th><th>초과</th><th>상태</th></tr></thead>
-              <tbody>{d.daily.map((x) => <tr key={x.date}><td>{x.date}</td><td>{formatMinutes(Math.round(x.seconds / 60))}</td><td>{formatMinutes(Math.round(x.creditedSec / 60))}</td><td>{x.excessSec ? formatMinutes(Math.round(x.excessSec / 60)) : '—'}</td><td>{x.statusLabel}</td></tr>)}</tbody>
+              <tbody>{d.daily.map((x) => <tr key={x.date}><td>{x.date}</td><td>{secToMin(x.seconds)}</td><td>{secToMin(x.creditedSec)}</td><td>{x.excessSec ? secToMin(x.excessSec) : '—'}</td><td>{x.statusLabel}</td></tr>)}</tbody>
             </table>
           ) : <p className="muted" style={{ fontSize: 13 }}>{mgr.trainee.noDaily}</p>}
           <p className="muted" style={{ fontSize: 11, marginTop: 18 }}>{r.personalNote}</p>

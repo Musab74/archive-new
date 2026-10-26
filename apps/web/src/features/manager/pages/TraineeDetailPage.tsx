@@ -8,20 +8,18 @@ import { StateBlock } from '../../../shared/ui/StateBlock';
 import { Skeleton } from '../../../shared/ui/Skeleton';
 import { AButton, AInput, Bar, Card, DataTable, DescList, FilterBar, FilterField, StatusBadge, type Column } from '../../../shared/ui/admin';
 import { useToast } from '../../../app/providers/ToastProvider';
-import { formatMinutes } from '../../../shared/utils/format';
 import { isAppError } from '../../../shared/api/client';
-import { ManagerError } from '../managerUi';
+import { ManagerError, floorPct, secToMin } from '../managerUi';
 import { mgr } from '../strings';
 
 const t = mgr.trainee;
-const secToMin = (s: number | null | undefined) => formatMinutes(Math.round((s ?? 0) / 60));
 
 export const chapterColumns: Column<ChapterProgressRow>[] = [
   { key: 'order', header: t.chapterCols.order, align: 'center', width: 60 },
   { key: 'courseName', header: t.chapterCols.course, render: (r) => r.courseName ?? r.lectureCode ?? '' },
   { key: 'title', header: t.chapterCols.title },
   { key: 'lectureTimeMin', header: t.chapterCols.min, align: 'right', render: (r) => (r.lectureTimeMin != null ? `${r.lectureTimeMin}분` : '—') },
-  { key: 'progress', header: t.chapterCols.progress, width: 120, render: (r) => <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Bar value={r.progress ?? 0} tone={(r.progress ?? 0) >= 100 ? 'ok' : undefined} /><span style={{ fontSize: 12, minWidth: 34, textAlign: 'right' }}>{Math.round(r.progress ?? 0)}%</span></div> },
+  { key: 'progress', header: t.chapterCols.progress, width: 120, render: (r) => <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Bar value={r.progress ?? 0} tone={(r.progress ?? 0) >= 100 ? 'ok' : undefined} /><span style={{ fontSize: 12, minWidth: 34, textAlign: 'right' }}>{floorPct(r.progress)}</span></div> },
   { key: 'studyTime', header: t.chapterCols.time, align: 'right', render: (r) => secToMin(r.studyTime) },
   { key: 'lastStudiedAt', header: t.chapterCols.last, nowrap: true, render: (r) => r.lastStudiedAt ?? r.lastStudy ?? '—' },
 ];

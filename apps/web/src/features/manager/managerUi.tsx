@@ -4,6 +4,7 @@ import { StateBlock } from '../../shared/ui/StateBlock';
 import { ASelect, Bar } from '../../shared/ui/admin';
 import { isAppError } from '../../shared/api/client';
 import { mgr } from './strings';
+import { formatMinutes } from '../../shared/utils/format';
 
 /** AR-21 states: 배정 운영건 없음 (403 NO_COMPANY) / 권한 없음 (403) / 조회 실패 (never shown as 0 or "no records"). */
 export function ManagerError({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
@@ -56,3 +57,10 @@ export function Panel({ title, children, note }: { title: ReactNode; children: R
 }
 
 export const won = (n: number) => mgr.common.won(n);
+
+/**
+ * Stored seconds → "N시간 M분" with the minutes FLOORED (agents.md rule 10: never round a study time up — 3,599 s is 59분, not 1시간;
+ * 7,259 s is 2시간, not 2시간 1분). Chapter percents are floored the same way.
+ */
+export const secToMin = (s: number | null | undefined) => formatMinutes(Math.floor(Math.max(0, s ?? 0) / 60));
+export const floorPct = (p: number | null | undefined) => `${Math.floor(Math.max(0, p ?? 0))}%`;
