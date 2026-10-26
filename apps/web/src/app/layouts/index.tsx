@@ -63,7 +63,11 @@ export function MyRoomLayout() {
         <div className={styles.room}>
           <aside className={styles.side}>
             <h2>{nav.myRoom}</h2>
-            <nav aria-label={nav.myRoom}>{myNav.map((n) => <NavLink key={n.to} to={n.to} end={n.end}>{n.label}</NavLink>)}</nav>
+            <nav aria-label={nav.myRoom}>
+              {myNav.map((n) => <NavLink key={n.to} to={n.to} end={n.end}>{n.label}</NavLink>)}
+              {/* public/include/mypage_header.html:616-622 법정교육바로가기 (new window) */}
+              <a href={myCopy.nav.legalEduUrl} target="_blank" rel="noopener noreferrer">{myCopy.nav.legalEdu} ↗</a>
+            </nav>
           </aside>
           <div className={styles.roomMain}><PageTransition><Outlet /></PageTransition></div>
         </div>

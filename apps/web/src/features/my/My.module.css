@@ -83,6 +83,21 @@
 .certGrid dd{margin:0;font-weight:var(--fw-bold)}
 .certBody{font-size:15px;line-height:1.9;margin:0}
 .certIssuer{font-size:20px;font-weight:var(--fw-black);margin-top:12px}
+.course{display:grid;grid-template-columns:96px 1fr auto;gap:16px;align-items:center;padding:16px 6px;border-bottom:1px solid var(--c-line-2)}
+.courseThumb{width:96px;height:64px;border-radius:var(--r-sm);background:var(--c-soft) center/cover no-repeat;flex:none}
+.progressBar{height:6px;border-radius:3px;background:var(--c-line-2);overflow:hidden;max-width:360px;margin:4px 0 2px}
+.progressBar span{display:block;height:100%;background:var(--c-primary)}
+.segRow{display:flex;gap:6px;flex-wrap:wrap}
+.check{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--c-muted)}
+.stamps{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px}
+.stamp{aspect-ratio:1;border-radius:50%;border:2px dashed var(--c-line);background:var(--c-paper)}
+.stampOn{border-style:solid;border-color:var(--c-primary);background:color-mix(in srgb,var(--c-primary) 18%,var(--c-paper))}
+.chart28{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:3px;align-items:end;height:140px;border-bottom:1px solid var(--c-line)}
+.chart28 span{background:var(--c-primary);border-radius:2px 2px 0 0;min-height:2px}
+.bar{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;font-size:13px;padding:8px 0;border-bottom:1px solid var(--c-line-2)}
+.formGrid{display:flex;flex-direction:column;gap:14px}
+.formGrid textarea{min-height:140px}
+.select{height:42px;border:1px solid var(--c-line);border-radius:4px;padding:0 12px;font-size:14px;background:var(--c-paper);color:var(--c-ink)}
 .printOnly{display:none}
 @media print{
   .noPrint{display:none!important}
@@ -93,6 +108,10 @@
 @media (max-width:1024px){.grid3,.grid4,.badges{grid-template-columns:repeat(2,minmax(0,1fr))}.statusRow{grid-template-columns:1fr}}
 @media (max-width:768px){
   .page{padding:18px var(--gutter) 32px}
+  .course{grid-template-columns:64px 1fr}
+  .course > a,.course > button{grid-column:1 / -1}
+  .courseThumb{width:64px;height:44px}
+  .stamps{grid-template-columns:repeat(5,minmax(0,1fr))}
   .head h1{font-size:22px}
   .grid2,.grid3,.grid4{grid-template-columns:1fr}
   .badges{grid-template-columns:repeat(2,minmax(0,1fr))}

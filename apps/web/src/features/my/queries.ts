@@ -27,11 +27,13 @@ export type UsageState = 'ACTIVE' | 'BEFORE' | 'ENDED' | 'NONE';
 /** Derives mode/state from /my/status (in-window enrollment) and /enrollments/me (for BEFORE/ENDED when no active one). */
 export function usageOf(status: MyStatus | null | undefined, enrollments: Enrollment[] | undefined): { mode: UsageMode; state: UsageState; enrollment: Enrollment | null } {
   const active = status?.studySeq != null ? enrollments?.find((e) => e.studySeq === status.studySeq) ?? null : null;
+  // /my/status falls back to the newest row when nothing is in its window; usageState says which case it is (data-logic.php:142-194).
+  if (status?.studySeq != null && status.usageState && status.usageState !== 'ACTIVE') return { mode: modeOf(status.serviceType, status.serviceTypeLabel), state: status.usageState, enrollment: active };
   if (status?.studySeq != null) return { mode: modeOf(status.serviceType, status.serviceTypeLabel), state: 'ACTIVE', enrollment: active };
   const list = enrollments ?? [];
   const before = list.find((e) => e.state === 'BEFORE');
   if (before) return { mode: modeOf(before.serviceType, undefined, before.mode), state: 'BEFORE', enrollment: before };
-  const ended = [...list].reverse().find((e) => e.state === 'ENDED');
+  const ended = list.find((e) => e.state === 'ENDED'); // the list is newest first (LectureStart DESC)
   if (ended) return { mode: modeOf(ended.serviceType, undefined, ended.mode), state: 'ENDED', enrollment: ended };
   return { mode: 'general', state: 'NONE', enrollment: null };
 }
@@ -50,3 +52,7 @@ export function fmtDateTime(iso: string | null | undefined): string {
 }
 export function fmtDate(iso: string | null | undefined): string { return fmtDateTime(iso).slice(0, 10); }
 export const todayLabel = () => fmtDateTime(new Date().toISOString().replace('T', ' '));
+
+/** Learn link for a content row: the saved chapter (Progress.Chapter_Seq) of that enrollment, else the content page. */
+export const resumeLink = (r: { studySeq: number; lectureCode: string; resumeChapterSeq?: number | null }) =>
+  r.resumeChapterSeq && r.studySeq ? `/learn/${r.studySeq}/${r.resumeChapterSeq}?lectureCode=${encodeURIComponent(r.lectureCode)}` : `/courses/${encodeURIComponent(r.lectureCode)}`;
