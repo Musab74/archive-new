@@ -16,7 +16,7 @@ import { FormMessage } from '../../shared/ui/Form';
 import { assessment as copy, nav } from '../../shared/strings/ko';
 import { cx } from '../../shared/utils/format';
 import { qk } from '../my/queries';
-import { aqk, scopeFromSearch, usePreForm } from './queries';
+import { invalidateAfterSave, scopeFromSearch, usePreForm } from './queries';
 import { QuestionTable } from './QuestionTable';
 import { clearDraft, readDraft, writeDraft } from './draft';
 import { answersFor, isLikert, mergeAnswers, profileMissing, togglePick, type AnswerMap } from './validation';
@@ -53,7 +53,7 @@ export default function PreAssessmentPage() {
   const form = usePreForm(scope.studySeq, scope.grant);
   const crumbs = [{ label: nav.myRoom, to: '/my' }, { label: copy.crumbResult, to: '/my/assessment' }, { label: copy.crumbPre }];
   if (form.isPending) return <div className={styles.page} aria-busy="true"><Skeleton height={28} width="40%" /><Skeleton lines={6} /></div>;
-  if (form.isError) return <FormGate error={form.error} onRetry={() => void form.refetch()} crumbs={crumbs} />;
+  if (form.isError && !form.data) return <FormGate error={form.error} onRetry={() => void form.refetch()} crumbs={crumbs} />;
   return <PreFlow key={form.data.studySeq} form={form.data} grantFlag={scope.grant} crumbs={crumbs} />;
 }
 
@@ -86,7 +86,7 @@ function PreFlow({ form, grantFlag, crumbs }: { form: PreForm; grantFlag: boolea
   useEffect(() => { window.scrollTo({ top: 0 }); }, [step]);
 
   const invalidate = () => {
-    void qc.invalidateQueries({ queryKey: aqk.all });
+    void invalidateAfterSave(qc);
     void qc.invalidateQueries({ queryKey: qk.current });
     void qc.invalidateQueries({ queryKey: qk.status });
   };

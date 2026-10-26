@@ -92,7 +92,8 @@ function ReviewEditor({ review, crumbs }: { review: ReviewDetail; crumbs: { labe
   });
   const remove = useMutation({
     mutationFn: () => reviewsApi.remove(review.idx),
-    onSuccess: () => { refresh(); navigate('/my/reviews'); },
+    // the deleted row's own detail query is left alone (refetching it while this page is still mounted answers 404)
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['reviews'], predicate: (q) => !(q.queryKey[2] === 'one' && q.queryKey[3] === review.idx) }); navigate('/my/reviews'); },
     onError: (e) => { setConfirm(null); setMsg({ tone: 'error', text: isAppError(e) ? e.message : c.fail }); },
   });
   const onSubmit = (e: FormEvent) => {
