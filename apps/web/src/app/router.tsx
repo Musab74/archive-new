@@ -64,6 +64,10 @@ const MyAssessmentHub = lazy(() => import('../features/my/MyAssessmentHub'));
 const MyCompanyTraining = lazy(() => import('../features/my/MyCompanyTraining'));
 const MySurveys = lazy(() => import('../features/my/MySurveys'));
 const SatisfactionPage = lazy(() => import('../features/my/MySurveys').then((m) => ({ default: m.SatisfactionPage })));
+const MyReviewsPage = lazy(() => import('../features/reviews/MyReviewsPage'));
+const MyReviewDetailPage = lazy(() => import('../features/reviews/MyReviewsPage').then((m) => ({ default: m.MyReviewDetailPage })));
+const ReviewBoardPage = lazy(() => import('../features/reviews/ReviewBoardPage'));
+const ReviewBoardDetailPage = lazy(() => import('../features/reviews/ReviewBoardPage').then((m) => ({ default: m.ReviewBoardDetailPage })));
 const MyProfile = lazy(() => import('../features/my/MyProfile'));
 const MyNotices = lazy(() => import('../features/my/MyNotices'));
 const MyTickets = lazy(() => import('../features/my/MyTickets'));
@@ -125,6 +129,8 @@ export const router = createBrowserRouter([
               { path: 'cheating', element: lazyEl(<CheatingPage />) },
               { path: 'archiving', element: lazyEl(<ArchivingPage />) },
               { path: 'archiving/:id', element: lazyEl(<ArchivingDetailPage />) },
+              { path: 'reviews', element: lazyEl(<ReviewBoardPage />) },
+              { path: 'reviews/:idx', element: lazyEl(<ReviewBoardDetailPage />) },
             ],
           },
           { path: 'terms', element: lazyEl(<TermsPage />) },
@@ -182,6 +188,8 @@ export const router = createBrowserRouter([
               { path: 'my/assessment', element: lazyEl(<MyAssessmentHub />) },
               { path: 'my/company-training', element: lazyEl(<MyCompanyTraining />) },
               { path: 'my/surveys', element: lazyEl(<MySurveys />) },
+              { path: 'my/reviews', element: lazyEl(<MyReviewsPage />) },
+              { path: 'my/reviews/:idx', element: lazyEl(<MyReviewDetailPage />) },
               { path: 'my/profile', element: lazyEl(<MyProfile />) },
               { path: 'my/notices', element: lazyEl(<MyNotices />) },
               { path: 'my/tickets', element: lazyEl(<MyTickets />) },
