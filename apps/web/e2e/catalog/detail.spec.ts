@@ -18,6 +18,8 @@ const tab = (page: Page, name: string) => page.getByRole('tab', { name, exact: t
 
 test('detail meta, tags and tabs (guest)', async ({ page, db, checks }) => {
   const upload = await db.scalar<string>("SELECT DATE_FORMAT(UploadDate, '%Y.%m.%d') FROM Course WHERE LectureCode = 'E2EX01'");
+  // Course.cnt: opening a lesson in the player counts a view (player2.php), so other specs move it — read it, do not assume 120
+  const views = await db.scalar<number>("SELECT cnt FROM Course WHERE LectureCode = 'E2EX01'");
   await page.goto('/courses/E2EX01');
   await expect(page.getByRole('heading', { level: 1, name: '[E2E] 데이터 리터러시 실무' })).toBeVisible();
   await expect(meta(page, '콘텐츠 유형')).toHaveText('이러닝');
@@ -25,7 +27,7 @@ test('detail meta, tags and tabs (guest)', async ({ page, db, checks }) => {
   await expect(meta(page, '제작연도')).toHaveText('2026'); // YEAR(ContentsStart)
   await expect(meta(page, '업데이트')).toHaveText(upload!); // UploadDate, not RegDate
   await expect(meta(page, '교강사')).toHaveText('김데이터');
-  await expect(meta(page, '조회 수')).toHaveText('120');
+  await expect(meta(page, '조회 수')).toHaveText(Number(views).toLocaleString('ko-KR'));
   await expect(meta(page, '평점')).toHaveText('★ 5.0 (1)'); // 9602 (UseYN N) does not count
   await expect(meta(page, '분류')).toHaveText('직무역량');
   const tags = page.getByLabel('키워드', { exact: true });

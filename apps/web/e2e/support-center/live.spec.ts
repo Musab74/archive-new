@@ -35,21 +35,28 @@ test('my 실시간 강의실: window labels, 입장하기 only while open, entry
   await expect(items.nth(0).getByRole('button', { name: '입장하기' })).toHaveCount(0);
   await expect(items.nth(2).getByRole('button', { name: '입장하기' })).toHaveCount(0);
   await checks.checkpoint('live-mine');
-  const tab = page.context().waitForEvent('page');
+  // PC opens a new tab inside the click (header.html openLiveClass); phones navigate the same window (m_archive top_header.html
+  // location.href). The harness blocks the Live Class site either way, so the blocked request is the address the browser went to.
+  const phone = test.info().project.name === 'phone';
+  const tab = phone ? null : page.context().waitForEvent('page');
   const blocked = page.context().waitForEvent('requestfailed', (r) => r.url().startsWith('https://live.hrdeedu.co.kr'));
   const entry = page.waitForResponse((r) => r.url().endsWith('/v1/support/live/entry'));
   await items.nth(1).getByRole('button', { name: '입장하기' }).click();
-  const body = await (await entry).json();
-  expect(body.records).toBe(false);
-  const url = new URL(body.launchUrl);
+  const res = await entry;
+  expect(res.status()).toBe(200);
+  const body = await res.json().catch(() => null); // gone once the phone window has navigated
+  if (body) expect(body.records).toBe(false);
+  const req = await blocked;
+  expect(req.failure()?.errorText).toMatch(/BLOCKED_BY_CLIENT/);
+  const url = new URL(req.url());
   expect(`${url.origin}${url.pathname}`).toMatch(/^https:\/\/live\.hrdeedu\.co\.kr\/?$/); // header.html:217-219: LIVE_CLASS_URL + ?token=
   const claims = jwtPayload(url.searchParams.get('token')!);
   expect(claims).toMatchObject({ user_id: 'xsupport01', name: '서포일', email: 'xsupport01@e2e.example', member_type: 'M', role: 'member' });
   expect(Number(claims.exp) - Number(claims.iat)).toBe(7 * 24 * 3600);
-  // a new tab towards the Live Class (the harness blocks it: never loaded) and no "새 창을 열지 못했습니다" note
-  expect((await blocked).failure()?.errorText).toMatch(/BLOCKED_BY_CLIENT/);
-  await (await tab).close().catch(() => undefined);
-  await expect(page.getByText('새 창을 열지 못했습니다. 팝업 허용 상태를 확인한 뒤 다시 입장해 주세요.')).toHaveCount(0);
+  if (tab) {
+    await (await tab).close().catch(() => undefined);
+    await expect(page.getByText('새 창을 열지 못했습니다. 팝업 허용 상태를 확인한 뒤 다시 입장해 주세요.')).toHaveCount(0);
+  }
 });
 
 test('a learner without live enrolments sees the empty state', async ({ page, checks }) => {

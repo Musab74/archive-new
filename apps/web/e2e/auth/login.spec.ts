@@ -26,7 +26,9 @@ const ROUTED: Array<{ id: AccountId; heading: RegExp | string }> = [
 
 for (const { id, heading } of ROUTED) {
   const acct = ACCOUNTS[id];
-  test(`login routes ${id} (${acct.next}) to ${NEXT_PATH[acct.next!]}`, async ({ page, checks }) => {
+  test(`login routes ${id} (${acct.next}) to ${NEXT_PATH[acct.next!]}`, async ({ page, checks, db }) => {
+    // assessment/post.spec.ts consumes this POST grant when it runs first; the routing state needs it ACTIVE
+    if (id === 'e2egrant01') await db.exec("UPDATE AssessmentAccessGrant SET Status = 'ACTIVE', ConsumedAt = NULL, ExpiresAt = DATE_ADD(NOW(), INTERVAL 7 DAY) WHERE LearnerID = ? AND AssessmentType = 'POST'", [acct.id]);
     await hidePopups(page);
     await loginViaUi(page, id);
     await expect(page.locator('main').getByText(heading).first()).toBeVisible();

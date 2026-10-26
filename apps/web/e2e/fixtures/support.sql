@@ -1,15 +1,19 @@
 -- e2e fixtures for the 고객지원 area (support-center specs). Loaded after seed.sql (stack.mjs up / reseed).
 -- Ids 26000–26999, learner IDs xsupport…; every password is 1111 (SHA-256 hex below).
 
--- ===== learners (company A) =====
+-- ===== learners (own company below, not A/B) =====
 --   xsupport01  서포일  active ARC2026 (term 9301), 사전 done; 실시간 강의실 (E2ER01, ctype R) enrolments: open / before / ended;
 --               아카이빙 26001 (완료, file + answer) and 26002 (대기, file); writes 1:1 문의 / 아카이빙 / 학습자료 찜 in the specs
 --   xsupport02  서포이  active ARC2026 (term 9301), no live enrolment; review ★4 on E2EH01
 --   xsupport03  서포삼  active ARC2026 (term 9301); review ★1 on E2EH01 hidden by staff (UseYN N)
+-- Own company for this area's learners, so the manager specs (companies A/B, e2emgr01) see only their own fixtures
+INSERT INTO Company (idx, CompanyScale, CompanyCode, CompanyName, Ceo, Tel, EduManager, EduManagerPhone, SalesManager, RegDate, Del, SendSMS) VALUES
+ (26900, 'C', '2208826000', 'E2E 고객지원전용', '대표', '02-700-6900', NULL, NULL, 'sales01', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 300 DAY), '09:00:00'), 'N', 'Y');
+
 INSERT INTO Member (idx, MemberType, ID, Pwd, Name, BirthDay, Gender, Email, Mobile, CompanyCode, Depart, Position, Mandatory, Sending, Marketing, MemberOut, Sleep, UseYN, RegDate, EduManager, ResNo, TestID, ProtectID, PassChange) VALUES
- (26001, 'A', 'xsupport01', '0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c', '서포일', HEX(AES_ENCRYPT('1991-01-26', 'test-enc-key')), 'M', HEX(AES_ENCRYPT('xsupport01@e2e.example', 'test-enc-key')), HEX(AES_ENCRYPT('010-7726-2601', 'test-enc-key')), '2208800001', '데이터혁신팀', '사원', 'Y', 'Y', 'N', 'N', 'N', 'Y', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 100 DAY), '10:00:00'), 'N', '', 'N', 'Y', 'Y'),
- (26002, 'A', 'xsupport02', '0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c', '서포이', HEX(AES_ENCRYPT('1991-02-26', 'test-enc-key')), 'F', HEX(AES_ENCRYPT('xsupport02@e2e.example', 'test-enc-key')), HEX(AES_ENCRYPT('010-7726-2602', 'test-enc-key')), '2208800001', '데이터혁신팀', '사원', 'Y', 'Y', 'N', 'N', 'N', 'Y', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 100 DAY), '10:00:00'), 'N', '', 'N', 'Y', 'Y'),
- (26003, 'A', 'xsupport03', '0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c', '서포삼', HEX(AES_ENCRYPT('1991-03-26', 'test-enc-key')), 'M', HEX(AES_ENCRYPT('xsupport03@e2e.example', 'test-enc-key')), HEX(AES_ENCRYPT('010-7726-2603', 'test-enc-key')), '2208800001', '데이터혁신팀', '사원', 'Y', 'Y', 'N', 'N', 'N', 'Y', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 100 DAY), '10:00:00'), 'N', '', 'N', 'Y', 'Y');
+ (26001, 'A', 'xsupport01', '0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c', '서포일', HEX(AES_ENCRYPT('1991-01-26', 'test-enc-key')), 'M', HEX(AES_ENCRYPT('xsupport01@e2e.example', 'test-enc-key')), HEX(AES_ENCRYPT('010-7726-2601', 'test-enc-key')), '2208826000', '데이터혁신팀', '사원', 'Y', 'Y', 'N', 'N', 'N', 'Y', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 100 DAY), '10:00:00'), 'N', '', 'N', 'Y', 'Y'),
+ (26002, 'A', 'xsupport02', '0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c', '서포이', HEX(AES_ENCRYPT('1991-02-26', 'test-enc-key')), 'F', HEX(AES_ENCRYPT('xsupport02@e2e.example', 'test-enc-key')), HEX(AES_ENCRYPT('010-7726-2602', 'test-enc-key')), '2208826000', '데이터혁신팀', '사원', 'Y', 'Y', 'N', 'N', 'N', 'Y', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 100 DAY), '10:00:00'), 'N', '', 'N', 'Y', 'Y'),
+ (26003, 'A', 'xsupport03', '0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c', '서포삼', HEX(AES_ENCRYPT('1991-03-26', 'test-enc-key')), 'M', HEX(AES_ENCRYPT('xsupport03@e2e.example', 'test-enc-key')), HEX(AES_ENCRYPT('010-7726-2603', 'test-enc-key')), '2208826000', '데이터혁신팀', '사원', 'Y', 'Y', 'N', 'N', 'N', 'Y', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 100 DAY), '10:00:00'), 'N', '', 'N', 'Y', 'Y');
 UPDATE Member SET MandatoryDate = RegDate WHERE idx BETWEEN 26001 AND 26003;
 
 -- 실시간 강의실 terms on the live content E2ER01 (Course.ctype R): open (−5 … +25), not started (+10 … +40), ended (−60 … −30)
@@ -19,12 +23,12 @@ INSERT INTO LectureTerme (idx, LectureCode, LectureStart, LectureEnd, ServiceTyp
  (26003, 'E2ER01', DATE_SUB(CURDATE(), INTERVAL 60 DAY), DATE_SUB(CURDATE(), INTERVAL 30 DAY), 'R', 2026, 3, 1);
 
 INSERT INTO Study (Seq, LectureTerme_idx, LectureCode, ServiceType, ID, CompanyCode, LectureStart, LectureEnd, Progress, OpenChapter, StudyIP, Survey, PassOK, Price, rPrice, rPrice2, StudyEnd, InputID, InputDate, StudyKey, PackageRef, SalesID) VALUES
- (26101, 9301, 'ARC2026', 'A', 'xsupport01', '2208800001', DATE_SUB(CURDATE(), INTERVAL 20 DAY), DATE_ADD(CURDATE(), INTERVAL 70 DAY), 0, 1, '127.0.0.1', 'N', 'N', 300000, 270000, 30000, 'N', 'admin01', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 23 DAY), '10:00:00'), '9301_xsupport01', 1, 'sales01'),
- (26102, 26001, 'E2ER01', 'R', 'xsupport01', '2208800001', DATE_SUB(CURDATE(), INTERVAL 5 DAY), DATE_ADD(CURDATE(), INTERVAL 25 DAY), 0, 1, '127.0.0.1', 'N', 'N', 0, 0, 0, 'N', 'admin01', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 6 DAY), '10:00:00'), '26001_xsupport01', 0, 'sales01'),
- (26103, 26002, 'E2ER01', 'R', 'xsupport01', '2208800001', DATE_ADD(CURDATE(), INTERVAL 10 DAY), DATE_ADD(CURDATE(), INTERVAL 40 DAY), 0, 1, '127.0.0.1', 'N', 'N', 0, 0, 0, 'N', 'admin01', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 6 DAY), '10:00:00'), '26002_xsupport01', 0, 'sales01'),
- (26104, 26003, 'E2ER01', 'R', 'xsupport01', '2208800001', DATE_SUB(CURDATE(), INTERVAL 60 DAY), DATE_SUB(CURDATE(), INTERVAL 30 DAY), 0, 1, '127.0.0.1', 'N', 'N', 0, 0, 0, 'N', 'admin01', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 61 DAY), '10:00:00'), '26003_xsupport01', 0, 'sales01'),
- (26105, 9301, 'ARC2026', 'A', 'xsupport02', '2208800001', DATE_SUB(CURDATE(), INTERVAL 20 DAY), DATE_ADD(CURDATE(), INTERVAL 70 DAY), 0, 1, '127.0.0.1', 'N', 'N', 300000, 270000, 30000, 'N', 'admin01', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 23 DAY), '10:00:00'), '9301_xsupport02', 1, 'sales01'),
- (26106, 9301, 'ARC2026', 'A', 'xsupport03', '2208800001', DATE_SUB(CURDATE(), INTERVAL 20 DAY), DATE_ADD(CURDATE(), INTERVAL 70 DAY), 0, 1, '127.0.0.1', 'N', 'N', 300000, 270000, 30000, 'N', 'admin01', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 23 DAY), '10:00:00'), '9301_xsupport03', 1, 'sales01');
+ (26101, 9301, 'ARC2026', 'A', 'xsupport01', '2208826000', DATE_SUB(CURDATE(), INTERVAL 20 DAY), DATE_ADD(CURDATE(), INTERVAL 70 DAY), 0, 1, '127.0.0.1', 'N', 'N', 300000, 270000, 30000, 'N', 'admin01', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 23 DAY), '10:00:00'), '9301_xsupport01', 1, 'sales01'),
+ (26102, 26001, 'E2ER01', 'R', 'xsupport01', '2208826000', DATE_SUB(CURDATE(), INTERVAL 5 DAY), DATE_ADD(CURDATE(), INTERVAL 25 DAY), 0, 1, '127.0.0.1', 'N', 'N', 0, 0, 0, 'N', 'admin01', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 6 DAY), '10:00:00'), '26001_xsupport01', 0, 'sales01'),
+ (26103, 26002, 'E2ER01', 'R', 'xsupport01', '2208826000', DATE_ADD(CURDATE(), INTERVAL 10 DAY), DATE_ADD(CURDATE(), INTERVAL 40 DAY), 0, 1, '127.0.0.1', 'N', 'N', 0, 0, 0, 'N', 'admin01', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 6 DAY), '10:00:00'), '26002_xsupport01', 0, 'sales01'),
+ (26104, 26003, 'E2ER01', 'R', 'xsupport01', '2208826000', DATE_SUB(CURDATE(), INTERVAL 60 DAY), DATE_SUB(CURDATE(), INTERVAL 30 DAY), 0, 1, '127.0.0.1', 'N', 'N', 0, 0, 0, 'N', 'admin01', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 61 DAY), '10:00:00'), '26003_xsupport01', 0, 'sales01'),
+ (26105, 9301, 'ARC2026', 'A', 'xsupport02', '2208826000', DATE_SUB(CURDATE(), INTERVAL 20 DAY), DATE_ADD(CURDATE(), INTERVAL 70 DAY), 0, 1, '127.0.0.1', 'N', 'N', 300000, 270000, 30000, 'N', 'admin01', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 23 DAY), '10:00:00'), '9301_xsupport02', 1, 'sales01'),
+ (26106, 9301, 'ARC2026', 'A', 'xsupport03', '2208826000', DATE_SUB(CURDATE(), INTERVAL 20 DAY), DATE_ADD(CURDATE(), INTERVAL 70 DAY), 0, 1, '127.0.0.1', 'N', 'N', 300000, 270000, 30000, 'N', 'admin01', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 23 DAY), '10:00:00'), '9301_xsupport03', 1, 'sales01');
 
 INSERT INTO ArchiveAbilityResult1 (ID, abilityType, abilityDepth, col1, col2, col3, col4, regDate, Study_Seq) VALUES
  ('xsupport01', 'B', 'step03', 'W', '9001', '9004,9006', '9007', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 19 DAY), '08:30:00'), 26101);

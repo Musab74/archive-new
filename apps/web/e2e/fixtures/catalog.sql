@@ -2,23 +2,27 @@
 -- Ids 21000–21999, learner IDs xcatalog…; every password is 1111 (SHA-256 hex below). No visible course is added here, so the
 -- catalogue counts of seed.sql (7 contents, 5 categories, 3 keywords) stay as the README states.
 
--- ===== learners (company A) =====
+-- ===== learners (own company below, not A/B) =====
 --   xcatalog01  카탈일  active ARC2026 (term 9301), 사전 done; MemberContents profile Keyword1 사원 / Keyword2 9051 (데이터분석)
 --               → learning-home 추천 콘텐츠 reason "데이터분석 역량 강화를 위한 추천"
 --   xcatalog02  카탈이  TWO active ARC2026 enrollments (terms 9301 + 9305), 사전 not done → 학습하기 is refused with
 --               "현재 수강 차수의 사전역량진단을 먼저 완료해주세요." (enrollment_resolver ambiguity rule)
 --   xcatalog03  카탈삼  active ARC2026 (term 9301), 사전 done, no MemberContents, no study history (rating refused, 403)
+-- Own company for this area's learners, so the manager specs (companies A/B, e2emgr01) see only their own fixtures
+INSERT INTO Company (idx, CompanyScale, CompanyCode, CompanyName, Ceo, Tel, EduManager, EduManagerPhone, SalesManager, RegDate, Del, SendSMS) VALUES
+ (21900, 'C', '2208821000', 'E2E 카탈로그전용', '대표', '02-700-1900', NULL, NULL, 'sales01', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 300 DAY), '09:00:00'), 'N', 'Y');
+
 INSERT INTO Member (idx, MemberType, ID, Pwd, Name, BirthDay, Gender, Email, Mobile, CompanyCode, Depart, Position, Mandatory, Sending, Marketing, MemberOut, Sleep, UseYN, RegDate, EduManager, ResNo, TestID, ProtectID, PassChange) VALUES
- (21001, 'A', 'xcatalog01', '0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c', '카탈일', HEX(AES_ENCRYPT('1990-01-21', 'test-enc-key')), 'M', HEX(AES_ENCRYPT('xcatalog01@e2e.example', 'test-enc-key')), HEX(AES_ENCRYPT('010-7721-2101', 'test-enc-key')), '2208800001', '데이터혁신팀', '사원', 'Y', 'Y', 'N', 'N', 'N', 'Y', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 100 DAY), '10:00:00'), 'N', '', 'N', 'Y', 'Y'),
- (21002, 'A', 'xcatalog02', '0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c', '카탈이', HEX(AES_ENCRYPT('1990-02-21', 'test-enc-key')), 'F', HEX(AES_ENCRYPT('xcatalog02@e2e.example', 'test-enc-key')), HEX(AES_ENCRYPT('010-7721-2102', 'test-enc-key')), '2208800001', '데이터혁신팀', '사원', 'Y', 'Y', 'N', 'N', 'N', 'Y', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 100 DAY), '10:00:00'), 'N', '', 'N', 'Y', 'Y'),
- (21003, 'A', 'xcatalog03', '0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c', '카탈삼', HEX(AES_ENCRYPT('1990-03-21', 'test-enc-key')), 'M', HEX(AES_ENCRYPT('xcatalog03@e2e.example', 'test-enc-key')), HEX(AES_ENCRYPT('010-7721-2103', 'test-enc-key')), '2208800001', '데이터혁신팀', '사원', 'Y', 'Y', 'N', 'N', 'N', 'Y', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 100 DAY), '10:00:00'), 'N', '', 'N', 'Y', 'Y');
+ (21001, 'A', 'xcatalog01', '0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c', '카탈일', HEX(AES_ENCRYPT('1990-01-21', 'test-enc-key')), 'M', HEX(AES_ENCRYPT('xcatalog01@e2e.example', 'test-enc-key')), HEX(AES_ENCRYPT('010-7721-2101', 'test-enc-key')), '2208821000', '데이터혁신팀', '사원', 'Y', 'Y', 'N', 'N', 'N', 'Y', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 100 DAY), '10:00:00'), 'N', '', 'N', 'Y', 'Y'),
+ (21002, 'A', 'xcatalog02', '0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c', '카탈이', HEX(AES_ENCRYPT('1990-02-21', 'test-enc-key')), 'F', HEX(AES_ENCRYPT('xcatalog02@e2e.example', 'test-enc-key')), HEX(AES_ENCRYPT('010-7721-2102', 'test-enc-key')), '2208821000', '데이터혁신팀', '사원', 'Y', 'Y', 'N', 'N', 'N', 'Y', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 100 DAY), '10:00:00'), 'N', '', 'N', 'Y', 'Y'),
+ (21003, 'A', 'xcatalog03', '0ffe1abd1a08215353c233d6e009613e95eec4253832a761af28ff37ac5a150c', '카탈삼', HEX(AES_ENCRYPT('1990-03-21', 'test-enc-key')), 'M', HEX(AES_ENCRYPT('xcatalog03@e2e.example', 'test-enc-key')), HEX(AES_ENCRYPT('010-7721-2103', 'test-enc-key')), '2208821000', '데이터혁신팀', '사원', 'Y', 'Y', 'N', 'N', 'N', 'Y', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 100 DAY), '10:00:00'), 'N', '', 'N', 'Y', 'Y');
 UPDATE Member SET MandatoryDate = RegDate WHERE idx BETWEEN 21001 AND 21003;
 
 INSERT INTO Study (Seq, LectureTerme_idx, LectureCode, ServiceType, ID, CompanyCode, LectureStart, LectureEnd, Progress, OpenChapter, StudyIP, Survey, PassOK, Price, rPrice, rPrice2, StudyEnd, InputID, InputDate, StudyKey, PackageRef, SalesID) VALUES
- (21101, 9301, 'ARC2026', 'A', 'xcatalog01', '2208800001', DATE_SUB(CURDATE(), INTERVAL 20 DAY), DATE_ADD(CURDATE(), INTERVAL 70 DAY), 0, 1, '127.0.0.1', 'N', 'N', 300000, 270000, 30000, 'N', 'admin01', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 23 DAY), '10:00:00'), '9301_xcatalog01', 1, 'sales01'),
- (21102, 9301, 'ARC2026', 'A', 'xcatalog02', '2208800001', DATE_SUB(CURDATE(), INTERVAL 20 DAY), DATE_ADD(CURDATE(), INTERVAL 70 DAY), 0, 1, '127.0.0.1', 'N', 'N', 300000, 270000, 30000, 'N', 'admin01', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 23 DAY), '10:00:00'), '9301_xcatalog02', 1, 'sales01'),
- (21103, 9305, 'ARC2026', 'W', 'xcatalog02', '2208800001', DATE_SUB(CURDATE(), INTERVAL 15 DAY), DATE_ADD(CURDATE(), INTERVAL 75 DAY), 0, 1, '127.0.0.1', 'N', 'N', 100000, 0, 100000, 'N', 'admin01', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 18 DAY), '10:00:00'), '9305_xcatalog02', 1, 'sales01'),
- (21104, 9301, 'ARC2026', 'A', 'xcatalog03', '2208800001', DATE_SUB(CURDATE(), INTERVAL 20 DAY), DATE_ADD(CURDATE(), INTERVAL 70 DAY), 0, 1, '127.0.0.1', 'N', 'N', 300000, 270000, 30000, 'N', 'admin01', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 23 DAY), '10:00:00'), '9301_xcatalog03', 1, 'sales01');
+ (21101, 9301, 'ARC2026', 'A', 'xcatalog01', '2208821000', DATE_SUB(CURDATE(), INTERVAL 20 DAY), DATE_ADD(CURDATE(), INTERVAL 70 DAY), 0, 1, '127.0.0.1', 'N', 'N', 300000, 270000, 30000, 'N', 'admin01', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 23 DAY), '10:00:00'), '9301_xcatalog01', 1, 'sales01'),
+ (21102, 9301, 'ARC2026', 'A', 'xcatalog02', '2208821000', DATE_SUB(CURDATE(), INTERVAL 20 DAY), DATE_ADD(CURDATE(), INTERVAL 70 DAY), 0, 1, '127.0.0.1', 'N', 'N', 300000, 270000, 30000, 'N', 'admin01', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 23 DAY), '10:00:00'), '9301_xcatalog02', 1, 'sales01'),
+ (21103, 9305, 'ARC2026', 'W', 'xcatalog02', '2208821000', DATE_SUB(CURDATE(), INTERVAL 15 DAY), DATE_ADD(CURDATE(), INTERVAL 75 DAY), 0, 1, '127.0.0.1', 'N', 'N', 100000, 0, 100000, 'N', 'admin01', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 18 DAY), '10:00:00'), '9305_xcatalog02', 1, 'sales01'),
+ (21104, 9301, 'ARC2026', 'A', 'xcatalog03', '2208821000', DATE_SUB(CURDATE(), INTERVAL 20 DAY), DATE_ADD(CURDATE(), INTERVAL 70 DAY), 0, 1, '127.0.0.1', 'N', 'N', 300000, 270000, 30000, 'N', 'admin01', TIMESTAMP(DATE_SUB(CURDATE(), INTERVAL 23 DAY), '10:00:00'), '9301_xcatalog03', 1, 'sales01');
 
 -- 사전 done for xcatalog01 / xcatalog03 (same answer set as seed.sql's learners: profile + base questions 1–4)
 INSERT INTO ArchiveAbilityResult1 (ID, abilityType, abilityDepth, col1, col2, col3, col4, regDate, Study_Seq) VALUES

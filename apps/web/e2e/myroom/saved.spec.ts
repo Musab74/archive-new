@@ -24,6 +24,7 @@ test.beforeEach(async ({ db }) => {
 
 test('list newest first, 열람 제한 card, single 찜 해제 with confirm', async ({ page, checks, db }) => {
   await hidePopups(page);
+  const views = await db.scalar<number>("SELECT cnt FROM Course WHERE LectureCode = 'E2EX01'"); // player opens in other specs count views
   await openAs(page, ME, '/my/saved');
   const cards = page.locator('main ul > li');
   await expect(cards).toHaveCount(4);
@@ -34,7 +35,7 @@ test('list newest first, 열람 제한 card, single 찜 해제 with confirm', as
   await expect(cards.nth(1)).toContainText('[E2E] 1분 엑셀 단축키');
   await expect(cards.nth(3)).toContainText('[E2E] 데이터 리터러시 실무');
   await expect(cards.nth(3)).toContainText('평점 ★ 5'); // review 9601 (visible); the hidden 9602 does not count
-  await expect(cards.nth(3)).toContainText('조회 120');
+  await expect(cards.nth(3)).toContainText(`조회 ${Number(views).toLocaleString('ko-KR')}`);
   await checks.checkpoint('saved-list');
   // single remove (DELETE /my/saved/:code) after the confirm dialog
   await cards.nth(1).getByRole('button', { name: /찜 해제/ }).click();
