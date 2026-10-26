@@ -3,12 +3,16 @@ import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import styles from './Auth.module.css';
 import { useSession } from '../../shared/auth/useSession';
 import { routeForNext, safeNext } from '../../shared/auth/roles';
+import { hasPasswordSkip } from '../../shared/auth/accountRules';
+import { continueAfterStep } from './FirstTermsPage';
 import { isAppError } from '../../shared/api/client';
 import { Button } from '../../shared/ui/Button';
 import { Checkbox, FormField, FormMessage, Input } from '../../shared/ui/Form';
 import { auth as copy, errors as errorCopy } from '../../shared/strings/ko';
 
 const REMEMBER_KEY = 'auth.rememberId.v1';
+/** include/include_function.php $MobileAgent: the browsers the PHP treats as mobile (LoginHistory.Device 'Mobile'). */
+const MOBILE_AGENT = /(iPod|iPhone|Android|BlackBerry|SymbianOS|SCH-M\d+|Opera Mini|Windows CE|Nokia|SonyEricsson|webOS|PalmOS)/;
 const readRemembered = () => { try { return localStorage.getItem(REMEMBER_KEY) ?? ''; } catch { return ''; } };
 
 function messageFor(code: string, fallback: string): string {
@@ -18,11 +22,16 @@ function messageFor(code: string, fallback: string): string {
     case 'WITHDRAWN': return copy.login.withdrawn;
     case 'OTHER_SESSION': return copy.login.otherSession;
     case 'WRITE_DISABLED': return copy.login.writeDisabled;
+    case 'CONFLICT': return copy.login.tooMany;
     default: return errorCopy.byCode[code] ?? fallback;
   }
 }
 
-/** AR-20 05 로그인: id/password, 아이디 저장, find/signup links; routes by `next` from POST /auth/login. */
+/**
+ * AR-20 05 로그인 = public/member/login.html → POST /auth/login (login_ok.php): id/password, 아이디 저장, find/signup links;
+ * routes by `next` (terms → password → 진단 → 나의 학습실 for test ids → home). A learner who chose 「나중에 변경하기」 skips the
+ * password step like the mobile SkipPasswordChange cookie.
+ */
 export default function LoginPage() {
   const { login, isAuthed, phase } = useSession();
   const navigate = useNavigate();
@@ -41,13 +50,17 @@ export default function LoginPage() {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!id.trim() || !password) { setError(copy.login.error); return; }
+    // function.js LoginSubmit(): separate alerts for a missing id / password.
+    if (!id.trim()) { setError(copy.login.idRequired); return; }
+    if (!password) { setError(copy.login.passwordRequired); pwRef.current?.focus(); return; }
     setBusy(true); setError('');
     try {
-      const res = await login({ id: id.trim(), password, device: /Mobi|Android/i.test(navigator.userAgent) ? 'MOBILE' : 'PC' });
+      const res = await login({ id: id.trim(), password, device: MOBILE_AGENT.test(navigator.userAgent) ? 'MOBILE' : 'PC' });
       try { if (remember) localStorage.setItem(REMEMBER_KEY, id.trim()); else localStorage.removeItem(REMEMBER_KEY); } catch { /* ignore */ }
-      const target = res.next === 'home' ? (next ?? '/home') : routeForNext(res.next);
-      navigate(res.next === 'home' ? target : `${target}${next ? `?next=${encodeURIComponent(next)}` : ''}`, { replace: true });
+      if (res.next === 'password' && hasPasswordSkip(res.user.id)) { await continueAfterStep(navigate, res.user.id, next); return; }
+      // login_ok.php keeps TopLogin (stay on the page the learner came from) for home and test ids; the other steps redirect.
+      const target = res.next === 'home' || res.next === 'classroom' ? (next ?? routeForNext(res.next)) : routeForNext(res.next);
+      navigate(res.next === 'home' || res.next === 'classroom' ? target : `${target}${next ? `?next=${encodeURIComponent(next)}` : ''}`, { replace: true });
     } catch (err) {
       setError(isAppError(err) ? messageFor(err.code, err.message) : errorCopy.network);
       setBusy(false);

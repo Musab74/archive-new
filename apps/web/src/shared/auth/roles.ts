@@ -18,6 +18,7 @@ export function routeForNext(next: string, fallback = '/home'): string {
     case 'password': return '/auth/password-change';
     case 'assessment-grant': return '/my/assessment';
     case 'pre-assessment': return '/assessment/pre';
+    case 'classroom': return '/my'; // login_ok.php:81-82 테스트 아이디 → 나의 학습실
     case 'home': return fallback;
     default: return fallback;
   }

@@ -45,9 +45,12 @@ export const EventSchema = z.object({ idx: z.number().int(), title: z.string(), 
 export type EventItem = z.infer<typeof EventSchema>;
 export const InquiryResultSchema = z.object({ idx: z.number().int().optional(), ok: z.boolean().optional() });
 
-export const IdCheckSchema = z.object({ available: z.boolean() });
-export const FindIdResultSchema = z.object({ ids: z.array(z.object({ id: z.string(), regDate: z.string().nullable().optional() })).default([]) });
-export const PasswordResetResultSchema = z.object({ sent: z.boolean(), tempPassword: z.string().optional() });
+export const IdCheckSchema = z.object({ available: z.boolean(), reason: z.string().optional() });
+export const RecomIdCheckSchema = z.object({ exists: z.boolean(), message: z.string() });
+export const CompanyHitSchema = z.object({ companyCode: z.string(), companyName: z.string(), scale: z.string().nullable().optional(), label: z.string().optional() });
+/** 아이디 찾기 / 비밀번호 찾기 replies: the id, 인증번호 and 임시 비밀번호 only ever go to the registered mobile. */
+export const AccountSmsResultSchema = z.object({ sent: z.boolean(), message: z.string(), code: z.string().optional(), challenge: z.string().optional(), expiresIn: z.number().optional(), ok: z.boolean().optional() });
+export const RoutingSchema = z.object({ next: z.string(), url: z.string() });
 export const RoadmapStepSchema = z.object({ order: z.number().int(), lectureCode: z.string().nullable().optional(), title: z.string(), reason: z.string().nullable().optional(), minutes: z.number().int().nullable().optional(), ctype: z.string().nullable().optional() });
 export const RoadmapSchema = z.object({ summary: z.string().nullable().optional(), items: z.array(RoadmapStepSchema) });
 export type Roadmap = z.infer<typeof RoadmapSchema>;

@@ -104,13 +104,21 @@ export function registerSessionHooks(hooks: { restored: (payload: unknown) => vo
   return () => { onSessionRestored = null; onSessionLost = null; };
 }
 
+let lastRefreshFailure: string | null = null;
+/** Error code of the last failed learner refresh (OTHER_SESSION = the account was signed in elsewhere). */
+export const lastRefreshFailureCode = (): string | null => lastRefreshFailure;
+
 /** POST /auth/refresh exactly once for concurrent callers; resolves true when a new access token was stored. */
 export function refreshAccessToken(): Promise<boolean> {
   if (refreshInFlight) return refreshInFlight;
   refreshInFlight = (async () => {
     try {
       const res = await fetch(buildUrl('/auth/refresh'), { method: 'POST', credentials: 'include', headers: { Accept: 'application/json' } });
-      if (!res.ok) { tokenStore.clear(); onSessionLost?.(); return false; }
+      if (!res.ok) {
+        lastRefreshFailure = ((await res.json().catch(() => null)) as { error?: { code?: string } } | null)?.error?.code ?? 'SESSION_EXPIRED';
+        tokenStore.clear(); onSessionLost?.(); return false;
+      }
+      lastRefreshFailure = null;
       const data = (await res.json()) as { accessToken?: string; expiresIn?: number };
       if (!data?.accessToken) { tokenStore.clear(); onSessionLost?.(); return false; }
       tokenStore.set(data.accessToken, data.expiresIn);

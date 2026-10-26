@@ -9,13 +9,13 @@ import { Button } from '../../shared/ui/Button';
 import { StateBlock } from '../../shared/ui/StateBlock';
 import { Skeleton } from '../../shared/ui/Skeleton';
 import { TypeLabel } from '../../shared/ui/Pill';
-import { Input, FormField, FormMessage } from '../../shared/ui/Form';
+import { Input, FormField } from '../../shared/ui/Form';
 import { my as copy, learnHome, auth as authCopy } from '../../shared/strings/ko';
 import { modeOf, useEnrollments } from './queries';
 import { cx } from '../../shared/utils/format';
+import { isPhpEmail } from '../../shared/auth/accountRules';
 
 const c = copy.profile;
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** AR-18 회원·이용정보: GET/PATCH /members/me, consent toggles (POST /members/me/terms), company, 이용건 table. */
 export default function MyProfile() {
@@ -27,14 +27,15 @@ export default function MyProfile() {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<ProfilePatch>({});
   const [err, setErr] = useState<string | null>(null);
-  useEffect(() => { if (me.data) setForm({ email: me.data.email ?? '', mobile: me.data.mobile ?? '', tel: me.data.tel ?? '', depart: me.data.depart ?? '', position: me.data.position ?? '', address01: me.data.address01 ?? '', address02: me.data.address02 ?? '', zipcode: me.data.zipcode ?? '' }); }, [me.data]);
+  // AR-18 변경 = 이메일 only: the PHP 회원정보 page keeps 휴대폰 (본인인증 정보), 소속, 부서, 직위 read-only.
+  useEffect(() => { if (me.data) setForm({ email: me.data.email ?? '' }); }, [me.data]);
   const save = useMutation({ mutationFn: (p: ProfilePatch) => myRoomApi.updateMe(p), onSuccess: (d) => { qc.setQueryData(['members', 'me'], d); setEditing(false); toast(c.saved, { tone: 'ok' }); }, onError: (e) => setErr(isAppError(e) ? e.message : c.saveFail) });
   const consent = useMutation({ mutationFn: (b: { mandatory: boolean; sending: boolean; marketing: 'N' | 'E' | 'S' | 'Y' }) => myRoomApi.terms(b), onSuccess: () => { toast(c.consentSaved, { tone: 'ok' }); void qc.invalidateQueries({ queryKey: ['members', 'me'] }); }, onError: () => toast(c.consentFail, { tone: 'danger' }) });
 
   if (me.isError && isAppError(me.error) && me.error.isAuth) return <div className={styles.page}><StateBlock code="SESSION_EXPIRED" /></div>;
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (form.email && !EMAIL.test(form.email)) { setErr(c.emailInvalid); return; }
+    if (!form.email?.trim() || !isPhpEmail(form.email.trim())) { setErr(c.emailInvalid); return; }
     setErr(null);
     const patch: ProfilePatch = {};
     (Object.keys(form) as (keyof ProfilePatch)[]).forEach((k) => { const v = (form[k] ?? '').trim(); if (v !== ((me.data?.[k as keyof typeof me.data] as string | null | undefined) ?? '')) patch[k] = v; });
@@ -56,7 +57,7 @@ export default function MyProfile() {
       {m?.mustChangePassword ? <div className={styles.alert} role="alert"><div><b>{c.mustChange}</b></div><Button size="xs" square to="/auth/password-change">{authCopy.passwordChange.crumb}</Button></div> : null}
 
       <section className={styles.card} aria-labelledby="pf-h">
-        <div className={styles.cardHead}><h2 id="pf-h">{c.memberTitle}</h2>{m ? <Button variant="secondary" size="xs" square onClick={() => { setEditing((v) => !v); setErr(null); }}>{editing ? c.editCancel : c.edit}</Button> : null}</div>
+        <div className={styles.cardHead}><h2 id="pf-h">{c.memberTitle}</h2>{m ? <Button variant="secondary" size="xs" square onClick={() => { setEditing((v) => !v); setErr(null); }}>{editing ? c.editCancel : c.emailChange}</Button> : null}</div>
         {me.isPending ? <Skeleton lines={5} /> : me.isError ? <StateBlock code="ACCESS_ERROR" title={c.errorTitle} body={c.errorBody} onRetry={() => void me.refetch()} /> : !editing ? (
           <table className={styles.table}>
             <thead><tr><th scope="col">{c.cols.item}</th><th scope="col">{c.cols.value}</th><th scope="col">{c.cols.manage}</th></tr></thead>
@@ -64,7 +65,7 @@ export default function MyProfile() {
               <tr><th scope="row">{c.id}</th><td>{m!.id}</td><td><span className={styles.note}>{c.idNote}</span></td></tr>
               <tr><th scope="row">{c.name}</th><td>{m!.name}</td><td><span className={styles.note}>{c.nameNote}</span></td></tr>
               <tr><th scope="row">{c.password}</th><td>••••••••</td><td><Link className="text-link" to="/auth/password-change">{c.passwordChange}</Link></td></tr>
-              <tr><th scope="row">{c.mobile}</th><td>{m!.mobile || '—'}</td><td><span className={styles.note}>{c.mobileNote}</span></td></tr>
+              <tr><th scope="row">{c.mobile}</th><td>{m!.mobile || '—'}</td><td><span className={styles.note}>{c.mobileNote}</span><span className={styles.sub}>{c.mobileHelp}</span></td></tr>
               <tr><th scope="row">{c.email}</th><td>{m!.email || '—'}</td><td><button type="button" className="text-link" onClick={() => setEditing(true)}>{c.emailChange}</button></td></tr>
               <tr><th scope="row">{c.depart} / {c.position}</th><td>{[m!.depart, m!.position].filter(Boolean).join(' / ') || '—'}</td><td /></tr>
               <tr><th scope="row">{c.company}</th><td>{m!.companyName ?? c.companyNone}</td><td /></tr>
@@ -72,11 +73,8 @@ export default function MyProfile() {
           </table>
         ) : (
           <form onSubmit={submit} noValidate className={styles.grid2}>
-            <FormField label={c.email} htmlFor="pf-email" error={err && form.email && !EMAIL.test(form.email) ? err : undefined}><Input id="pf-email" type="email" value={form.email ?? ''} invalid={!!err && !!form.email && !EMAIL.test(form.email)} onChange={(e) => setForm({ ...form, email: e.target.value })} /></FormField>
-            <FormField label={c.mobile} htmlFor="pf-mobile"><Input id="pf-mobile" value={form.mobile ?? ''} onChange={(e) => setForm({ ...form, mobile: e.target.value })} /></FormField>
-            <FormField label={c.depart} htmlFor="pf-depart"><Input id="pf-depart" value={form.depart ?? ''} onChange={(e) => setForm({ ...form, depart: e.target.value })} /></FormField>
-            <FormField label={c.position} htmlFor="pf-pos"><Input id="pf-pos" value={form.position ?? ''} onChange={(e) => setForm({ ...form, position: e.target.value })} /></FormField>
-            <div style={{ gridColumn: '1 / -1' }}><FormMessage>{err && !(form.email && !EMAIL.test(form.email)) ? err : null}</FormMessage><div className="action-row"><Button square type="submit" loading={save.isPending}>{c.save}</Button><Button variant="secondary" square onClick={() => setEditing(false)}>{c.editCancel}</Button></div></div>
+            <FormField label={c.email} htmlFor="pf-email" error={err ?? undefined}><Input id="pf-email" type="email" value={form.email ?? ''} invalid={!!err} maxLength={100} onChange={(e) => setForm({ ...form, email: e.target.value })} /></FormField>
+            <div style={{ gridColumn: '1 / -1' }}><div className="action-row"><Button square type="submit" loading={save.isPending}>{c.save}</Button><Button variant="secondary" square onClick={() => { setEditing(false); setErr(null); }}>{c.editCancel}</Button></div></div>
           </form>
         )}
       </section>
@@ -85,8 +83,8 @@ export default function MyProfile() {
         <section className={styles.card} aria-labelledby="cs-h">
           <h2 id="cs-h">{c.consentsTitle}</h2>
           <div className={styles.toggle}><span>{c.consentMandatory}</span><TypeLabel tone={consents?.mandatory ? 'mint' : 'gray'} small>{consents?.mandatory ? '동의' : '미동의'}</TypeLabel></div>
-          <div className={styles.toggle}><span>{c.consentSending}</span><button type="button" role="switch" aria-checked={!!consents?.sending} aria-label={c.consentSending} className={styles.switch} disabled={consent.isPending} onClick={() => toggle('sending')}><i /></button></div>
-          <div className={styles.toggle}><span>{c.consentMarketing}</span><button type="button" role="switch" aria-checked={consents?.marketing !== 'N'} aria-label={c.consentMarketing} className={styles.switch} disabled={consent.isPending} onClick={() => toggle('marketing')}><i /></button></div>
+          <div className={styles.toggle}><span>{c.consentSending}<span className={styles.sub}>{c.consentSendingWarn}</span></span><button type="button" role="switch" aria-checked={!!consents?.sending} aria-label={c.consentSending} className={styles.switch} disabled={consent.isPending} onClick={() => toggle('sending')}><i /></button></div>
+          <div className={styles.toggle}><span>{c.consentMarketing}{consents && consents.marketing !== 'N' ? <span className={styles.sub}>{c.marketingLabel[consents.marketing] ?? ''}</span> : null}</span><button type="button" role="switch" aria-checked={!!consents && consents.marketing !== 'N'} aria-label={c.consentMarketing} className={styles.switch} disabled={consent.isPending} onClick={() => toggle('marketing')}><i /></button></div>
           <p className={styles.note} style={{ marginTop: 10 }}>{c.consentNote}</p>
         </section>
       ) : null}
