@@ -1,0 +1,34 @@
+.page{padding:28px var(--section-x) 48px;display:flex;flex-direction:column;gap:18px;min-width:0}
+.head h1{font-size:26px;letter-spacing:-.8px;margin:8px 0 6px}
+.head p{margin:0;font-size:14px}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.count{font-size:14px;color:var(--c-text)}
+.count b{color:var(--c-primary)}
+.filter{display:inline-flex;align-items:center;gap:10px;font-size:13px;margin-left:10px}
+.filter strong{color:var(--c-primary);font-size:16px}
+.search{display:flex;gap:8px;min-width:260px}
+.table{width:100%;border-collapse:collapse;font-size:14px;border-top:2px solid var(--c-ink)}
+.table th,.table td{border-bottom:1px solid var(--c-line-2);padding:12px 8px;text-align:center}
+.table thead th{background:var(--c-soft);font-size:12px;color:var(--c-muted)}
+.table td.left{text-align:left}
+.table a{color:var(--c-ink)}
+.stars{color:var(--c-star,var(--c-accent-warm));letter-spacing:1px;white-space:nowrap}
+.stars span{color:var(--c-line)}
+.view{border-top:2px solid var(--c-ink)}
+.viewHead{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:16px 8px;border-bottom:1px solid var(--c-line-2)}
+.viewHead h2{font-size:18px;margin:0}
+.meta{display:flex;gap:14px;font-size:13px;color:var(--c-muted)}
+.meta b{color:var(--c-text);margin-left:4px;font-weight:var(--fw-regular)}
+.viewInfo{display:grid;grid-template-columns:100px 1fr 100px 1fr;border-bottom:1px solid var(--c-line-2);font-size:14px}
+.viewInfo dt{background:var(--c-soft);padding:12px;font-weight:var(--fw-bold);color:var(--c-muted)}
+.viewInfo dd{margin:0;padding:12px}
+.contents{padding:22px 8px;white-space:pre-line;line-height:1.8;font-size:14px;border-bottom:1px solid var(--c-line-2)}
+.actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.form{display:flex;flex-direction:column;gap:14px}
+.note{font-size:12px;color:var(--c-muted);margin:0}
+@media (max-width:768px){
+  .page{padding:18px var(--gutter) 32px}
+  .mh{display:none}
+  .viewInfo{grid-template-columns:90px 1fr}
+}
+.inLayout{padding:8px 0 0}
