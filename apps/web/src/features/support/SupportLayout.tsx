@@ -5,10 +5,10 @@ import { Breadcrumb } from '../../shared/ui/Breadcrumb';
 import { Button } from '../../shared/ui/Button';
 import { support as copy, nav } from '../../shared/strings/ko';
 
-/** AR-19 고객지원 shell: breadcrumb, hero, tab bar, outlet, contact strip. */
+/** AR-19 고객지원 shell: breadcrumb, hero, tab bar, outlet, contact strip (원격지원 · 의심사례 제보 · 계정찾기). */
 export default function SupportLayout() {
   const { pathname } = useLocation();
-  const current = copy.tabs.find((t) => pathname.startsWith(t.to))?.key ?? 'guide';
+  const current = copy.tabs.find((t) => pathname.startsWith(t.to))?.key ?? (pathname.startsWith('/support/inquiry') ? 'inquiry' : 'guide');
   const tabItems = copy.tabs.map((t) => ({ key: t.key, label: t.label, to: t.to }));
   return (
     <>
@@ -27,8 +27,9 @@ export default function SupportLayout() {
           <strong>{copy.contact.phone}</strong>
           <p>{copy.contact.hours}<br />{copy.contact.email}</p>
           <div className={styles.links}>
-            <Button variant="secondary" square size="sm" to="/support/remote">{copy.remote.title}</Button>
-            <Button variant="secondary" square size="sm" to="/auth/find-id">로그인·계정찾기</Button>
+            <Button variant="secondary" square size="sm" to="/support/remote">{copy.remote.cta}</Button>
+            <Button variant="secondary" square size="sm" to="/support/cheating?tab=report">{copy.contact.report}</Button>
+            <Button variant="secondary" square size="sm" to="/auth/find-id">{copy.contact.account}</Button>
           </div>
         </div>
       </div>
