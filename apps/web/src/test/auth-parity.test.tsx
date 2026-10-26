@@ -13,6 +13,7 @@ import { passwordChangeError } from '../features/auth/PasswordChangePage';
 import { writeConsent, emptyConsents } from '../features/auth/signupState';
 import { marketingCode } from '../shared/api/endpoints/members';
 import { fillLegal, PRIVACY_SECTIONS, TERMS_SECTIONS } from '../features/legal/legalText';
+import { withSessionFlags } from '../app/providers/SessionProvider';
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 type Handler = (url: string, init: RequestInit) => Response | undefined;
@@ -220,5 +221,107 @@ describe('member pages', () => {
     expect(JSON.parse(String((patch[1] as RequestInit).body))).toEqual({ email: 'new@hrdeedu.co.kr' });
     expect(screen.getByText('이메일')).toBeInTheDocument();
   });
+
+  it('signup info: a successful join_ok.php answer lands on 가입 완료 (not back on the terms step)', async () => {
+    writeConsent({ ...emptyConsents(), terms: true, privacy: true, thirdParty: true });
+    stubFetch(
+      (u) => (u.includes('/members/id-check') ? json({ available: true }) : undefined),
+      (u) => (u.includes('/members/signup') ? json({ ok: true, id: 'hong01', idx: 1 }) : undefined),
+    );
+    const memory = mount('/auth/signup/info');
+    fireEvent.change(await screen.findByLabelText(/^아이디/), { target: { value: 'hong01' } });
+    fireEvent.click(screen.getByRole('button', { name: '중복 확인' }));
+    expect(await screen.findByText('사용 가능한 아이디입니다.')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/^비밀번호$|^비밀번호\*/), { target: { value: 'Passw0rd!x' } });
+    fireEvent.change(screen.getByLabelText(/^비밀번호 확인/), { target: { value: 'Passw0rd!x' } });
+    fireEvent.change(screen.getByLabelText(/^이름/), { target: { value: '홍길동' } });
+    fireEvent.change(screen.getByLabelText(/^휴대폰/), { target: { value: '01012345678' } });
+    fireEvent.change(screen.getByLabelText(/^이메일/), { target: { value: 'hong@hrdeedu.co.kr' } });
+    fireEvent.click(screen.getByRole('button', { name: '가입하기' }));
+    expect(await screen.findByText('회원가입이 완료되었습니다.')).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(memory.state.location.pathname).toBe('/auth/signup/complete');
+    expect(sessionStorage.getItem('signup.consent.v2')).toBeNull();
+  });
+
+  it('signup info: 추천인 ID 확인 shows the answer even after the empty-field message', async () => {
+    writeConsent({ ...emptyConsents(), terms: true, privacy: true, thirdParty: true });
+    stubFetch((u) => (u.includes('/members/recom-id-check') ? json({ exists: false, message: '입력하신 추천인 ID가 없습니다.' }) : undefined));
+    mount('/auth/signup/info');
+    fireEvent.click(await screen.findByRole('button', { name: '추천인 ID 확인' }));
+    expect(await screen.findByText('추천인 ID를 입력하세요.')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/^추천인 ID/), { target: { value: 'nobody99' } });
+    fireEvent.click(screen.getByRole('button', { name: '추천인 ID 확인' }));
+    expect(await screen.findByText('입력하신 추천인 ID가 없습니다.')).toBeInTheDocument();
+    expect(screen.queryByText('추천인 ID를 입력하세요.')).not.toBeInTheDocument();
+  });
 });
 
+describe('login / session (login_ok.php, logout.php)', () => {
+  beforeEach(() => { localStorage.clear(); sessionStorage.clear(); tokenStore.clear(); });
+  afterEach(() => { vi.unstubAllGlobals(); tokenStore.clear(); });
+  const user = { id: 'pw01', name: '변경일', memberType: 'A', eduManager: false, testId: false, companyCode: null };
+
+  it('refused logins show the login_ok.php alert the API answers', async () => {
+    const answers = [
+      { code: 'DORMANT', status: 403, message: '현재 휴면계정 상태입니다. [휴면계정 복구] 메뉴를 통해 계정을 복구하세요.' },
+      { code: 'WITHDRAWN', status: 403, message: '탈퇴한 회원입니다.' },
+      { code: 'INVALID_CREDENTIALS', status: 401, message: '아이디 또는 비밀번호를 잘못 입력했습니다.' },
+    ];
+    let n = 0;
+    stubFetch((u) => (u.endsWith('/auth/login') ? json({ error: { code: answers[n]!.code, message: answers[n]!.message } }, answers[n++]!.status) : undefined));
+    mount('/auth/login');
+    fireEvent.change(await screen.findByLabelText('아이디'), { target: { value: 'someone01' } });
+    fireEvent.change(screen.getByLabelText('비밀번호'), { target: { value: '1111' } });
+    for (const a of answers) {
+      fireEvent.click(screen.getByRole('button', { name: '로그인' }));
+      expect(await screen.findByText(a.message)).toBeInTheDocument();
+    }
+  });
+
+  it('logout from a protected page goes to the main page, not to the login form', async () => {
+    stubFetch(
+      (u) => (u.includes('/auth/refresh') ? json({ accessToken: 'a1', expiresIn: 900, user: { ...user, flags: { termsPending: false, mustChangePassword: false } }, next: 'home' }) : undefined),
+      (u) => (u.endsWith('/auth/me') ? json(user) : undefined),
+      (u) => (u.endsWith('/auth/logout') ? json({ ok: true }) : undefined),
+    );
+    const memory = mount('/my/profile');
+    const out = await screen.findAllByRole('button', { name: '로그아웃' });
+    fireEvent.click(out[0]!);
+    expect(await screen.findByText('로그아웃되었습니다. 서버에 저장된 학습기록은 유지됩니다.')).toBeInTheDocument();
+    await waitFor(() => expect(memory.state.location.pathname).toBe('/'));
+    expect(memory.state.location.search).toBe('');
+  });
+
+  it('logout with an expired access token renews it and repeats the logout (the refresh cookie gets cleared)', async () => {
+    let refreshes = 0;
+    const fn = stubFetch(
+      (u) => (u.includes('/auth/refresh') ? json({ accessToken: `a${++refreshes}`, expiresIn: 900, user: { ...user, flags: { termsPending: false, mustChangePassword: false } }, next: 'home' }) : undefined),
+      (u) => (u.endsWith('/auth/me') ? json(user) : undefined),
+      (u, init) => (u.endsWith('/auth/logout') ? ((init.headers as Record<string, string>).Authorization === 'Bearer a1' ? json({ error: { code: 'UNAUTHENTICATED', message: 'x' } }, 401) : json({ ok: true })) : undefined),
+    );
+    const memory = mount('/my/profile');
+    fireEvent.click((await screen.findAllByRole('button', { name: '로그아웃' }))[0]!);
+    await waitFor(() => expect(memory.state.location.pathname).toBe('/'));
+    const logouts = fn.mock.calls.filter(([u]) => String(u).endsWith('/auth/logout')).map(([, i]) => ((i as RequestInit).headers as Record<string, string>).Authorization);
+    expect(logouts).toEqual(['Bearer a1', 'Bearer a2']);
+  });
+
+  it('a restored session keeps the 임시 비밀번호 flag (GET /auth/me has no flags): the password page offers 나중에 변경하기', async () => {
+    stubFetch(
+      (u) => (u.includes('/auth/refresh') ? json({ accessToken: 'a1', expiresIn: 900, user: { ...user, flags: { termsPending: false, mustChangePassword: true } }, next: 'password' }) : undefined),
+      (u) => (u.endsWith('/auth/me') ? json(user) : undefined),
+    );
+    mount('/auth/password-change');
+    expect(await screen.findByRole('button', { name: '나중에 변경하기' })).toBeInTheDocument();
+    expect(screen.getByText('처음 안내받은 비밀번호 또는 문자로 받은 임시 비밀번호를 입력해 주세요.')).toBeInTheDocument();
+  });
+
+  it('withSessionFlags: keeps the refresh flags for the same learner, defaults otherwise', () => {
+    const flags = { termsPending: true, mustChangePassword: true };
+    expect(withSessionFlags(user, { ...user, flags }).flags).toEqual(flags);
+    expect(withSessionFlags(user, { ...user, id: 'other', flags }).flags).toEqual({ termsPending: false, mustChangePassword: false });
+    expect(withSessionFlags({ ...user, flags: { termsPending: false, mustChangePassword: false } }, { ...user, flags }).flags).toEqual({ termsPending: false, mustChangePassword: false });
+    expect(withSessionFlags(user, null).flags).toEqual({ termsPending: false, mustChangePassword: false });
+  });
+});

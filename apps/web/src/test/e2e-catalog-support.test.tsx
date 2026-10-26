@@ -12,7 +12,7 @@ import { CtaBand } from '../features/home/editorial/CtaBand';
 import { RubyWidget, RUBY_OPEN_EVENT } from '../app/layouts/chatbot/RubyWidget';
 import { home } from '../shared/strings/ko';
 import { SessionContext, type SessionState } from '../shared/auth/useSession';
-import LivePage, { openLiveTab } from '../features/live/LivePage';
+import LivePage from '../features/live/LivePage';
 import { DesignProvider } from '../app/providers/DesignProvider';
 
 const authed = { phase: 'authed', user: { id: 'xcatalog01', name: '카탈일' }, roles: ['learner'], isAuthed: true, login: vi.fn(), logout: vi.fn(), refresh: vi.fn(), patchUser: vi.fn() } as unknown as SessionState;
@@ -58,17 +58,9 @@ describe('라이브 클래스 입장 (header.html openLiveClass → new tab)', (
   const specOpen = (win: object) => vi.fn((_u?: string | URL, _t?: string, features?: string) => (features?.includes('noopener') ? null : win) as Window | null);
   afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
-  it('openLiveTab returns the new tab and cuts its opener', () => {
-    const win = { opener: {} as unknown };
-    const open = specOpen(win);
-    vi.spyOn(window, 'open').mockImplementation(open);
-    expect(openLiveTab('https://live.hrdeedu.co.kr?token=t')).toBe(win);
-    expect(open).toHaveBeenCalledWith('https://live.hrdeedu.co.kr?token=t', '_blank');
-    expect(win.opener).toBeNull();
-  });
-
   it('does not report a blocked popup after a successful entry; reports it when the browser really blocks it', async () => {
-    const open = specOpen({ opener: {} });
+    // the tab is opened inside the click, then pointed at the SSO address (LivePage start/launch)
+    const open = specOpen({ opener: {}, location: { replace: vi.fn() }, close: vi.fn() });
     vi.spyOn(window, 'open').mockImplementation(open);
     vi.stubGlobal('fetch', vi.fn(async (u: RequestInfo | URL) => {
       const url = String(u);

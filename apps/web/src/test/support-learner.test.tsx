@@ -207,17 +207,36 @@ describe('고객지원 learner pages', () => {
       enrollments: [{ studySeq: 1, lectureCode: 'L1', title: '라이브 특강', professor: '김강사', contentsTime: '1', lectureStart: '2026-10-01', lectureEnd: '2026-12-31', window: 'open', windowLabel: '이용 중' }],
       schedule: { available: false, reason: '라이브 일정·참여기록은 라이브 클래스 서버에 있습니다.' }, discussions: { available: false, reason: '토론방 게시판은 현재 데이터베이스에 없습니다.', items: [] } });
     routes['POST /support/live/entry'] = () => json({ launchUrl: 'https://live.hrdeedu.co.kr?token=abc', records: false, notice: 'x' });
-    const tab = { opener: {} as unknown };
-    const open = vi.fn(() => tab as Window);
+    // PC: the tab is opened inside the click (before the entry request), its opener cut, then pointed at the SSO address
+    const tab = { opener: {} as unknown, location: { replace: vi.fn() }, close: vi.fn() };
+    const open = vi.fn(() => tab as unknown as Window);
     vi.stubGlobal('open', open);
     mount(<LivePage />, '/live');
     expect(await screen.findByText('라이브 특강')).toBeInTheDocument();
     expect(screen.getByText('이용 중')).toBeInTheDocument();
     expect(screen.getByText('토론방 게시판은 현재 데이터베이스에 없습니다.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '입장하기' }));
-    // new tab without 'noopener' (that feature makes window.open return null → the page reported a blocked popup); opener cut instead
-    await waitFor(() => expect(open).toHaveBeenCalledWith('https://live.hrdeedu.co.kr?token=abc', '_blank'));
+    expect(open).toHaveBeenCalledWith('', '_blank');
     expect(tab.opener).toBeNull();
+    await waitFor(() => expect(tab.location.replace).toHaveBeenCalledWith('https://live.hrdeedu.co.kr?token=abc'));
     expect(screen.queryByText('새 창을 열지 못했습니다. 팝업 허용 상태를 확인한 뒤 다시 입장해 주세요.')).not.toBeInTheDocument();
+  });
+
+  it('토론방·라이브: a blocked tab says so without calling the entry; a failed entry closes the opened tab', async () => {
+    routes['GET /support/live'] = () => json({ liveClassUrl: 'https://live.hrdeedu.co.kr', entryAvailable: true, signedIn: true,
+      enrollments: [{ studySeq: 1, lectureCode: 'L1', title: '라이브 특강', professor: null, contentsTime: null, lectureStart: '2026-10-01', lectureEnd: '2026-12-31', window: 'open', windowLabel: '이용 중' }],
+      schedule: { available: false, reason: 'x' }, discussions: { available: false, reason: 'y', items: [] } });
+    routes['POST /support/live/entry'] = () => json({ error: { code: 'INTERNAL', message: 'x' } }, 503);
+    vi.stubGlobal('open', vi.fn(() => null));
+    mount(<LivePage />, '/live');
+    fireEvent.click(await screen.findByRole('button', { name: '입장하기' }));
+    expect(await screen.findByText('새 창을 열지 못했습니다. 팝업 허용 상태를 확인한 뒤 다시 입장해 주세요.')).toBeInTheDocument();
+    expect(calls.some((c) => c.method === 'POST')).toBe(false);
+    const tab = { opener: {} as unknown, location: { replace: vi.fn() }, close: vi.fn() };
+    vi.stubGlobal('open', vi.fn(() => tab as unknown as Window));
+    fireEvent.click(screen.getByRole('button', { name: '입장하기' }));
+    expect(await screen.findByText('라이브 클래스 연결 설정이 아직 완료되지 않았습니다. 라이브 클래스 사이트에서 직접 로그인해 주세요.')).toBeInTheDocument();
+    expect(tab.close).toHaveBeenCalled();
+    expect(tab.location.replace).not.toHaveBeenCalled();
   });
 });
