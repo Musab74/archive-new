@@ -17,6 +17,16 @@ import { formatDate } from '../../shared/utils/format';
 const WINDOW_TONE: Record<LiveEnrollment['window'], 'mint' | 'warm' | 'gray'> = { open: 'mint', before: 'warm', ended: 'gray' };
 
 /**
+ * header.html openLiveClass(): the Live Class opens in a new tab. `window.open(url, '_blank', 'noopener')` always returns null
+ * (HTML spec), which made the page report a blocked popup after every successful entry; open the tab, then drop its opener.
+ */
+export function openLiveTab(url: string): Window | null {
+  const w = window.open(url, '_blank');
+  if (w) { try { w.opener = null; } catch { /* already navigated cross-origin */ } }
+  return w;
+}
+
+/**
  * AR-16 토론방·라이브. The old site only had the header "Live Class" button (openLiveClass: login check, then
  * live.hrdeedu.co.kr?token=<SSO JWT> in a new tab). From MariaDB the page adds the learner's 실시간 강의실 enrolments with
  * their date window; live schedules/attendance (MongoDB) and discussion boards (no tables) are stated as not available.
@@ -29,7 +39,7 @@ export default function LivePage() {
   const liveUrl = overview.data?.liveClassUrl || config.links.liveClassUrl;
   const launch = useMutation({
     mutationFn: () => liveApi.entry(),
-    onSuccess: (r) => { const w = window.open(r.launchUrl, '_blank', 'noopener'); setNote(w ? null : copy.popupBlocked); },
+    onSuccess: (r) => { const w = openLiveTab(r.launchUrl); setNote(w ? null : copy.popupBlocked); },
     onError: (e) => setNote(isAppError(e) && e.isAuth ? copy.loginNeeded : isAppError(e) && e.status === 503 ? copy.notConfigured : copy.launchFail),
   });
   const enter = isAuthed

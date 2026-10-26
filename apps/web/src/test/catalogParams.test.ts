@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { activeFilterCount, parseCatalogParams, serializeCatalogParams, toApiQuery, topCategoryOf, aiDirectionOf, DEFAULT_CATALOG_PARAMS } from '../features/catalog/catalogParams';
+import { activeFilterCount, parseCatalogParams, serializeCatalogParams, toApiQuery, topCategoryOf, aiDirectionOf, CATALOG_TYPE_OPTIONS, DEFAULT_CATALOG_PARAMS } from '../features/catalog/catalogParams';
+import { contentType } from '../shared/strings/ko';
 
 describe('catalog URL params', () => {
   it('returns defaults for an empty query', () => {
@@ -44,6 +45,11 @@ describe('catalog URL params', () => {
     expect(toApiQuery({ ...DEFAULT_CATALOG_PARAMS, type: 'short' }).ctype).toBe('Y');
     expect(parseCatalogParams(new URLSearchParams('type=Z')).type).toBe('micro');
     expect(parseCatalogParams(new URLSearchParams('type=Y')).type).toBe('short');
+  });
+
+  it('labels each 콘텐츠 유형 filter option with its own ctype (the 숏폼 pill used to filter Z 마이크로러닝)', () => {
+    expect(CATALOG_TYPE_OPTIONS).toEqual([{ value: 'elearning', label: '이러닝' }, { value: 'micro', label: '마이크로러닝' }, { value: 'short', label: '숏폼' }]);
+    for (const o of CATALOG_TYPE_OPTIONS) expect(contentType[toApiQuery({ ...DEFAULT_CATALOG_PARAMS, type: o.value }).ctype!]).toBe(o.label);
   });
 
   it('keeps 검색 관련도순 only with a search text and accepts 찜한 콘텐츠순', () => {

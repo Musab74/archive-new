@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CourseCard } from '@ainex/contracts';
 import styles from './CatalogPage.module.css';
-import { activeFilterCount, CATALOG_PAGE_SIZE, DEFAULT_CATALOG_PARAMS, parseCatalogParams, serializeCatalogParams, toApiQuery, topCategoryOf, type CatalogParams } from './catalogParams';
+import { activeFilterCount, CATALOG_PAGE_SIZE, CATALOG_TYPE_OPTIONS, DEFAULT_CATALOG_PARAMS, parseCatalogParams, serializeCatalogParams, toApiQuery, topCategoryOf, type CatalogParams } from './catalogParams';
 import { catalogApi, type CoursePage } from '../../shared/api/endpoints/catalog';
 import { useSession } from '../../shared/auth/useSession';
 import { useToast } from '../../app/providers/ToastProvider';
@@ -17,13 +17,13 @@ import { FilterSidebar, FilterSheet, SelectedFilters, type FilterOption, type Fi
 import { ContentCard, ContentCardSkeleton } from '../../shared/ui/ContentCard';
 import { Pagination } from '../../shared/ui/Pagination';
 import { StateBlock } from '../../shared/ui/StateBlock';
-import { catalog as copy, competencies, contentType, jobFields, leadershipFields, aiZone, nav, content as contentCopy } from '../../shared/strings/ko';
+import { catalog as copy, competencies, jobFields, leadershipFields, aiZone, nav, content as contentCopy } from '../../shared/strings/ko';
 import { useDesign } from '../../shared/design/useDesign';
 import { qk } from '../my/queries';
 import { enrollmentApi } from '../../shared/api/endpoints/enrollment';
 import { formatDate } from '../../shared/utils/format';
 
-const TYPE_OPTIONS: FilterOption[] = [{ value: 'elearning', label: contentType.X! }, { value: 'micro', label: contentType.Y! }, { value: 'short', label: contentType.Z! }];
+const TYPE_OPTIONS: FilterOption[] = CATALOG_TYPE_OPTIONS;
 
 /** AR-03 콘텐츠 탐색·목록: q/competency/field/type/sort/page live in the URL; sidebar (PC) / sheet (mobile); grid + pagination; EMPTY/LIST_ERROR states. */
 export default function CatalogPage() {

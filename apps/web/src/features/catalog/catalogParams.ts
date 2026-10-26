@@ -1,6 +1,6 @@
 import type { AiDirection, CatalogQuery } from '@ainex/contracts';
 import type { Category } from '../../shared/api/schemas';
-import { aiZone, competencies, type CompetencyKey } from '../../shared/strings/ko';
+import { aiZone, competencies, contentType, type CompetencyKey } from '../../shared/strings/ko';
 
 export type CatalogSort = CatalogQuery['sort'];
 export type CatalogType = '' | 'elearning' | 'micro' | 'short';
@@ -24,6 +24,10 @@ const SORTS: CatalogSort[] = ['latest', 'popular', 'rating', 'title', 'relevance
 const COMPETENCIES = Object.keys(competencies) as CompetencyKey[];
 
 export const typeToCtype = (t: CatalogType): 'X' | 'Y' | 'Z' | undefined => (t ? TYPE_TO_CTYPE[t] : undefined);
+
+/** 콘텐츠 유형 filter options; each label is the ctype letter's label, so 마이크로러닝 filters Z and 숏폼 filters Y. */
+export const CATALOG_TYPE_OPTIONS: { value: Exclude<CatalogType, ''>; label: string }[] = (['elearning', 'micro', 'short'] as const)
+  .map((t) => ({ value: t, label: contentType[TYPE_TO_CTYPE[t]] ?? t }));
 export const ctypeToType = (c: string): CatalogType => (c === 'X' || c === 'Y' || c === 'Z' ? CTYPE_TO_TYPE[c] : '');
 
 /** URLSearchParams → typed, validated params (unknown values fall back to defaults). */
