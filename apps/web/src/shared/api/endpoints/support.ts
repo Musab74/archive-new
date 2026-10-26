@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CheatingReportCreateSchema, InquiryCreateSchema, StudyCounselCreateSchema } from '@ainex/contracts';
+import { CheatingReportCreateSchema, InquiryCreateSchema } from '@ainex/contracts';
 import { API_BASE, AppError, api, refreshAccessToken } from '../client';
 import { tokenStore } from '../../auth/tokenStore';
 import { pageOf } from '../schemas';
@@ -68,7 +68,6 @@ export const InquiryResultSchema = OkIdx.extend({ notified: z.boolean().optional
 
 export type InquiryCreate = z.input<typeof InquiryCreateSchema>;
 export type CheatingCreate = z.input<typeof CheatingReportCreateSchema>;
-export type StudyCounselCreate = z.input<typeof StudyCounselCreateSchema>;
 export interface CounselCreate { category: string; title: string; contents: string; studySeq?: number; captchaToken: string; captchaCode: string; file?: File | null }
 export interface ArchivingCreate { title: string; contents: string; file?: File | null }
 
@@ -125,7 +124,6 @@ export const supportApi = {
   createCounsel: (body: CounselCreate, idempotencyKey?: string) => api.post<z.infer<typeof OkIdx>>('/support/counsel',
     formOf({ category: body.category, title: body.title, contents: body.contents, studySeq: body.studySeq, captchaToken: body.captchaToken, captchaCode: body.captchaCode }, body.file), { schema: OkIdx, idempotencyKey }),
   /** 학습상담 「학습내용 질문하기」 (학습창). */
-  createStudyCounsel: (body: StudyCounselCreate, idempotencyKey?: string) => api.post<z.infer<typeof OkIdx>>('/support/study-counsel', StudyCounselCreateSchema.parse(body), { schema: OkIdx, idempotencyKey }),
 
   archivingList: (query: Q, signal?: AbortSignal) => api.get<{ items: ArchivingRow[]; page: number; size: number; total: number }>('/support/archiving', { query, schema: pageOf(ArchivingRowSchema), signal }),
   archiving: (idx: number | string, signal?: AbortSignal) => api.get<ArchivingDetail>(`/support/archiving/${idx}`, { schema: ArchivingDetailSchema, signal }),

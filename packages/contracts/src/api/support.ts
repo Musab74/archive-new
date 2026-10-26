@@ -45,15 +45,6 @@ export const CounselCreateSchema = CaptchaAnswerSchema.extend({
   studySeq: z.coerce.number().int().positive().optional(),
 });
 
-/** 학습상담 「학습내용 질문하기」 from the player (player/study_counsel_ok.php → Counsel with LectureCode + Contents_idx, no 보안코드). */
-export const StudyCounselCreateSchema = z.object({
-  category: z.enum(COUNSEL_CATEGORY_CODES, { errorMap: () => ({ message: '문의종류를 선택해 주세요.' }) }),
-  title: z.string().trim().min(1, '제목을 입력하세요.').max(250),
-  contents: z.string().trim().max(TEXT_MAX).default(''),
-  lectureCode: z.string().trim().min(1).max(50),
-  contentsIdx: z.coerce.number().int().positive(),
-});
-
 /** 부정행위 제보 (archive/etc/cheating_ok.php → Cheating). The PHP handler requires every field, the reporter's name/email/phone included. */
 export const CheatingReportCreateSchema = CaptchaAnswerSchema.extend({
   title: z.string().trim().min(1, '제목을 입력해주세요.').max(250),
