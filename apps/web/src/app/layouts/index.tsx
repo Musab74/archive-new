@@ -10,6 +10,7 @@ import { cx } from '../../shared/utils/format';
 import { Skeleton } from '../../shared/ui/Skeleton';
 import { HeaderChromeContext } from '../../shared/ui/headerChrome';
 import { SiteVisitCounter } from '../../features/admin/pages/site-cms/SiteVisitCounter';
+import { SiteChrome } from './SiteChrome';
 
 const ManagerShell = lazy(() => import('../../features/manager/ManagerShell'));
 const AdminShell = lazy(() => import('../../features/admin/pages/site/AdminShellParity'));
@@ -27,6 +28,7 @@ function Shell({ wide }: { wide?: boolean }) {
         </main>
         <Footer />
         <SiteVisitCounter />
+        <SiteChrome />
       </div>
     </HeaderChromeContext.Provider>
   );
@@ -70,6 +72,7 @@ export function MyRoomLayout() {
       </main>
       <Footer />
       <SiteVisitCounter />
+      <SiteChrome />
     </div>
   );
 }

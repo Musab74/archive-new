@@ -20,7 +20,7 @@ export function ContentTabs({ label, title, lead, aria, items, more, size = 8 }:
     queryFn: async ({ signal }): Promise<CourseCard[]> => {
       if (tab === 'top') return (await catalogApi.list(2, signal)).items.slice(0, size);
       if (tab === 'new') return (await catalogApi.list(3, signal)).items.slice(0, size);
-      if (tab === 'ai') return (await catalogApi.courses({ q: 'AI', size, sort: 'popular' }, signal)).items;
+      if (tab === 'ai') return (await catalogApi.courses({ ai: 'all', size, sort: 'popular' }, signal)).items; // the AI ZONE condition (aizone-content.php)
       return (await catalogApi.courses({ size, sort: 'popular' }, signal)).items;
     },
     staleTime: 5 * 60_000,

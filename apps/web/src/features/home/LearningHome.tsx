@@ -47,6 +47,7 @@ export default function LearningHome() {
   const enrollments = useEnrollments();
   const [tab, setTab] = useState('1');
   const list = useQuery({ queryKey: ['catalog', 'list', tab], queryFn: ({ signal }) => catalogApi.list(Number(tab), signal) });
+  const recs = useQuery({ queryKey: ['catalog', 'recommendations'], queryFn: ({ signal }) => catalogApi.recommendations(signal), staleTime: 5 * 60_000 });
 
   const sessionLost = [status, dashboard, enrollments].some((q) => q.isError && isAppError(q.error) && q.error.isAuth);
   const usage = useMemo(() => usageOf(status.data, enrollments.data?.items), [status.data, enrollments.data]);
@@ -95,6 +96,7 @@ export default function LearningHome() {
                   <>
                     <strong className={styles.ringBig}>{copy.remaining(ring.remaining ?? '')} <em>{copy.learning}</em></strong>
                     <p className={styles.ringNote}>{copy.totalNote(hm(s?.totalSeconds ?? 0))}</p>
+                    {s && s.carryoverSeconds > 0 ? <p className={styles.ringNote}>{copy.carryover(s.carryoverPeriodLabel ?? '', hm(s.carryoverSeconds))}</p> : null}
                   </>
                 )}
               </div>
@@ -191,7 +193,16 @@ export default function LearningHome() {
           </div>
         </div>
         <div className={styles.basis} aria-hidden="true"><span>{copy.basisAssessment}</span><span>{copy.basisSearch}</span><span>{copy.basisHistory}</span></div>
-        {dashboard.isPending ? <Skeleton height={120} /> : dashboard.isError ? (
+        {recs.data?.items.length ? (
+          <div className={styles.grid}>
+            {recs.data.items.slice(0, 3).map((c) => (
+              <div key={c.lectureCode} className={styles.recCard}>
+                <ContentCard course={c} />
+                <span className={styles.reason}><Icon name="spark" size={12} /> {c.reason}</span>
+              </div>
+            ))}
+          </div>
+        ) : dashboard.isPending || recs.isPending ? <Skeleton height={120} /> : dashboard.isError && recs.isError ? (
           <StateBlock code="LIST_ERROR" title={copy.recommendFailTitle} body={copy.recommendFailBody} actions={<><Button square size="sm" to="/catalog">{copy.browse}</Button><Button variant="secondary" square size="sm" onClick={() => void dashboard.refetch()}>{copy.recommendRetry}</Button></>} />
         ) : next.length === 0 ? (
           <StateBlock code="EMPTY" title={copy.recommendFailTitle} body={copy.recommendFailBody} actions={<><Button square size="sm" to="/catalog">{copy.browse}</Button><Button variant="secondary" square size="sm" to="/roadmap">{copy.roadmap}</Button></>} />

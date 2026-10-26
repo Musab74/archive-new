@@ -117,7 +117,7 @@ export function Header() {
   const menuColumns = megaMenu.map((col) => ({ ...col, items: col.items.filter((it) => !it.auth || isAuthed) })).filter((col) => col.items.length > 0);
   const roleLinks = [
     ...(user?.eduManager ? [{ label: nav.manager, to: '/manager' }] : []),
-    ...(isAuthed && user?.companyCode ? [{ label: nav.companyEdu, to: '/my/company' }] : []),
+    ...(isAuthed && user?.companyCode ? [{ label: nav.companyEdu, to: '/my/company-training' }] : []),
   ];
   const transparent = overlay && !scrolled && !menuOpen && !searchOpen;
   const loginHref = `/auth/login?next=${encodeURIComponent(location.pathname + location.search)}`;

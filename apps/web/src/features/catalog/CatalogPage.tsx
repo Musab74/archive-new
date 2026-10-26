@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CourseCard } from '@ainex/contracts';
 import styles from './CatalogPage.module.css';
-import { activeFilterCount, CATALOG_PAGE_SIZE, DEFAULT_CATALOG_PARAMS, parseCatalogParams, serializeCatalogParams, toApiQuery, type CatalogParams } from './catalogParams';
+import { activeFilterCount, CATALOG_PAGE_SIZE, DEFAULT_CATALOG_PARAMS, parseCatalogParams, serializeCatalogParams, toApiQuery, topCategoryOf, type CatalogParams } from './catalogParams';
 import { catalogApi, type CoursePage } from '../../shared/api/endpoints/catalog';
 import { useSession } from '../../shared/auth/useSession';
 import { useToast } from '../../app/providers/ToastProvider';
@@ -19,6 +19,9 @@ import { Pagination } from '../../shared/ui/Pagination';
 import { StateBlock } from '../../shared/ui/StateBlock';
 import { catalog as copy, competencies, contentType, jobFields, leadershipFields, aiZone, nav, content as contentCopy } from '../../shared/strings/ko';
 import { useDesign } from '../../shared/design/useDesign';
+import { qk } from '../my/queries';
+import { enrollmentApi } from '../../shared/api/endpoints/enrollment';
+import { formatDate } from '../../shared/utils/format';
 
 const TYPE_OPTIONS: FilterOption[] = [{ value: 'elearning', label: contentType.X! }, { value: 'micro', label: contentType.Y! }, { value: 'short', label: contentType.Z! }];
 
@@ -28,6 +31,7 @@ export default function CatalogPage() {
   const params = useMemo(() => parseCatalogParams(sp), [sp]);
   const { isAuthed } = useSession();
   const { config } = useDesign();
+  const enrollments = useQuery({ queryKey: qk.enrollments, queryFn: ({ signal }) => enrollmentApi.list(signal), enabled: isAuthed, retry: false });
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -61,7 +65,7 @@ export default function CatalogPage() {
   const fields: FilterOption[] = useMemo(() => {
     if (!params.competency) return [];
     const cats = categories.data?.items ?? [];
-    const top = cats.find((c) => !c.parentId && c.name.replace(/\s+/g, '') === competencies[params.competency as keyof typeof competencies].label.replace(/\s+/g, ''));
+    const top = topCategoryOf(cats, params.competency);
     const subs = top ? cats.filter((c) => c.parentId === top.id) : [];
     if (subs.length) return subs.map((c) => ({ value: c.name, label: c.name, count: c.count }));
     if (params.competency === 'job') return jobFields.map((f) => ({ value: f, label: f }));
@@ -81,8 +85,23 @@ export default function CatalogPage() {
   ];
 
   const data = list.data;
-  const sortOptions = [...copy.sorts, ...(params.q ? [{ value: 'relevance', label: copy.relevance }] : [])];
+  // 검색 관련도순 only with a search text; 찜한 콘텐츠순 only signed in (main/sections/tab-all.php OrderData 4)
+  const sortOptions = [...copy.sorts, ...(isAuthed ? [{ value: 'liked', label: copy.likedSort }] : []), ...(params.q ? [{ value: 'relevance', label: copy.relevance }] : [])];
   const crumbs = [{ label: isAuthed ? copy.crumbHome : nav.archive, to: isAuthed ? '/home' : '/' }, { label: copy.crumb }];
+  // AR-03 진입 상태: guests browse the public list; a signed-in learner without an active 이용건 sees why (기간 종료 / 시작 전 / 확인 실패)
+  const rows = enrollments.data?.items ?? [];
+  const active = rows.find((e) => e.state === 'ACTIVE') ?? null;
+  const usage = !isAuthed ? 'GUEST' : enrollments.isError ? 'ACCESS_ERROR' : enrollments.isSuccess && !active ? (rows.some((e) => e.state === 'BEFORE') ? 'BEFORE' : rows.length ? 'ENDED' : null) : null;
+  const st = copy.states;
+  const notice = usage === 'GUEST' ? (
+    <StateBlock code="GUEST" kicker={st.guest.kicker} title={st.guest.title} body={st.guest.body} actions={<Button size="sm" square to={`/auth/login?next=${encodeURIComponent('/catalog')}`}>{st.guest.action}</Button>} />
+  ) : usage === 'ENDED' || usage === 'BEFORE' ? (
+    <StateBlock code={usage} kicker={st[usage === 'ENDED' ? 'ended' : 'before'].kicker} title={st[usage === 'ENDED' ? 'ended' : 'before'].title} body={st[usage === 'ENDED' ? 'ended' : 'before'].body}
+      actions={<><Button size="sm" square to="/my/profile">{st.ended.action}</Button><Button variant="secondary" size="sm" square to="/support/guide">{st.support}</Button></>} />
+  ) : usage === 'ACCESS_ERROR' ? (
+    <StateBlock code="ACCESS_ERROR" kicker={st.accessError.kicker} title={st.accessError.title} body={st.accessError.body}
+      actions={<><Button size="sm" square onClick={() => void enrollments.refetch()}>{st.accessError.action}</Button><Button variant="secondary" size="sm" square to="/support/guide">{st.support}</Button></>} />
+  ) : null;
 
   return (
     <div>
@@ -94,10 +113,10 @@ export default function CatalogPage() {
             <p>{copy.lead}</p>
             {isAuthed ? (
               <div className={styles.scope}>
-                <TypeLabel small>{config.branding.siteName}</TypeLabel>
+                {active ? <><TypeLabel small tone={active.mode === 'NON_REFUND' ? 'mint' : 'navy'}>{active.mode === 'NON_REFUND' ? '비환급형' : '환급형'}</TypeLabel><span>{copy.scopePrefix} {formatDate(active.lectureStart)} ~ {formatDate(active.lectureEnd)}</span></> : <TypeLabel small>{config.branding.siteName}</TypeLabel>}
                 <Button variant="text" size="xs" to="/my/profile">{nav.myRoom} · 회원·이용정보</Button>
               </div>
-            ) : null}
+            ) : <p className={styles.scope}>{copy.publicNote}</p>}
           </div>
         </div>
         <SearchField key={params.q} id="catalog-q" size="lg" label={copy.searchLabel} placeholder={copy.searchPlaceholder} submitLabel={copy.search} clearLabel={nav.clearSearch}
@@ -120,6 +139,7 @@ export default function CatalogPage() {
             </div>
           </div>
           <SelectedFilters chips={chips} onClear={() => setSp(serializeCatalogParams(DEFAULT_CATALOG_PARAMS))} />
+          {notice}
 
           {list.isError ? (
             <StateBlock code="LIST_ERROR" center title={copy.error.title} body={copy.error.body} onRetry={() => void list.refetch()} />

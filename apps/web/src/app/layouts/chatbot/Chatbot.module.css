@@ -1,0 +1,39 @@
+/* 러비 (bottom right) and 코비 (bottom left) floating widgets — tokens only */
+.rubyRoot,.kobeRoot{position:fixed;bottom:20px;z-index:calc(var(--z-overlay) - 2)}
+.rubyRoot{right:20px}
+.kobeRoot{left:20px}
+.rubyToggle,.kobeToggle{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;border:0;cursor:pointer;font-weight:var(--fw-black);font-size:14px;line-height:1.1;box-shadow:var(--shadow-panel);transition:transform var(--dur-base) var(--ease-out)}
+.rubyToggle{background:var(--c-primary);color:#fff}
+.kobeToggle{background:var(--c-ink);color:var(--c-band-ink)}
+.kobeToggle small{font-size:11px;font-weight:var(--fw-bold);opacity:.85}
+.rubyToggle:hover,.kobeToggle:hover{transform:translateY(-2px)}
+.on{outline:3px solid color-mix(in srgb,var(--c-primary) 35%,transparent);outline-offset:2px}
+.rubyPanel,.kobePanel{position:absolute;bottom:72px;width:min(360px,calc(100vw - 40px));background:var(--c-paper);border:1px solid var(--c-line-2);border-radius:var(--r-md);box-shadow:var(--shadow-panel);display:flex;flex-direction:column;overflow:hidden}
+.rubyPanel{right:0;height:min(520px,calc(100dvh - 120px))}
+.kobePanel{left:0;max-height:min(460px,calc(100dvh - 120px))}
+.head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--c-ink);color:var(--c-band-ink);font-weight:var(--fw-bold);font-size:14px}
+.head button{border:0;background:transparent;color:inherit;font-size:22px;line-height:1;cursor:pointer;min-width:32px;min-height:32px}
+.messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--c-soft)}
+.quick{display:flex;flex-wrap:wrap;gap:6px}
+.quick button{border:1px solid var(--c-line);background:var(--c-paper);color:var(--c-ink);border-radius:var(--r-pill);padding:6px 12px;font-size:12px;cursor:pointer}
+.quick button:hover{border-color:var(--c-primary);color:var(--c-primary)}
+.msg{max-width:88%;border-radius:var(--r-md);padding:10px 12px;font-size:13px;line-height:1.7}
+.msg p{margin:0;white-space:pre-line}
+.bot{align-self:flex-start;background:var(--c-paper);border:1px solid var(--c-line-2);color:var(--c-text)}
+.user{align-self:flex-end;background:var(--c-primary);color:#fff}
+.links{margin-top:8px;font-size:12px}
+.links b{display:block;margin-bottom:4px;color:var(--c-ink)}
+.links ul{margin:0;padding-left:16px}
+.links a{color:var(--c-primary);text-decoration:underline}
+.loginLink{display:inline-block;margin-top:8px;font-size:12px;font-weight:var(--fw-bold);color:var(--c-primary)}
+.inputRow{display:flex;gap:8px;padding:10px;border-top:1px solid var(--c-line-2);background:var(--c-paper)}
+.inputRow input{flex:1;min-width:0;border:1px solid var(--c-line);border-radius:var(--r-sm);padding:9px 10px;font-size:14px;background:var(--c-paper);color:var(--c-ink)}
+.inputRow button{border:0;border-radius:var(--r-sm);background:var(--c-primary);color:#fff;font-weight:var(--fw-bold);padding:0 14px;cursor:pointer}
+.inputRow button:disabled{opacity:.5;cursor:default}
+.kobeBody{padding:14px;font-size:14px;line-height:1.75;color:var(--c-text);overflow-y:auto}
+.kobeBody p{margin:0 0 6px}
+.kobeCta{padding:0 14px 12px}
+.kobeCta a{display:block;text-align:center;background:var(--c-primary);color:#fff;border-radius:var(--r-sm);padding:10px 12px;font-weight:var(--fw-bold);font-size:13px}
+.kobeHint{margin:0;padding:10px 14px;border-top:1px solid var(--c-line-2);font-size:12px;color:var(--c-muted)}
+@media (max-width:768px){.rubyRoot{right:12px;bottom:12px}.kobeRoot{left:12px;bottom:12px}.rubyToggle,.kobeToggle{width:52px;height:52px;font-size:13px}}
+@media print{.rubyRoot,.kobeRoot{display:none}}

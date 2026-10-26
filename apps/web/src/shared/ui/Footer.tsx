@@ -25,6 +25,8 @@ export function Footer() {
   if (company.salesReportNumber) info.push({ label: copy.labels.salesReport, value: company.salesReportNumber });
   if (company.fax) info.push({ label: copy.labels.fax, value: company.fax });
   if (company.privacyManager) info.push({ label: copy.labels.privacyManager, value: company.privacyManager });
+  // archive/include/footer.html: 문의전화 · 이메일 (SiteInfomation.Email) — AR-01 '학습문의 …'
+  if (company.email) info.push({ label: copy.labels.email, value: company.email });
   if (company.address) info.push({ value: company.address });
   const copyright = company.copyright || `© ${year} ${company.companyName || config.branding.siteName}.`;
   const phone = company.phone || home.editorial.cta.phone;

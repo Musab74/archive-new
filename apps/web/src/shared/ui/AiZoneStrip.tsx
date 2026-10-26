@@ -23,7 +23,7 @@ export function AiZoneStrip() {
         <div className={styles.copy}>
           <span className={styles.mark}><Icon name="sparkles" size={15} />{copy.eyebrow}</span>
           <h2 id="home-ai-h" className={styles.title}>{copy.title}</h2>
-          <p className={styles.note}>{copy.heroLead}</p>
+          <p className={styles.note}>{copy.note}</p>
           <div className={styles.actions}>
             <Button variant="white" to="/catalog?competency=ai" iconRight={<Icon name="arrow" size={16} />}>{copy.viewContents}</Button>
             <Button variant="ghost" to="/ai-zone">{copy.cta}</Button>
