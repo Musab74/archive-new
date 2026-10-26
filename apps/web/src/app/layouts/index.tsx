@@ -54,6 +54,7 @@ const myNav = [
   { to: '/my/company-training', label: myCopy.nav.company },
   { to: '/live', label: myCopy.nav.live },
   { to: '/my/surveys', label: myCopy.nav.surveys },
+  { to: '/my/reviews', label: myCopy.nav.reviews },
   { to: '/my/tickets', label: myCopy.nav.tickets },
   { to: '/my/profile', label: myCopy.nav.profile },
 ];

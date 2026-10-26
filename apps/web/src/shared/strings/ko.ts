@@ -435,6 +435,7 @@ export const support = {
     { key: 'my', label: '내 문의', to: '/support/my' },
     { key: 'inquiry', label: '기업교육상담', to: '/support/inquiry/new' },
     { key: 'resources', label: '학습자료실', to: '/support/resources' },
+    { key: 'reviews', label: '수강후기', to: '/support/reviews' },
     { key: 'remote', label: 'PC 원격지원', to: '/support/remote' },
   ],
   contact: { phone: '1811-9530', hours: '고객센터 · 평일 09:00–18:00', email: '학습문의 hrde@hrdeedu.com', report: '의심사례 제보', account: '로그인·계정찾기' },
@@ -1412,7 +1413,7 @@ export const my = {
   crumb: '나의 학습실',
   nav: {
     legalEdu: '법정교육바로가기', legalEduUrl: 'https://www.hrdeedu.com/',
-    home: '나의 학습실 홈', records: '학습기록·이수내역', certificates: '수료증', saved: '찜한 콘텐츠', report: '학습결과보고서', ranking: '랭킹·뱃지', assessment: '역량진단', company: '기업자체교육', live: '토론방·라이브', surveys: '만족도조사', tickets: '내 문의', profile: '회원·이용정보',
+    home: '나의 학습실 홈', records: '학습기록·이수내역', certificates: '수료증', saved: '찜한 콘텐츠', report: '학습결과보고서', ranking: '랭킹·뱃지', assessment: '역량진단', company: '기업자체교육', live: '토론방·라이브', surveys: '만족도조사', reviews: '수강후기', tickets: '내 문의', profile: '회원·이용정보',
   },
   home: {
     title: (name: string) => `${name}님의 학습실`,

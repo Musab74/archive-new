@@ -59,7 +59,8 @@ function saveHref(href: string, fileName: string) {
 
 export interface HistoryQuery { tab: 'records' | 'completion'; page?: number; size?: number; q?: string; from?: string; to?: string }
 export interface Page<T> { items: T[]; page: number; size: number; total: number }
-export type ProfilePatch = { email?: string; mobile?: string; tel?: string; zipcode?: string; address01?: string; address02?: string; depart?: string; position?: string; etc01?: string };
+/** PATCH /members/me (strict): the mobile number is not editable — study identity checks compare against it (AR-18). */
+export type ProfilePatch = { email?: string; tel?: string; zipcode?: string; address01?: string; address02?: string; depart?: string; position?: string; etc01?: string };
 
 export const myRoomApi = {
   status: (signal?: AbortSignal) => api.get<MyStatus>('/my/status', { schema: MyStatusSchema, signal }),
