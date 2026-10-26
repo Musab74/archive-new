@@ -1,19 +1,11 @@
-import styles from './Legal.module.css';
 import { LegalDoc } from './LegalDoc';
+import { PRIVACY_EFFECTIVE, PRIVACY_LEAD, PRIVACY_SECTIONS } from './legalText';
 import { legal } from '../../shared/strings/ko';
 
+/**
+ * 개인정보처리방침 = public/etc/privacy.html (privacy_include.html, current version, with the 제3자 제공 / 수강확인 SMS / 마케팅
+ * consent texts at the end), plus the 법적고지 and 이메일무단수집거부 notes of AR-20 (the footer links to #legal / #email).
+ */
 export default function PrivacyPage() {
-  const t = legal.privacy.table;
-  return (
-    <LegalDoc docKey="privacy" title={legal.privacy.title} sections={legal.privacy.sections}
-      extra={
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <caption className="sr-only">개인정보 수집·이용 내역</caption>
-            <thead><tr>{t.head.map((h) => <th key={h} scope="col">{h}</th>)}</tr></thead>
-            <tbody>{t.rows.map((r) => <tr key={r[0]}>{r.map((c, i) => <td key={i}>{c}</td>)}</tr>)}</tbody>
-          </table>
-        </div>
-      } />
-  );
+  return <LegalDoc docKey="privacy" title={legal.privacy.title} lead={PRIVACY_LEAD} sections={[...PRIVACY_SECTIONS, ...legal.privacy.extra]} effectiveDate={PRIVACY_EFFECTIVE} />;
 }

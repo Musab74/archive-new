@@ -22,7 +22,8 @@ export const LoginResponseSchema = z.object({
   accessToken: z.string(),
   expiresIn: z.number().int(),
   user: LearnerSessionSchema,
-  next: z.enum(['terms', 'password', 'assessment-grant', 'pre-assessment', 'home']),
+  /** login_ok.php:69-88 order: terms → password → assessment-grant → pre-assessment → classroom (TestID='Y' → 나의 학습실) → home. */
+  next: z.enum(['terms', 'password', 'assessment-grant', 'pre-assessment', 'classroom', 'home']),
 });
 export type LoginResponse = z.infer<typeof LoginResponseSchema>;
 
