@@ -6,6 +6,7 @@ import { RequireRole } from './guards/RequireRole';
 import { DesignProvider } from './providers/DesignProvider';
 import { SessionProvider } from './providers/SessionProvider';
 import { ToastProvider } from './providers/ToastProvider';
+import { PlatformNotice } from './layouts/PlatformNotice';
 import { Skeleton } from '../shared/ui/Skeleton';
 import { StateBlock } from '../shared/ui/StateBlock';
 import { NotFoundPage } from './placeholders';
@@ -83,6 +84,7 @@ function Root() {
     <DesignProvider>
       <ToastProvider>
         <SessionProvider>
+          <PlatformNotice />
           <Outlet />
         </SessionProvider>
       </ToastProvider>

@@ -1971,6 +1971,11 @@ export const my = {
   },
 };
 
+export const platform = {
+  label: '시험 환경',
+  snapshot: (at: string) => `(데이터 기준 ${at})`,
+};
+
 export const live = {
   crumb: '토론방·라이브',
   eyebrow: '토론방·라이브',
