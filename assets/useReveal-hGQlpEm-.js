@@ -1,0 +1,1 @@
+import{A as a,C as r,D as i}from"./index-C3eB91Ok.js";import{u as n}from"./motion-xZBITAFn.js";function o(e={}){return{initial:"hidden",whileInView:"show",viewport:{once:!0,margin:e.margin??"0px 0px -40px 0px",amount:e.amount??.15},variants:a}}function d(){return{variants:n()?r:i}}export{d as a,o as u};

@@ -1,0 +1,1 @@
+import{V as r,a6 as l,a0 as n,a7 as s}from"./index-C3eB91Ok.js";const a={list:e=>r.get("/enrollments/me",{schema:n(s),signal:e}),current:e=>r.get("/enrollments/me/current",{schema:l,signal:e}),resolve:(e,t)=>r.get("/enrollments/resolve",{query:{lectureCode:e},signal:t})};export{a as e};

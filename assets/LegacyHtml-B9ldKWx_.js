@@ -1,0 +1,1 @@
+import{j as o}from"./query-C1gOTLdq.js";import{l as t,s as n}from"./legacyHtml-BN7HJqC3.js";const i="_body_g5qwr_1",r={body:i};function y({html:e,className:s}){return e?t(e)?o.jsx("div",{className:`${r.body} ${s??""}`,dangerouslySetInnerHTML:{__html:n(e)}}):o.jsx("p",{className:`${r.body} ${s??""}`,style:{whiteSpace:"pre-line"},children:e}):null}export{y as L};
